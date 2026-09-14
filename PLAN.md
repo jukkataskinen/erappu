@@ -36,13 +36,14 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] RLS-testit (hallitus näkee yhtiön pyynnöt, asukas vain omansa, palveluntuottaja vain linkin kautta)
 
 ## M2 HTJ ja korjaukset
-- [ ] HTJ-asiakas: rajapinta, mock (kuvitteelliset yhtiöt), mTLS-asiakasrunko MML:n kuvauksen mukaan
-- [ ] Synkronointi: haku, vertailuraportti rekisteriin, hyväksyntä, omistajanvaihdokset ja portaalioikeudet
-- [ ] HTJ2-ilmoitusjono: vastikkeet, lainat ja lainaosuudet, KuMu, KPTS (hyväksyntä ennen lähetystä)
-- [ ] HTJ2-yhteenveto yhtiöittäin käsin ilmoittamista varten (tulostettava) ja ilmoitusvelvollisuuden päättely
-- [ ] Korjaukset-välilehti: kunnossapito- ja muutostyöhistoria, KPTS 5 vuotta
-- [ ] Muutostyöilmoitukset: portaalista osakkaalta, käsittely, valmistuminen historiaan
-- [ ] Widgetit ja testit
+- [x] HTJ-asiakas: rajapinta, mock (kuvitteelliset yhtiöt), mTLS-asiakasrunko MML:n kuvauksen mukaan
+- [x] Synkronointi: haku, vertailuraportti rekisteriin, hyväksyntä, omistajanvaihdokset ja portaalioikeudet
+- [x] HTJ2-ilmoitusjono: vastikkeet, lainat ja lainaosuudet, KuMu, KPTS (hyväksyntä ennen lähetystä)
+- [x] HTJ2-yhteenveto yhtiöittäin käsin ilmoittamista varten (tulostettava) ja ilmoitusvelvollisuuden päättely
+- [x] Korjaukset-välilehti: kunnossapito- ja muutostyöhistoria, KPTS 5 vuotta
+- [x] Muutostyöilmoitukset: portaalista osakkaalta, käsittely, valmistuminen historiaan
+- [x] Widgetit ja testit
+- [~] Oikeat MML-polut, JSON-skeemat ja työlajikoodisto `src/lib/htj/mml.ts`:ään ja `src/lib/maintenance/work-types.ts`:ään (`TODO(MML-skeema)`, `TODO(MML-koodisto)`) – BLOCKERS 1
 
 ## M3 Talous
 - [ ] Vastikeperusteet: historia, voimassa oleva peruste, muutos päätöksellä
