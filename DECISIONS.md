@@ -119,3 +119,28 @@
 **Kulutuslukemat jaksoina, kuukausille päivien suhteessa.** Laskut eivät osu kalenterikuukausiin. MWh muunnetaan kWh:ksi vertailussa. Kesken olevaa vuotta verrataan edellisen vuoden samoihin kuukausiin. CSV-tuonti on kaikki tai ei mitään; sama yhtiö, laji ja jakso päivitetään, jotta tuonnin voi ajaa uudelleen. Kulutus m² kohden asuin- ja liikehuoneistojen pinta-alasta.
 
 **Kulutus-sivulla ei ole omaa navigaatiolinkkiä** (nav.ts on yhteinen); se linkitetään vuosikellosta ja sopimuksista.
+## 2026-09-15 M2 HTJ ja korjaukset
+
+**HTJ:n sisäinen tietomalli ja adapteri** (`src/lib/htj/types.ts`, `client.ts`, `mml.ts`). MML:n polkuja ja JSON-skeemoja ei ole saatavilla, joten sovellus käyttää vain omia tyyppejä ja `mml.ts` muuntaa vastaukset. Arvaukset on merkitty `TODO(MML-skeema)`. `HTJ_MODE=mml` ilman varmennetta on konfiguraatiovirhe eikä putoa jäljitelmään, jotta tuotannossa ei koskaan verrata rekisteriä kuvitteelliseen dataan.
+
+**Mitään ei kirjoiteta rekisteriin ilman hyväksyntää.** Haku tallentaa erot (`er_htj_diffs`), ja hyväksyntä kirjoittaa ne. Ensimmäisessä vertailussa myös täsmäävät rivit tulevat erona ("merkitään HTJ-peräiseksi"), koska vasta hyväksyntä asettaa `source='htj'` ja `htj_id`. Uusi haku merkitsee käsittelemättömät erot tilaan `superseded` (lisätty tehtävänannon tilojen lisäksi).
+
+**Hyväksyttävä erä on yksi transaktio.** Erot kirjoitetaan järjestyksessä: päättyvät omistukset, poistuvat osakeryhmät, muutokset, uudet. Muuttuvat osakevälit poistetaan ensin kaikilta, jotta välien vaihto kahden osakeryhmän kesken ei kaadu päällekkäisyyden estoon. Jos yksi ero ei mene läpi, mitään ei kirjoiteta ja virhe nimeää eron.
+
+**Omistajanvaihdos on kaksi eroa** (vanha päättyy, uusi alkaa). Päättyvän omistuksen `ends_on` on edellinen päivä, ja samalla päättyy omistajan asuminen huoneistossa (`role='owner'`), vuokralaisen ei. Omistajat yhdistetään omistusmerkinnän tunnisteella, omistajan HTJ-viitteellä (`er_parties.htj_id`) ja lopuksi nimellä (järjestys ja kirjainkoko eivät ratkaise).
+
+**Henkilötunnusta eikä syntymäaikaa tallenneta.** Omistajat haetaan aina suppealla haulla, ja `stripPersonalIds` poistaa tunnuksen jo rajapintakerroksessa. Syntymäaikaa ei kopioida eroihin eikä `er_party_identifiers`-tauluun, koska tässä moduulissa sitä ei tarvita; portaalitunnistus voi hakea sen myöhemmin. Uudelle osapuolelle tallennetaan VTJ-osoite, ellei henkilöllä ole turvakieltoa; olemassa olevan osapuolen yhteystietoja ei korvata.
+
+**Hakuloki `er_htj_requests`** sisältää operaation, Y-tunnuksen, suppea/laaja, tarkoituksen, lopputuloksen ja rivimäärän, ei vastauksen sisältöä. Loki kirjoitetaan samaan transaktioon kuin synkronointi; HTJ-virhe merkitsee synkronoinnin virheeksi ilman poikkeusta, jolloin lokirivi säilyy. Lokia lukevat vain pääkäyttäjä ja isännöitsijä, eikä sitä voi muuttaa käyttäjäroolilla.
+
+**Roolit kannassa:** haku ja erojen hyväksyntä vain `owner`/`manager`; HTJ2-ilmoituksen luonnos myös `accountant`/`assistant`, mutta hyväksyntä, lähetys ja käsin tehdyksi merkitseminen vain `owner`/`manager` (RLS-politiikat `prepare_*` ja `manager_all`, lisäksi check `status = 'draft' or approved_by is not null`).
+
+**HTJ2-velvollisuus:** huoneistoiksi lasketaan asuin- ja liikehuoneistot. Laina on jaettava, jos `allocated` ja saldo > 0 tai tuntematon (varmuuden vuoksi). KPTS-ikkuna on kuluva vuosi + 5. Ilmoitusten kokonaistila: avoin luonnos → "Luonnos", muuten viimeisin rivi ratkaisee ("Lähetetty" / "Merkitty käsin tehdyksi" / "Hylätty"); uudet ilmoittamattomat rivit näytetään erikseen.
+
+**"Merkitse ilmoitetuksi käsin"** tekee jokaisesta lajista, jossa oli ilmoittamattomia rivejä, jonoon rivin `manual_done` (sisältönä ilmoitetut rivit) ja asettaa riveille `htj_submitted_at`. Näin jäljistä näkyy, mitä ilmoitettiin ja kuka merkitsi. Muokattu kunnossapitotyö ja siirretty KPTS-rivi menettävät merkinnän ja ilmoitetaan uudelleen.
+
+**Muutostyöilmoituksen viesti isännöitsijälle** lisätään SECURITY DEFINER -funktiolla `er_notify_renovation_notice` (0021) samassa transaktiossa kuin ilmoitus, koska osakas ei näe isännöitsijän osoitetta eikä voi kirjoittaa viestijonoon. Funktio hyväksyy vain kutsujan oman ilmoituksen, lisää viestin kerran, eikä viestissä ole osakkaan henkilötietoja. Vastaanottaja on vastuuisännöitsijä tai, jos sitä ei ole, organisaation pääkäyttäjät ja isännöitsijät. Käsittelyn tilamuutoksista ilmoittaja saa viestin osapuolen sähköpostiin.
+
+**Muutostyön valmistuminen** luo kunnossapitotyön (`performed_by='shareholder'`, `source='renovation_notice'`), ja KPTS-rivin valmistuminen yhtiön työn. Tuntematon työlaji kirjataan "Muu". Työlajiluettelo (`work-types.ts`) on HTJ-yhteensopivaksi tarkoitettu, koodit täydennetään koodiston tultua.
+
+**Muutostietojen yöajo** (`/api/cron/htj`, `Authorization: Bearer CRON_SECRET`) hakee muutokset organisaatioittain edellisestä onnistuneesta ajosta ja tekee muuttuneille yhtiöille uuden vertailun. Erot jäävät hyväksyttäviksi eikä niitä kirjoiteta automaattisesti (suunnitelman "HTJ voittaa" toteutuu hyväksynnän kautta). Mukana vain yhtiöt, joiden alkulataus on tehty.
