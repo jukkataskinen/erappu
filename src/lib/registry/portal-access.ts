@@ -23,7 +23,7 @@ export async function syncPortalAccessForGroup(tx: Sql, shareGroupId: string): P
          where g.id = $1 and p.user_id is not null and (r.ends_on is null or r.ends_on >= current_date)
       ),
       ended as (
-        update er_portal_access a set ends_on = current_date
+        update er_portal_access a set ends_on = current_date - 1
          where a.share_group_id = $1 and a.ends_on is null
            and not exists (select 1 from desired d where d.user_id = a.user_id and d.basis = a.basis)
         returning a.id
@@ -43,7 +43,7 @@ export async function syncPortalAccessForBoard(tx: Sql, companyId: string): Prom
          where b.company_id = $1 and p.user_id is not null and b.starts_on <= current_date and (b.ends_on is null or b.ends_on >= current_date)
       ),
       ended as (
-        update er_portal_access a set ends_on = current_date
+        update er_portal_access a set ends_on = current_date - 1
          where a.company_id = $1 and a.role = 'board' and a.ends_on is null
            and not exists (select 1 from desired d where d.user_id = a.user_id and d.basis = a.basis)
         returning a.id

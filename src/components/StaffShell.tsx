@@ -27,6 +27,17 @@ export function StaffShell({ ctx, children }: { ctx: StaffContext; children: Rea
             Kirjaudu ulos
           </a>
         </div>
+        <form action="/haku" role="search" className="px-3 pb-2">
+          <label htmlFor="nav-search" className="sr-only">
+            Hae
+          </label>
+          <input
+            id="nav-search"
+            name="q"
+            placeholder="Hae yhtiö, huoneisto tai henkilö"
+            className="min-h-10 w-full rounded-xl border border-line bg-cloud/60 px-3 text-sm placeholder:text-ink/45 focus:border-sky focus:bg-paper focus:outline-none"
+          />
+        </form>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-0" aria-label="Päävalikko">
           {items.map((item) => (
             <NavLink key={item.href} href={item.href}>

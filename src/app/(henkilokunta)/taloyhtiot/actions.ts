@@ -7,7 +7,7 @@ import { requireStaff } from "@/lib/auth/current-user";
 import { audit } from "@/lib/audit";
 import { emptyToNull, fail, isExclusionViolation, isUniqueViolation, parseForm } from "@/lib/forms";
 import { parseShareRanges } from "@/lib/registry/share-ranges";
-import { syncPortalAccessForGroup } from "@/lib/registry/portal-access";
+import { syncPortalAccessForBoard, syncPortalAccessForGroup } from "@/lib/registry/portal-access";
 import { isValidBusinessId, isValidPostalCode, normalizeBusinessId } from "@/lib/validation/finnish";
 import { REDEMPTION_CLAUSE } from "@/lib/registry/labels";
 
@@ -223,6 +223,7 @@ export async function addPartyToShareGroup(formData: FormData) {
         [group.organization_id, groupId, party.id, data.role, data.starts_on],
       );
     }
+    await syncPortalAccessForGroup(tx, groupId);
     await audit(tx, { organizationId: group.organization_id, userId: ctx.user.id, action: "create", entity: data.relation, entityId: groupId });
   });
   revalidatePath(back);
@@ -280,6 +281,7 @@ export async function addBoardMember(formData: FormData) {
       "insert into er_board_memberships (organization_id, company_id, party_id, role, starts_on, ends_on) values ($1,$2,$3,$4,$5,$6)",
       [company.organization_id, companyId, partyId, data.role, data.starts_on, data.ends_on],
     );
+    await syncPortalAccessForBoard(tx, companyId);
     await audit(tx, { organizationId: company.organization_id, userId: ctx.user.id, action: "create", entity: "board_membership", entityId: companyId });
   });
   revalidatePath(back);
@@ -296,7 +298,10 @@ export async function endBoardMembership(formData: FormData) {
       "update er_board_memberships set ends_on = current_date where id = $1 and company_id = $2 and (ends_on is null or ends_on > current_date) returning organization_id",
       [id, companyId],
     );
-    if (rows.length) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "end", entity: "board_membership", entityId: id });
+    if (rows.length) {
+      await syncPortalAccessForBoard(tx, companyId);
+      await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "end", entity: "board_membership", entityId: id });
+    }
   });
   revalidatePath(back);
   redirect(back);
