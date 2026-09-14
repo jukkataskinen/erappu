@@ -76,12 +76,12 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] Widgetit ja testit
 
 ## M7 Asetukset ja portaali
-- [ ] Henkilökunnan käyttäjät ja kutsut
-- [ ] Portaalikutsut osakkaille ja asukkaille, kutsun hyväksyntä `/kutsu/[token]` ja osapuoleen liittäminen
-- [ ] Portaalin "Oma huoneisto" -sivu
-- [ ] Organisaation asetukset
-- [ ] Tapahtumaloki-näkymä
-- [ ] Testit
+- [x] Henkilökunnan käyttäjät ja kutsut
+- [x] Portaalikutsut osakkaille ja asukkaille, kutsun hyväksyntä `/kutsu/[token]` ja osapuoleen liittäminen
+- [x] Portaalin "Oma huoneisto" -sivu
+- [x] Organisaation asetukset
+- [x] Tapahtumaloki-näkymä
+- [x] Testit
 
 ## Myöhemmin (vaatii Jukan päätöksen tai ulkoisen sopimuksen)
 - [~] Oikea HTJ-rajapinta (MML-sopimus, varmenne) – BLOCKERS 1

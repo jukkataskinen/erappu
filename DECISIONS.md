@@ -17,3 +17,23 @@
 **Moduulien nostot `src/widgets/<moduuli>.tsx`-tiedostoissa**, jotta rinnakkain rakennettavat moduulit eivät muokkaa samaa työpöytä- tai etusivutiedostoa.
 
 **Lomakevirheet `?virhe=`-parametrilla** ilman lomakkeen sisältöä, jotta henkilötietoa ei päädy osoiteriville tai lokeihin.
+
+## 2026-09-15 M7 Asetukset ja portaali
+
+**Kutsu sidotaan sähköpostiin, ei pelkkään linkkiin.** Token (256 bittiä, kantaan vain sha256, 14 pv, kertakäyttöinen, peruttava) ei yksin riitä: kirjautuneen käyttäjän sähköpostin on vastattava kutsua kirjainkoosta riippumatta (Auth0:ssa vain vahvistettu osoite, kehityksessä er_users.email). Siksi viestijonoon (er_outbound_messages.body) jäävä linkki ei avaa oikeuksia, vaikka henkilökunta näkee jonon. Viestirungon tyhjennys lähetyksen jälkeen kannattaa silti tehdä viestintämoduulissa.
+
+**er_invitations laajennettiin migraatiolla 0070** (party_id, company_id, revoked_at, accepted_by, last_sent_at) ja muotorajoitteella: henkilökuntakutsussa organisaatiorooli, portaalikutsussa osapuoli ja yhtiö. Uudelleenlähetys vaihtaa saman rivin tokenin, jolloin vanha linkki lakkaa toimimasta. Samalle osoitteelle/osapuolelle jää voimaan vain uusin kutsu.
+
+**Pääkäyttäjäksi voi kutsua vain pääkäyttäjä,** ja tämä on myös rajoittavana RLS-politiikkana, koska muuten isännöitsijä voisi korottaa itsensä toisella tunnuksella. **Viimeistä pääkäyttäjää ei voi poistaa eikä alentaa** (trigger er_protect_last_owner + tarkistus sovelluksessa); organisaation poisto cascade-ketjussa sallitaan.
+
+**Jäsenten roolit, poistot ja organisaation tiedot muuttaa vain pääkäyttäjä** olemassa olevan RLS:n mukaisesti (members_owner_write, org_owner_update). Isännöitsijä näkee asetukset, kutsuu henkilökuntaa (paitsi pääkäyttäjiä) ja portaalikäyttäjiä sekä näkee lokin. Muille rooleille /asetukset on 404.
+
+**Organisaation yhteystiedot ja todistushinnat settings-jsonb:ssä** avaimilla `contact.{phone,email,street_address,postal_code,city}` ja `certificate_prices.{standard_eur,express_eur}` (M5 lukee). Päivitys yhdistää (`||`), jotta muiden moduulien avaimet säilyvät.
+
+**Portaalin isännöitsijätiedot palvelun roolilla.** Portaalikäyttäjä ei näe er_users- eikä er_organizations-rivejä. Kysely rajataan käyttäjän voimassa oleviin er_portal_access-yhtiöihin (käyttäjä istunnosta) ja palauttaa vain vastuuisännöitsijän nimen, sähköpostin ja puhelimen sekä isännöintiyrityksen nimen ja yhteystiedot, jotka ovat osakkaille kuuluvia tietoja.
+
+**Sähköisen kokouskutsun suostumus palvelun roolilla, rajattuna.** Portaalikäyttäjälle ei anneta er_parties-kirjoitusoikeutta (muuten hän voisi muuttaa nimeä tai käyttäjäliitosta). Päivitys koskee vain rivejä, joiden user_id on istunnon käyttäjä, ja vain yhtä saraketta; audit-lokiin. Osakevälit näytetään /portaali/oma-sivulla vain omistajalle, vaikka RLS sallii ne myös asukkaalle.
+
+**Tapahtumalokin näkymä ei hae details-kenttää** lainkaan, ja suodattimet hyväksyvät vain tunnisteen muotoiset arvot. **Integraationäkymä lukee vain tilamuuttujat** eikä kaiuta tuntematonta arvoa (väärin asetettu avain tilamuuttujassa ei päädy näkyviin).
+
+**Portaalikutsun nappi on client-komponentti (useActionState),** jotta rekisterisivujen muutos pysyy pienenä eikä sivujen tarvitse lukea uusia URL-parametreja.
