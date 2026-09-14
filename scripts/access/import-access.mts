@@ -86,7 +86,7 @@ await db.asService(async (tx: Sql) => {
   const unitIds = new Map<string, string>(); // `${accessCompanyId}:${Kenttä1}` → share_group_id
   const unitByLabel = new Map<string, string>(); // `${accessCompanyId}:${label}`
   const unitByAccessId = new Map<number, string>();
-  let totals = { units: 0, ranges: 0, rangeIssues: 0, owners: 0, parties: 0, residents: 0, charges: 0, loans: 0, works: 0, needs: 0, docs: 0 };
+  const totals = { units: 0, ranges: 0, rangeIssues: 0, owners: 0, parties: 0, residents: 0, charges: 0, loans: 0, works: 0, needs: 0, docs: 0 };
 
   for (const c of data.companies) {
     const accessId = Number(c.ID);
