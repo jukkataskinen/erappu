@@ -7,6 +7,7 @@ import { formatDate, formatFraction } from "@/lib/format";
 import { listBuildings } from "@/lib/registry/queries";
 import { SOURCE } from "@/lib/registry/labels";
 import type { ShareRange } from "@/lib/registry/share-ranges";
+import { InvitePartyButton } from "@/components/invitations/InvitePartyButton";
 import { ShareGroupForm } from "../ShareGroupForm";
 import { addPartyToShareGroup, endRelation } from "../../../actions";
 
@@ -64,6 +65,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
   if (!data) notFound();
   const { group, owners, residents, buildings } = data;
   const canWrite = ctx.can("owner", "manager", "assistant");
+  const canInvite = ctx.can("owner", "manager");
   const shareSum = owners.reduce((s, o) => s + (o.share_numerator ?? 1) / (o.share_denominator ?? 1), 0);
 
   return (
@@ -106,6 +108,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {o.has_portal ? <Badge tone="info">Portaalissa</Badge> : null}
+                    {canInvite ? <InvitePartyButton partyId={o.party_id} companyId={id} role="owner" hasEmail={!!o.email} hasPortal={o.has_portal} /> : null}
                     {canWrite && o.source !== "htj" ? (
                       <form action={endRelation}>
                         <input type="hidden" name="company_id" value={id} />
@@ -134,15 +137,19 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                     </p>
                     <p className="text-sm text-ink/60">{[r.email, r.phone].filter(Boolean).join(" · ") || "Ei yhteystietoja"}</p>
                   </div>
-                  {canWrite ? (
-                    <form action={endRelation}>
-                      <input type="hidden" name="company_id" value={id} />
-                      <input type="hidden" name="share_group_id" value={gid} />
-                      <input type="hidden" name="relation" value="residency" />
-                      <input type="hidden" name="id" value={r.id} />
-                      <button className="text-xs text-coral">Päätä asuminen</button>
-                    </form>
-                  ) : null}
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {r.has_portal ? <Badge tone="info">Portaalissa</Badge> : null}
+                    {canInvite ? <InvitePartyButton partyId={r.party_id} companyId={id} role="resident" hasEmail={!!r.email} hasPortal={r.has_portal} /> : null}
+                    {canWrite ? (
+                      <form action={endRelation}>
+                        <input type="hidden" name="company_id" value={id} />
+                        <input type="hidden" name="share_group_id" value={gid} />
+                        <input type="hidden" name="relation" value="residency" />
+                        <input type="hidden" name="id" value={r.id} />
+                        <button className="text-xs text-coral">Päätä asuminen</button>
+                      </form>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

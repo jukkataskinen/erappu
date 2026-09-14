@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate } from "@/lib/format";
 import { listBoard, listOwners } from "@/lib/registry/queries";
 import { BOARD_ROLE } from "@/lib/registry/labels";
+import { InvitePartyButton } from "@/components/invitations/InvitePartyButton";
 import { addBoardMember, endBoardMembership } from "../../actions";
 
 export const metadata = { title: "Hallitus" };
@@ -19,6 +20,7 @@ export default async function BoardPage({ params, searchParams }: { params: Prom
   const past = board.filter((b) => !current.includes(b));
   const ownerOptions = [...new Map(owners.map((o) => [o.party_id, o.display_name])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi"));
   const canWrite = ctx.can("owner", "manager", "assistant");
+  const canInvite = ctx.can("owner", "manager");
 
   return (
     <>
@@ -51,13 +53,16 @@ export default async function BoardPage({ params, searchParams }: { params: Prom
                     </Td>
                     <Td>{[b.email, b.phone].filter(Boolean).join(" · ") || "–"}</Td>
                     <Td>
-                      {canWrite ? (
-                        <form action={endBoardMembership}>
-                          <input type="hidden" name="company_id" value={id} />
-                          <input type="hidden" name="id" value={b.id} />
-                          <button className="text-xs text-coral">Päätä</button>
-                        </form>
-                      ) : null}
+                      <div className="flex flex-col items-end gap-1">
+                        {canInvite ? <InvitePartyButton partyId={b.party_id} companyId={id} role="board" hasEmail={!!b.email} /> : null}
+                        {canWrite ? (
+                          <form action={endBoardMembership}>
+                            <input type="hidden" name="company_id" value={id} />
+                            <input type="hidden" name="id" value={b.id} />
+                            <button className="text-xs text-coral">Päätä</button>
+                          </form>
+                        ) : null}
+                      </div>
                     </Td>
                   </tr>
                 ))}
