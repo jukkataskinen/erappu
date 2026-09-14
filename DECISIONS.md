@@ -77,3 +77,26 @@
 **Ilmoitukset lyhyinä.** Viestissä on numero, aihe, yhtiö, tila ja linkki, ei pyynnön kuvausta eikä henkilötietoja. Ilmoittajan omasta toiminnosta ei ilmoiteta. Portaalin ilmoittajan sähköposti tallennetaan pyyntöön luontihetkellä, koska henkilökunta ei näe portaalikäyttäjän käyttäjäriviä. Julkisella lomakkeella vesivahinko merkitään kiireelliseksi automaattisesti.
 
 **Hallitus näkee yhtiön pyynnöt ilman ilmoittajan yhteystietoja.** RLS antaa rivin, mutta portaalinäkymä ei näytä ilmoittajan nimeä, puhelinta tai sähköpostia muille kuin henkilökunnalle.
+## 2026-09-15 M3 Talous
+
+**Rahat kokonaisluvuilla.** Kanta palauttaa numeric-arvot tekstinä, ja laskenta tehdään BigInt-kokonaisluvuilla (hinta 10^4, määrä 10^4, summa sentteinä). Pyöristys senttiin tehdään vasta rivin lopuksi, puoli poispäin nollasta. Liukuluvuilla kuukausittain toistuvan laskun senttivirheet kertautuisivat.
+
+**Viitteen järjestysnumero erillisessä taulussa `er_billing_unit_numbers`.** Numero jaetaan ensimmäisellä laskutusajolla tai maksutilanteen tuonnilla huoneistotunnusten luonnollisessa järjestyksessä (A 2 ennen A 10), ja myöhemmin lisätyt osakeryhmät saavat numerot suurimman käytetyn jälkeen. Aukkoja ei täytetä, jotta poistetun huoneiston viitteellä tuleva suoritus ei kohdistu toiseen huoneistoon. Erillinen taulu, koska rekisteritauluja ei muokata talouden roolilla eikä numero saa muuttua tunnuksen muuttuessa. Yhtiön numero (`er_company_billing_settings.company_number`) on uniikki organisaatiossa.
+
+**Ensisijainen maksaja** on kauden ensimmäisenä päivänä voimassa olevista omistajista suurimman osuuden haltija (murtoluvut verrataan ristiin kertomalla), tasatilanteessa nimen mukaan aakkosjärjestyksessä ensimmäinen. Jos omistajaa ei ole, rivi syntyy ilman maksajaa ja ajoon tulee varoitus.
+
+**Vastikeperusteen vaihtuminen kesken kuukauden** laskutetaan päivien suhteessa kahtena rivinä (vanha ja uusi hinta). Uusi peruste päättää saman vastikkeen (sama laji ja samat huoneistotyypit) edellisen perusteen alkupäivää edeltävään päivään; samana päivänä tai myöhemmin alkava peruste estää lisäyksen.
+
+**Perusteiden määrät:** `area_m2` = huoneiston pinta-ala, `share` = osakemäärä, `unit` ja `fixed` = 1 kpl/kk osakeryhmää kohden, `person` = kauden alussa voimassa olevien asukkaiden määrä. `meter`-perusteista ei lasketa rivejä, koska mittarilukemia ei ole; ajoon tulee varoitus.
+
+**Rahoitusvastike lainaosuudesta** (valinnainen ajokohtainen valinta) lasketaan tasalyhenteisenä ilman korkoa: jäljellä oleva osuus / kuukaudet lainan eräpäivään. Pankin maksuohjelma ja korko eivät ole eRapussa. Tavallisesti rahoitusvastike on vastikeperuste €/osake/kk, jolloin valintaa ei käytetä.
+
+**Lainaosuuslaskelma:** osuus pyöristetään alaspäin senttiin ja jäännössentit annetaan yksi kerrallaan suurimmille osakeryhmille (tasatilanteessa tunnuksen järjestyksessä), jolloin osuudet summautuvat täsmälleen lainaan. Alkuperäinen osuus jaetaan pääomasta kaikille, jäljellä oleva saldosta niille, joilla ei ole kertasuoritusta. Kertasuorituksen rivejä ei lasketa uudelleen.
+
+**Hallitus ei näe osakaskohtaista maksutilannetta eikä laskutusrivejä.** RLS: hallitus lukee hyväksytyt ajot (totals-kentässä vain summat ja huoneistotunnuksin varoitukset, ei nimiä) ja maksutilanteen summat security definer -funktiolla `er_board_payment_summary`. Osakas (rooli owner, ei asukas) lukee oman osakeryhmänsä rivit vasta hyväksytystä ajosta ja oman maksutilanteensa; kauden päivät funktiolla `er_portal_billing_run_periods`.
+
+**Oikeudet:** talouden kirjoitukset kaikille henkilökunnan rooleille kuten 0004:ssä (kirjanpitäjä tekee talouden toimenpiteet). Laskutusajon hyväksyy owner, manager tai accountant, ei assistentti. Kirjanpitoon viety ajo ei ole peruttavissa, vaan korjataan hyvityksellä kirjanpidossa.
+
+**Kirjanpitoadapteri** `src/lib/finance/accounting`: `KirjanpitoAdapteri` (`exportBillingRun`, `importPaymentStatus`), käytössä CSV. Vienti on UTF-8 BOM, puolipiste, CRLF, desimaalipilkku ja p.k.vvvv; sarakkeet dokumentoitu `csv.ts`:ssä. Procountorin tarkkaa tuontipohjaa ei tiedetä (TODO). Viety CSV tallennetaan `er_documents`-riviksi (category `other`, näkyvyys `internal`, subject `er_billing_runs`) ja ladataan `/api/dokumentit/[id]`. PPR-adapteri on runko, joka heittää virheen.
+
+**Maksutilanteen tuonti** kohdistaa viitteellä (kotimainen tai RF), toissijaisesti huoneiston tunnuksella; saman osakeryhmän rivit lasketaan yhteen. Tiedostosta puuttuvat osakeryhmät saavat samalle päivälle nollasaldon, koska reskontraraportissa ovat vain avoimet erät. Kohdistamattomat rivit tallennetaan tuontiin ilman nimiä. Virheellinen rivi (summa tai päivä) hylkää koko tiedoston, jotta osittainen maksutilanne ei näytä väärää kuvaa.

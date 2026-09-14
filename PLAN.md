@@ -45,13 +45,15 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] Widgetit ja testit
 
 ## M3 Talous
-- [ ] Vastikeperusteet: historia, voimassa oleva peruste, muutos päätöksellä
-- [ ] Lainat ja lainaosuudet: laskelma osakkeiden suhteessa, kertasuoritus
-- [ ] Laskutusajo: kuukauden vastikerivit, viitenumerot, hyväksyntä
-- [ ] Vienti CSV (Procountor-tuontiin sopiva) ja maksutilanteen CSV-tuonti
-- [ ] Kirjanpitoadapterin rajapinta (PPR myöhemmin)
-- [ ] Portaali: osakkaan vastikkeet, lainaosuus ja maksutilanne; hallituksen talousnäkymä
-- [ ] Widgetit ja testit
+- [x] Vastikeperusteet: historia, voimassa oleva peruste, muutos päätöksellä
+- [x] Lainat ja lainaosuudet: laskelma osakkeiden suhteessa, kertasuoritus
+- [x] Laskutusajo: kuukauden vastikerivit, viitenumerot, hyväksyntä
+- [x] Vienti CSV (Procountor-tuontiin sopiva) ja maksutilanteen CSV-tuonti
+- [x] Kirjanpitoadapterin rajapinta (PPR myöhemmin)
+- [x] Portaali: osakkaan vastikkeet, lainaosuus ja maksutilanne; hallituksen talousnäkymä
+- [x] Widgetit ja testit
+- [~] Procountorin tarkka myyntilaskujen tuontipohja CSV-vientiin (TODO(Procountor-tuontipohja) `src/lib/finance/accounting/csv.ts`)
+- [ ] Portaalin valikkoon linkki `/portaali/talous` (yhteinen `src/config/nav.ts`; nyt linkki portaalin etusivun nostosta)
 
 ## M4 Viestintä ja dokumentit
 - [x] Tiedotteet: kohderyhmät (yhtiö, rakennus, rooli), kanavat, julkaisu, lähetysraportti
