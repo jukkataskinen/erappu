@@ -12,7 +12,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Tiedostovarasto (local/Supabase) ja lähtevien viestien jono
 - [x] Suomalaiset tunnisteet: henkilötunnus, Y-tunnus, viitenumero, RF-viite, IBAN, kiinteistötunnus
 - [x] Demodata (kuvitteellinen)
-- [ ] CI (GitHub Actions: lint, typecheck, test, henkilötunnusvahti) – kun remote on olemassa
+- [x] CI (GitHub Actions: lint, typecheck, test, henkilötunnusvahti) – ajetaan, kun remote on olemassa
 
 ## Rekisteri (V1)
 - [x] Taloyhtiöt: lista, lisäys, muokkaus, yleissivu
@@ -22,7 +22,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Kiinteistö ja rakennukset
 - [x] Portaalioikeuksien johtaminen rekisteristä
 - [x] Access-tuonti 11 asiakasyhtiölle (scripts/access) + laaturaportti (data/private, ei gitiin)
-- [ ] Haku (yhtiöt, huoneistot, henkilöt, pyynnöt)
+- [x] Haku (yhtiöt, huoneistot, henkilöt)
 
 ## M1 Huolto
 - [x] Migraatio: huoltopyynnöt, tapahtumat, kuvat (dokumentteina)
@@ -94,3 +94,10 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [~] eSinetti-tenant ja API-avain – BLOCKERS 3
 - [~] Kokouskutsun, pöytäkirjan ja isännöitsijäntodistuksen juridinen tarkistus – BLOCKERS 4
 - [~] PPR-integraatio – BLOCKERS 5
+
+## Integraatio 15.9.2026
+- [x] Kaikki moduulit M1–M7 yhdistetty päähaaraan
+- [x] Yhteiset valikot (henkilökunta, portaali ja puhelimen alapalkki), Vercel-ajastukset
+- [x] Tuotantokäännös (next build) ja savutesti 48 sivulle (scripts/smoke-routes.mts)
+- [ ] Demodata myös M1–M6-moduuleille (huoltopyynnöt, tiedotteet, kokoukset, varauskohteet)
+- [ ] Tuonti tuotantokantaan Postgres-tilassa (scripts/access/import-access.mts käyttää nyt PGliteä)

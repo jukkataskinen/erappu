@@ -18,7 +18,7 @@ export function StaffShell({ ctx, children }: { ctx: StaffContext; children: Rea
   const hasPortal = ctx.user.portal.length > 0;
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="no-print border-b border-line bg-paper lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-r">
+      <aside className="no-print border-b border-line bg-paper lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:border-b-0 lg:border-r">
         <div className="flex h-14 items-center justify-between px-5">
           <Link href="/tyopoyta" aria-label="eRappu, työpöytä">
             <Brand />
@@ -38,7 +38,7 @@ export function StaffShell({ ctx, children }: { ctx: StaffContext; children: Rea
             className="min-h-10 w-full rounded-xl border border-line bg-cloud/60 px-3 text-sm placeholder:text-ink/45 focus:border-sky focus:bg-paper focus:outline-none"
           />
         </form>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-0" aria-label="Päävalikko">
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:pb-3" aria-label="Päävalikko">
           {items.map((item) => (
             <NavLink key={item.href} href={item.href}>
               <NavIcon name={item.icon} />
@@ -46,7 +46,7 @@ export function StaffShell({ ctx, children }: { ctx: StaffContext; children: Rea
             </NavLink>
           ))}
         </nav>
-        <div className="hidden border-t border-line px-5 py-4 text-sm lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:block">
+        <div className="hidden shrink-0 border-t border-line px-5 py-4 text-sm lg:block">
           <p className="truncate font-semibold">{ctx.user.fullName ?? ctx.user.email}</p>
           <p className="text-ink/55">
             {ROLE_LABEL[ctx.org.role]} · {ctx.org.organizationName}
