@@ -25,15 +25,15 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] Haku (yhtiöt, huoneistot, henkilöt, pyynnöt)
 
 ## M1 Huolto
-- [ ] Migraatio: huoltopyynnöt, tapahtumat, kuvat (dokumentteina)
-- [ ] Henkilökunnan työjono: suodattimet, tilat, vastuuhenkilö, tapahtumahistoria
-- [ ] Palveluntuottajarekisteri ja yhtiökohtaiset palvelut
-- [ ] Tilaus palveluntuottajalle tehtävälinkillä `/tehtava/[token]` (kuittaus, kommentti, kuva, kustannus)
-- [ ] Portaali: huoltopyynnön teko ja omat pyynnöt, ilmoittaja voi kuitata tai avata uudelleen
-- [ ] Julkinen QR-lomake `/ilmoita/[token]`, kutsurajoitin
-- [ ] Ilmoitukset jonoon tilamuutoksista
-- [ ] Widgetit ja taloyhtiön huolto-välilehti
-- [ ] RLS-testit (hallitus näkee yhtiön pyynnöt, asukas vain omansa, palveluntuottaja vain linkin kautta)
+- [x] Migraatio: huoltopyynnöt, tapahtumat, kuvat (dokumentteina)
+- [x] Henkilökunnan työjono: suodattimet, tilat, vastuuhenkilö, tapahtumahistoria
+- [x] Palveluntuottajarekisteri ja yhtiökohtaiset palvelut
+- [x] Tilaus palveluntuottajalle tehtävälinkillä `/tehtava/[token]` (kuittaus, kommentti, kuva, kustannus)
+- [x] Portaali: huoltopyynnön teko ja omat pyynnöt, ilmoittaja voi kuitata tai avata uudelleen
+- [x] Julkinen QR-lomake `/ilmoita/[token]`, kutsurajoitin
+- [x] Ilmoitukset jonoon tilamuutoksista
+- [x] Widgetit ja taloyhtiön huolto-välilehti
+- [x] RLS-testit (hallitus näkee yhtiön pyynnöt, asukas vain omansa, palveluntuottaja vain linkin kautta)
 
 ## M2 HTJ ja korjaukset
 - [ ] HTJ-asiakas: rajapinta, mock (kuvitteelliset yhtiöt), mTLS-asiakasrunko MML:n kuvauksen mukaan
