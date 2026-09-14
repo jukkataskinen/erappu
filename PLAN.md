@@ -61,12 +61,13 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] Widgetit ja testit
 
 ## M5 Kokoukset ja todistukset
-- [ ] Kokoukset: asialistapohjat (AOYL 6:10), kokous, asiat, kutsu PDF ja lähetys
-- [ ] Osakasluettelo ja ääniluettelo PDF (äänileikkuri)
-- [ ] Pöytäkirja PDF ja eSinetti-kierros, webhook, sinetöidyn PDF:n tallennus
-- [ ] eSinetti-asiakas (mock ja http), Reilusopparin mallin mukaan
-- [ ] Isännöitsijäntodistus PDF (VNa 365/2010 -rakenne), todistustilaukset julkisella lomakkeella
-- [ ] Widgetit ja testit
+- [x] Kokoukset: asialistapohjat (AOYL 6:10), kokous, asiat, kutsu PDF ja lähetys
+- [x] Osakasluettelo ja ääniluettelo PDF (äänileikkuri)
+- [x] Pöytäkirja PDF ja eSinetti-kierros, webhook, sinetöidyn PDF:n tallennus
+- [x] eSinetti-asiakas (mock ja http), Reilusopparin mallin mukaan
+- [x] Isännöitsijäntodistus PDF (VNa 365/2010 -rakenne), todistustilaukset julkisella lomakkeella
+- [x] Widgetit ja testit
+- [~] Pohjien juridinen hyväksyntä, todistuksen toimitustapa ja hinnasto – BLOCKERS 4 ja 9
 
 ## M6 Arki
 - [ ] Vuosikello: toistuvat tehtävät taloyhtiöittäin (tilinpäätös, yhtiökokous, HTJ-päivitys, vakuutukset)

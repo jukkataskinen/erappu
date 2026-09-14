@@ -1,0 +1,134 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireStaff } from "@/lib/auth/current-user";
+import { audit } from "@/lib/audit";
+import { emptyToNull, fail, parseForm } from "@/lib/forms";
+import { certificatePrice } from "@/lib/certificates/pricing";
+import { generateCertificateForOrder, markOrderDelivered } from "@/lib/certificates/orders";
+import { createAccessLink, revokeAccessLinks } from "@/lib/security/access-links";
+import { signValue } from "@/lib/security/crypto";
+import { ORDER_LINK_FLASH_COOKIE } from "@/lib/certificates/order-link";
+
+const uuid = z.string().uuid();
+
+async function writer(back: string) {
+  const ctx = await requireStaff();
+  if (!ctx.can("owner", "manager", "assistant")) fail(back, "Roolillasi ei voi käsitellä todistuksia.");
+  return ctx;
+}
+
+function safeBack(value: FormDataEntryValue | null): string {
+  const v = typeof value === "string" ? value : "";
+  return /^\/(todistukset|taloyhtiot\/[0-9a-f-]{36}\/kokoukset)$/.test(v) ? v : "/todistukset";
+}
+
+export async function createOrderLinkAction(formData: FormData) {
+  const back = safeBack(formData.get("back"));
+  const ctx = await writer(back);
+  const companyId = uuid.parse(formData.get("company_id"));
+  const token = await ctx.run(async (tx) => {
+    const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [companyId]);
+    if (!company) return null;
+    // Yksi voimassa oleva linkki yhtiötä kohden: uusi mitätöi vanhan.
+    await revokeAccessLinks(tx, "er_housing_companies", companyId, "certificate_order");
+    const t = await createAccessLink(tx, {
+      organizationId: company.organization_id, purpose: "certificate_order", subjectTable: "er_housing_companies", subjectId: companyId,
+      expiresInDays: 365, createdBy: ctx.user.id,
+    });
+    await audit(tx, { organizationId: company.organization_id, userId: ctx.user.id, action: "create_order_link", entity: "housing_company", entityId: companyId });
+    return t;
+  });
+  if (!token) fail(back, "Yhtiötä ei löytynyt.");
+  (await cookies()).set(ORDER_LINK_FLASH_COOKIE, signValue(`${companyId}:${token}`), {
+    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 120, path: back,
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+export async function revokeOrderLinkAction(formData: FormData) {
+  const back = safeBack(formData.get("back"));
+  const ctx = await writer(back);
+  const companyId = uuid.parse(formData.get("company_id"));
+  await ctx.run((tx) => revokeAccessLinks(tx, "er_housing_companies", companyId, "certificate_order"));
+  revalidatePath(back);
+  redirect(back);
+}
+
+const staffOrderSchema = z.object({
+  share_group_id: uuid,
+  kind: z.enum(["manager_certificate", "loan_share_certificate"]).default("manager_certificate"),
+  orderer_name: z.preprocess(emptyToNull, z.string().max(200).nullable()),
+  orderer_email: z.preprocess(emptyToNull, z.string().email("Sähköpostiosoite ei ole kelvollinen.").max(200).nullable()),
+  orderer_phone: z.preprocess(emptyToNull, z.string().max(40).nullable()),
+  express: z.preprocess((v) => v === "on", z.boolean()),
+});
+
+/** "Uusi todistus" suoraan huoneistosta: tilausrivi ja PDF heti. */
+export async function createStaffCertificateAction(formData: FormData) {
+  const back = "/todistukset";
+  const ctx = await writer(back);
+  const d = parseForm(staffOrderSchema, formData, back);
+  const orderId = await ctx.run(async (tx) => {
+    const [g] = await tx.query<{ organization_id: string; company_id: string }>("select organization_id, company_id from er_share_groups where id = $1", [d.share_group_id]);
+    if (!g) return null;
+    const [row] = await tx.query<{ id: string }>(
+      `insert into er_certificate_orders (organization_id, company_id, share_group_id, kind, orderer_name, orderer_email, orderer_phone, express, price_eur, source, created_by)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'staff',$10) returning id`,
+      [g.organization_id, g.company_id, d.share_group_id, d.kind, d.orderer_name ?? (ctx.user.fullName || "Isännöinti"), d.orderer_email ?? ctx.user.email,
+        d.orderer_phone, d.express, certificatePrice(d.express), ctx.user.id],
+    );
+    await audit(tx, { organizationId: g.organization_id, userId: ctx.user.id, action: "create", entity: "certificate_order", entityId: row.id });
+    return row.id;
+  });
+  if (!orderId) fail(back, "Huoneistoa ei löytynyt.");
+  await generateCertificateForOrder(ctx.run, ctx.user.id, orderId);
+  revalidatePath(back);
+  redirect(back);
+}
+
+export async function generateCertificateAction(formData: FormData) {
+  const back = "/todistukset";
+  const ctx = await writer(back);
+  const orderId = uuid.parse(formData.get("order_id"));
+  const docId = await generateCertificateForOrder(ctx.run, ctx.user.id, orderId);
+  if (!docId) fail(back, "Todistusta ei voitu tehdä tälle tilaukselle.");
+  revalidatePath(back);
+  redirect(back);
+}
+
+export async function markDeliveredAction(formData: FormData) {
+  const back = "/todistukset";
+  const ctx = await writer(back);
+  const orderId = uuid.parse(formData.get("order_id"));
+  const ok = await ctx.run(async (tx) => {
+    const [o] = await tx.query<{ document_id: string | null }>("select document_id from er_certificate_orders where id = $1", [orderId]);
+    if (!o?.document_id) return "no_document" as const;
+    return (await markOrderDelivered(tx, ctx.user.id, orderId)) ? ("ok" as const) : ("not_found" as const);
+  });
+  if (ok === "no_document") fail(back, "Tee todistus ennen toimitetuksi merkitsemistä.");
+  if (ok === "not_found") fail(back, "Tilausta ei löytynyt tai se on jo toimitettu.");
+  revalidatePath(back);
+  redirect(back);
+}
+
+export async function setOrderStatusAction(formData: FormData) {
+  const back = "/todistukset";
+  const ctx = await writer(back);
+  const orderId = uuid.parse(formData.get("order_id"));
+  const status = z.enum(["invoiced", "cancelled"]).parse(formData.get("status"));
+  const from = status === "invoiced" ? ["delivered"] : ["new", "in_progress"];
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>(
+      "update er_certificate_orders set status = $2 where id = $1 and status = any($3::text[]) returning organization_id",
+      [orderId, status, from],
+    );
+    if (rows[0]) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: `status_${status}`, entity: "certificate_order", entityId: orderId });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
