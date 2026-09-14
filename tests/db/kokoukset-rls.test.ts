@@ -218,22 +218,16 @@ describe("isännöitsijäntodistus", () => {
     expect(await db.asUser(f.managerB.sub, (tx) => loadManagerCertificateData(tx, groupA1))).toBeNull();
   });
 
-  it("maksutilanne luetaan M3:n taulusta, ja rikkinäinen kysely ei kaada transaktiota", async () => {
-    // Taulu ilman odotettua saraketta: kysely epäonnistuu tallennuspisteen sisällä.
-    await db.exec("create table er_payment_status (id int); grant select on er_payment_status to authenticated;");
-    const broken = await db.asUser(f.managerA.sub, async (tx) => {
-      const d = await loadManagerCertificateData(tx, groupA1);
-      await tx.query("select 1");
-      return d;
-    });
-    expect(broken?.finance.paymentStatus).toBeNull();
-
-    await db.exec(`drop table er_payment_status;
-      create table er_payment_status (share_group_id uuid, overdue_eur numeric, as_of date);
-      grant select on er_payment_status to authenticated;
-      insert into er_payment_status values ('${groupA1}', 35.5, '2026-09-01');`);
+  it("maksutilanne luetaan M3:n taulusta uusimmalta tuontipäivältä", async () => {
+    await db.asService((tx) =>
+      tx.query(
+        `insert into er_payment_status (organization_id, company_id, share_group_id, open_eur, overdue_eur, as_of)
+         values ($1,$2,$3,100,80,'2026-08-01'), ($1,$2,$3,35.5,35.5,'2026-09-01')`,
+        [f.orgA, f.companyA, groupA1],
+      ),
+    );
     const ok = await db.asUser(f.managerA.sub, (tx) => loadManagerCertificateData(tx, groupA1));
     expect(ok?.finance.paymentStatus).toBe("Erääntyneitä maksuja 35,50 € (tilanne 1.9.2026).");
-    await db.exec("drop table er_payment_status;");
+    await db.asService((tx) => tx.query("delete from er_payment_status where share_group_id = $1", [groupA1]));
   });
 });

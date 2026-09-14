@@ -17,7 +17,15 @@ const nextConfig: NextConfig = {
     middlewareClientMaxBodySize: "21mb",
   },
   outputFileTracingIncludes: {
-    "/**": ["./supabase/migrations/**", "./src/documents/fonts/**"],
+    // pdfkit lataa vakiofontit dynaamisella requirella, jota jäljitin ei näe
+    // (Reilusopparissa PDF kaatui tuotannossa ilman näitä).
+    "/**": [
+      "./supabase/migrations/**",
+      "./src/documents/fonts/**",
+      "./node_modules/pdfkit/js/standard-fonts/**",
+      "./node_modules/pdfkit/js/data/**",
+      "./node_modules/@react-pdf/pdfkit/lib/**",
+    ],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

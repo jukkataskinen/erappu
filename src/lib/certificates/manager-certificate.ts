@@ -20,32 +20,24 @@ import { CERTIFICATE_TEMPLATE_APPROVED } from "./pricing";
 export const VERIFY_URL_PLACEHOLDER = "https://app.esinetti.fi/verify";
 
 /**
- * Maksutilanne tulee M3:n taulusta `er_payment_status`, jota ei välttämättä
- * vielä ole. Taulun olemassaolo tarkistetaan ensin, ja kysely ajetaan
- * tallennuspisteen sisällä: Postgres-transaktio keskeytyisi muuten virheeseen,
- * eikä pelkkä try/catch riittäisi.
+ * Maksutilanne M3:n taulusta `er_payment_status` (tuotu kirjanpidosta).
+ * Taulussa on rivi jokaiselta tuontipäivältä, joten luetaan uusin. Jos
+ * tilannetta ei ole koskaan tuotu, todistukseen ei kirjoiteta mitään
+ * (null), koska "ei avoimia maksuja" olisi väite, jota ei ole tarkistettu.
  */
 async function readPaymentStatus(tx: Sql, shareGroupId: string): Promise<string | null> {
-  try {
-    const [exists] = await tx.query<{ t: string | null }>("select to_regclass('public.er_payment_status')::text as t");
-    if (!exists?.t) return null;
-    await tx.query("savepoint er_payment_status_probe");
-    try {
-      const [row] = await tx.query<Record<string, unknown>>("select * from er_payment_status where share_group_id = $1 limit 1", [shareGroupId]);
-      await tx.query("release savepoint er_payment_status_probe");
-      if (!row) return "Ei avoimia maksuja.";
-      const overdue = row.overdue_eur ?? row.overdue_amount ?? row.balance_eur ?? row.outstanding_eur;
-      const asOf = row.as_of ?? row.updated_at ?? row.imported_at;
-      if (overdue === undefined || overdue === null) return null;
-      const dateText = asOf ? ` (tilanne ${new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(String(asOf)))})` : "";
-      return Number(overdue) > 0 ? `Erääntyneitä maksuja ${formatEuro(Number(overdue))}${dateText}.` : `Ei erääntyneitä maksuja${dateText}.`;
-    } catch {
-      await tx.query("rollback to savepoint er_payment_status_probe");
-      return null;
-    }
-  } catch {
-    return null;
-  }
+  const rows = await tx.query<{ overdue_eur: string; open_eur: string; as_of: string }>(
+    `select sum(overdue_eur)::text as overdue_eur, sum(open_eur)::text as open_eur, as_of::text as as_of
+       from er_payment_status
+      where share_group_id = $1 and as_of = (select max(as_of) from er_payment_status where share_group_id = $1)
+      group by as_of`,
+    [shareGroupId],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  const [y, m, d] = row.as_of.split("-");
+  const dateText = ` (tilanne ${Number(d)}.${Number(m)}.${y})`;
+  return Number(row.overdue_eur) > 0 ? `Erääntyneitä maksuja ${formatEuro(Number(row.overdue_eur))}${dateText}.` : `Ei erääntyneitä maksuja${dateText}.`;
 }
 
 export async function loadManagerCertificateData(tx: Sql, shareGroupId: string, opts: { issuedOn?: string } = {}): Promise<ManagerCertificateData | null> {
