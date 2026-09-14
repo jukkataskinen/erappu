@@ -18,3 +18,6 @@ data/private/
 coverage/
 playwright-report/
 test-results/
+
+# Agenttien git-worktreet
+.claude/worktrees/
