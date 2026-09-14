@@ -12,6 +12,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // PGlite on WASM-paketti, jota ei saa niputtaa palvelinkoodiin.
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  experimental: {
+    // Middleware katkaisee oletuksena yli 10 Mt:n pyynnöt; dokumentit ovat enintään 20 Mt (MAX_UPLOAD_BYTES) + lomakekentät.
+    middlewareClientMaxBodySize: "21mb",
+  },
   outputFileTracingIncludes: {
     "/**": ["./supabase/migrations/**", "./src/documents/fonts/**"],
   },
