@@ -71,11 +71,12 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] Widgetit ja testit
 
 ## M6 Arki
-- [ ] Vuosikello: toistuvat tehtävät taloyhtiöittäin (tilinpäätös, yhtiökokous, HTJ-päivitys, vakuutukset)
-- [ ] Varaukset: kohteet, vakiovuorot, kiintiöt, päällekkäisyyden esto; portaalin varauskalenteri
-- [ ] Sopimusrekisteri ja irtisanomismuistutukset
-- [ ] Kulutusseuranta (sähkö, vesi, lämpö) yhtiöittäin
-- [ ] Widgetit ja testit
+- [x] Vuosikello: toistuvat tehtävät taloyhtiöittäin (tilinpäätös, yhtiökokous, HTJ-päivitys, vakuutukset)
+- [x] Varaukset: kohteet, vakiovuorot, kiintiöt, päällekkäisyyden esto; portaalin varauskalenteri
+- [x] Sopimusrekisteri ja irtisanomismuistutukset
+- [x] Kulutusseuranta (sähkö, vesi, lämpö) yhtiöittäin (`/kulutus`, linkki vuosikellosta ja sopimuksista)
+- [x] Muistutusajo `/api/cron/muistutukset`
+- [x] Widgetit ja testit
 
 ## M7 Asetukset ja portaali
 - [x] Henkilökunnan käyttäjät ja kutsut
