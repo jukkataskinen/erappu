@@ -1,0 +1,20 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+
+# Paikallinen PGlite-kanta ja tiedostovarasto
+.data/
+
+# Oikeiden asiakkaiden tiedot (Access-vienti). EI KOSKAAN gitiin.
+data/private/
+*.accdb
+*.laccdb
+
+coverage/
+playwright-report/
+test-results/
