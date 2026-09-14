@@ -31,12 +31,17 @@ export async function queueMessage(tx: Sql, m: QueueMessage): Promise<string> {
   return row.id;
 }
 
-/** Lähettää jonossa olevat viestit. Ajetaan palvelun roolilla (cron tai toiminnon jälkeen). */
-export async function dispatchQueued(tx: Sql, limit = 50): Promise<{ sent: number; failed: number }> {
+/**
+ * Lähettää jonossa olevat viestit. Ajetaan palvelun roolilla (cron tai
+ * toiminnon jälkeen). `organizationId` rajaa purun yhden organisaation
+ * viesteihin, kun henkilökunta käynnistää lähetyksen käsin.
+ */
+export async function dispatchQueued(tx: Sql, limit = 50, organizationId?: string): Promise<{ sent: number; failed: number }> {
   const rows = await tx.query<{ id: string; channel: string; recipient: string; subject: string; body: string }>(
     `select id, channel, recipient, subject, body from er_outbound_messages
-      where status = 'queued' order by created_at limit $1 for update skip locked`,
-    [limit],
+      where status = 'queued' and ($2::uuid is null or organization_id = $2::uuid)
+      order by created_at limit $1 for update skip locked`,
+    [limit, organizationId ?? null],
   );
   let sent = 0;
   let failed = 0;

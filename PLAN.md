@@ -54,11 +54,11 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [ ] Widgetit ja testit
 
 ## M4 Viestintä ja dokumentit
-- [ ] Tiedotteet: kohderyhmät (yhtiö, rakennus, rooli), kanavat, julkaisu, lähetysraportti
-- [ ] Dokumenttipankki: lataus, luokat, näkyvyys, lataus RLS-tarkistuksella
-- [ ] Portaali: tiedotteet ja dokumentit
-- [ ] Viestijonon ajastettu lähetys (`/api/cron/viestit`)
-- [ ] Widgetit ja testit
+- [x] Tiedotteet: kohderyhmät (yhtiö, rakennus, rooli), kanavat, julkaisu, lähetysraportti
+- [x] Dokumenttipankki: lataus, luokat, näkyvyys, lataus RLS-tarkistuksella
+- [x] Portaali: tiedotteet ja dokumentit
+- [x] Viestijonon ajastettu lähetys (`/api/cron/viestit`)
+- [x] Widgetit ja testit
 
 ## M5 Kokoukset ja todistukset
 - [ ] Kokoukset: asialistapohjat (AOYL 6:10), kokous, asiat, kutsu PDF ja lähetys

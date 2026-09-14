@@ -28,12 +28,22 @@ const ALLOWED: Record<string, string[]> = {
 
 export function sanitizeFileName(name: string): string {
   const base = name.split(/[\\/]/).pop() ?? "tiedosto";
+  // NFKC eikä NFKD: hajotettu ä (a + yhdistävä merkki) menetti pisteensä
+  // suodatuksessa, ja "Tilinpäätös" tallentui muotoon "Tilinpaatos".
   const cleaned = base
-    .normalize("NFKD")
+    .normalize("NFKC")
     .replace(/[^\w.\-äöåÄÖÅ ]+/g, "")
     .replace(/\s+/g, "_")
+    .replace(/^\.+/, "")
     .slice(0, 120);
   return cleaned || "tiedosto";
+}
+
+/** Varaston avaimeen vain ASCII (Supabase Storage ei hyväksy kaikkia merkkejä); näyttönimi säilyy ennallaan. */
+function storageKeyName(fileName: string): string {
+  // Peräkkäiset pisteet yhdeksi: readStoredFile hylkää polut, joissa on "..".
+  const ascii = fileName.normalize("NFKD").replace(/[^\w.-]+/g, "").replace(/\.{2,}/g, ".");
+  return ascii || "tiedosto";
 }
 
 /** Tarkistaa tyypin tiedoston alusta eikä pelkästä selaimen ilmoittamasta tyypistä. */
@@ -58,7 +68,7 @@ export async function storeFile(opts: { organizationId: string; companyId?: stri
   const mime = detectAllowedType(opts.bytes, opts.mimeType);
   if (!mime) throw new Error("Tiedostotyyppiä ei sallita.");
   const fileName = sanitizeFileName(opts.fileName);
-  const storagePath = `${opts.organizationId}/${opts.companyId ?? "_"}/${randomUUID()}/${fileName}`;
+  const storagePath = `${opts.organizationId}/${opts.companyId ?? "_"}/${randomUUID()}/${storageKeyName(fileName)}`;
 
   if (process.env.STORAGE_DRIVER === "supabase") {
     const res = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURI(storagePath)}`, {
