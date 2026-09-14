@@ -21,7 +21,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Hallitus ja toimikaudet
 - [x] Kiinteistö ja rakennukset
 - [x] Portaalioikeuksien johtaminen rekisteristä
-- [ ] Access-tuonti 11 asiakasyhtiölle (scripts/access) + laaturaportti
+- [x] Access-tuonti 11 asiakasyhtiölle (scripts/access) + laaturaportti (data/private, ei gitiin)
 - [ ] Haku (yhtiöt, huoneistot, henkilöt, pyynnöt)
 
 ## M1 Huolto
