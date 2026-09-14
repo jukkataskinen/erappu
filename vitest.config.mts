@@ -10,5 +10,11 @@ export default defineConfig({
     hookTimeout: 60_000,
     pool: "forks",
   },
-  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+      // server-only heittää virheen Nextin ulkopuolella; testeissä se on tyhjä.
+      "server-only": path.resolve(import.meta.dirname, "./tests/helpers/empty.ts"),
+    },
+  },
 });

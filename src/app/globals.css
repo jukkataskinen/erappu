@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/*
+ * Perusilme Reilusopparista (reilusoppari.fi): sama ink-tumma, pilvenharmaa
+ * pohja, Plus Jakarta Sans ja pyöristetyt paneelit. eRapussa värit kertovat
+ * tilasta eivätkä osapuolista: sky = toiminto ja linkki, coral = vaatii
+ * huomiota, moss = valmis, amber = odottaa.
+ *
+ * Henkilökunnan näkymät ovat työpöytä ensin (isännöitsijä istuu koneella ja
+ * lukee taulukoita), portaali puhelin ensin kuten Reilusopparissa.
+ */
+@theme {
+  --color-ink: #1b2a41;
+  --color-ink-strong: #121d2e;
+  --color-sky: #3d8bff;
+  --color-sky-soft: #e6f0ff;
+  --color-coral: #ff6f59;
+  --color-coral-soft: #ffece8;
+  --color-moss: #2e9e6b;
+  --color-moss-soft: #e3f4ec;
+  --color-amber: #c98a12;
+  --color-amber-soft: #fbf1dc;
+  --color-paper: #ffffff;
+  --color-cloud: #f3f6fa;
+  --color-line: #dfe6f0;
+
+  --font-sans: var(--font-sans-local), ui-sans-serif, system-ui, sans-serif;
+
+  --container-content: 640px;
+  --container-wide: 1180px;
+  --radius-panel: 16px;
+  --size-touch: 44px;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-cloud);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+
+h1 {
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+h2,
+h3 {
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-sky);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Painallus näkyy heti (Reilusopparin havainto 2026-09-12). */
+button:active,
+a:active,
+label:active,
+summary:active,
+[role="button"]:active {
+  opacity: 0.62;
+  transition: opacity 0.03s ease-out;
+}
+button,
+a,
+label,
+summary,
+[role="button"] {
+  transition: opacity 0.15s ease-out;
+}
+button:disabled:active,
+[aria-disabled="true"]:active {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

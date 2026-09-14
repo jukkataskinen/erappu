@@ -1,0 +1,1176 @@
+<title>eRappu-toteutussuunnitelma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@80..100,500..800&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F4F6F3; --surface:#FFFFFF; --sunk:#EAEEE9;
+  --ink:#1A2124; --muted:#58646A; --rule:#D5DBD5;
+  --pine:#2D6A53; --pine-soft:#DCEBE3; --ochre:#9A6A22; --ochre-soft:#F3E7D2;
+  --slate:#4A5B78; --slate-soft:#E1E6EF;
+  --crit:#A63D32; --crit-soft:#F5DEDA;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111615; --surface:#182020; --sunk:#1F2827;
+    --ink:#E3E9E6; --muted:#9BA7A3; --rule:#2E3937;
+    --pine:#73BC9C; --pine-soft:#1E3A30; --ochre:#D9A65A; --ochre-soft:#3A2D19;
+    --slate:#9FB2D6; --slate-soft:#253046;
+    --crit:#E58A7F; --crit-soft:#3E2220;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111615; --surface:#182020; --sunk:#1F2827;
+  --ink:#E3E9E6; --muted:#9BA7A3; --rule:#2E3937;
+  --pine:#73BC9C; --pine-soft:#1E3A30; --ochre:#D9A65A; --ochre-soft:#3A2D19;
+  --slate:#9FB2D6; --slate-soft:#253046;
+  --crit:#E58A7F; --crit-soft:#3E2220;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;padding-inline:20px;padding-block:0 80px}
+a{color:var(--pine);text-underline-offset:3px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--pine);outline-offset:2px;border-radius:2px}
+.shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:56px}
+@media (max-width:900px){.shell{grid-template-columns:1fr;gap:0}.toc{display:none}}
+
+/* masthead */
+.mast{max-width:1180px;margin:0 auto;padding-block:48px 28px;border-bottom:1px solid var(--rule);margin-bottom:40px}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap}
+.eyebrow b{color:var(--ochre);font-weight:500}
+h1{font-family:var(--display);font-stretch:85%;font-weight:750;font-size:clamp(34px,5vw,54px);line-height:1.02;letter-spacing:-.01em;margin:14px 0 14px;text-wrap:balance}
+.lede{font-size:18.5px;max-width:68ch;color:var(--ink);margin:0}
+.decisions{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:30px}
+.decisions div{background:var(--surface);padding:14px 16px}
+.decisions dt{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.decisions dd{margin:4px 0 0;font-weight:600;font-size:15px;line-height:1.35}
+
+/* toc */
+.toc{position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow:auto;font-size:14px}
+.toc p{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:t;display:grid;gap:2px}
+.toc li{counter-increment:t}
+.toc a{display:grid;grid-template-columns:26px 1fr;color:var(--muted);text-decoration:none;padding:4px 0;line-height:1.3}
+.toc a::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:11.5px;padding-top:2px}
+.toc a:hover{color:var(--ink)}
+
+main{min-width:0}
+section{padding-block:8px 36px;border-bottom:1px solid var(--rule);margin-bottom:36px}
+section:last-child{border-bottom:0}
+h2{font-family:var(--display);font-stretch:88%;font-weight:700;font-size:30px;line-height:1.1;margin:0 0 6px;text-wrap:balance;display:flex;gap:14px;align-items:baseline}
+h2 .n{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--ochre);font-stretch:100%}
+h3{font-family:var(--display);font-stretch:92%;font-weight:650;font-size:20px;margin:30px 0 8px;text-wrap:balance}
+h4{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 0 6px}
+p,li{max-width:72ch}
+.sub{color:var(--muted);margin:0 0 18px;max-width:72ch}
+ul,ol{padding-left:22px}
+li{margin:4px 0}
+code,.mono{font-family:var(--mono);font-size:.88em}
+code{background:var(--sunk);padding:1px 5px;border-radius:3px}
+
+/* tables */
+.tw{overflow-x:auto;margin:14px 0 18px;border:1px solid var(--rule);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.45}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--rule)}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--sunk);white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td:first-child{font-weight:600}
+table.plain td:first-child{font-weight:400}
+
+/* chips */
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.04em;padding:1px 7px;border-radius:3px;white-space:nowrap;vertical-align:1px}
+.mvp{background:var(--pine-soft);color:var(--pine)}
+.v2{background:var(--slate-soft);color:var(--slate)}
+.v3{background:var(--sunk);color:var(--muted)}
+.htj{background:var(--ochre-soft);color:var(--ochre)}
+.crit{background:var(--crit-soft);color:var(--crit)}
+
+/* callouts */
+.note{border-left:3px solid var(--ochre);background:var(--surface);padding:14px 18px;margin:18px 0;max-width:78ch}
+.note.warn{border-color:var(--crit)}
+.note.good{border-color:var(--pine)}
+.note strong:first-child{display:block;font-family:var(--display);font-stretch:92%;font-size:16.5px;margin-bottom:2px}
+.note p{margin:6px 0}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin:14px 0}
+.panel{background:var(--surface);border:1px solid var(--rule);padding:16px 18px}
+.panel h4{margin-top:0}
+.panel ul{margin:0}
+
+/* phases */
+.phases{display:grid;gap:0;margin:18px 0;border-top:1px solid var(--rule)}
+.phase{display:grid;grid-template-columns:92px minmax(0,1fr);gap:18px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.phase .when{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.4}
+.phase .when b{display:block;font-family:var(--display);font-stretch:85%;font-size:26px;color:var(--ink);font-weight:700;line-height:1}
+.phase h3{margin:0 0 4px}
+.phase p{margin:4px 0}
+.phase .dod{font-size:14.5px;color:var(--muted)}
+.phase ul{margin:6px 0}
+@media (max-width:520px){.phase{grid-template-columns:1fr;gap:6px}}
+
+details{background:var(--surface);border:1px solid var(--rule);margin:12px 0}
+summary{cursor:pointer;padding:10px 14px;font-weight:600}
+details > div{padding:0 16px 14px}
+pre.code{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:var(--sunk);padding:14px;overflow-x:auto;margin:10px 0}
+pre.mermaid{background:var(--surface);border:1px solid var(--rule);padding:16px;overflow-x:auto;margin:14px 0}
+.foot{color:var(--muted);font-size:13.5px}
+</style>
+
+<header class="mast">
+  <div class="eyebrow"><span>Adepta Oy · isännöinti</span><span>Luonnos <b>v0.4</b></span><span>15.9.2026</span></div>
+  <h1>eRappu: toteutussuunnitelma</h1>
+  <p class="lede">Selainpohjainen isännöintijärjestelmä korvaa tiedoston <span class="mono">taloyhtiöt.accdb</span>. HTJ on järjestelmän keskiössä ja asukasportaali mukana alusta asti. Järjestelmä rakennetaan niin, että sitä voi myöhemmin myydä muille isännöintiyrityksille. Suunnitelmassa ovat kaikki toteutukseen tarvittavat päätökset, tietomalli, integraatiot ja vaiheistus sekä kysymykset, jotka on ratkaistava ennen koodausta.</p>
+  <dl class="decisions">
+    <div><dt>Osakeluettelot</dt><dd>Siirretty HTJ:hin, joten HTJ on omistustietojen päälähde</dd></div>
+    <div><dt>Käyttäjät</dt><dd>Isännöitsijät, hallitukset, osakkaat, asukkaat ja palveluntuottajat</dd></div>
+    <div><dt>Talous</dt><dd>Procountor vuoden 2027 loppuun, sitten suoraan Adepta PPR 1.1.2028</dd></div>
+    <div><dt>MML-järjestelmätoimittaja</dt><dd>Adepta Tilat Oy</dd></div>
+    <div><dt>HTJ2-ilmoitukset</dt><dd>Ei vielä tehty, määräaika 30.6.2026 on jo mennyt</dd></div>
+    <div><dt>Allekirjoitukset ja tunnistus</dt><dd>eSinetti (Telia FTN), kirjautuminen portfolion Auth0:lla</dd></div>
+    <div><dt>Toteutus</dt><dd>Jukka ja Claude Code, 20 h viikossa</dd></div>
+    <div><dt>Tavoite</dt><dd>Omaan käyttöön ja myöhemmin tuotteeksi, useampi isännöintiyritys samassa järjestelmässä</dd></div>
+  </dl>
+</header>
+
+<div class="shell">
+<nav class="toc" aria-label="Sisällys">
+  <p>Sisällys</p>
+  <ol>
+    <li><a href="#tiivistelma">Tiivistelmä</a></li>
+    <li><a href="#lahtotilanne">Lähtötilanne</a></li>
+    <li><a href="#tuote">Tuote ja kilpailu</a></li>
+    <li><a href="#roolit">Roolit ja oikeudet</a></li>
+    <li><a href="#toiminnot">Toiminnallisuudet</a></li>
+    <li><a href="#htj">HTJ-integraatio</a></li>
+    <li><a href="#talous">Talousintegraatio</a></li>
+    <li><a href="#arkkitehtuuri">Arkkitehtuuri</a></li>
+    <li><a href="#komponentit">Valmiit osat</a></li>
+    <li><a href="#tietomalli">Tietomalli</a></li>
+    <li><a href="#tietoturva">Tietosuoja ja -turva</a></li>
+    <li><a href="#nakymat">Näkymät</a></li>
+    <li><a href="#migraatio">Siirto Accessista</a></li>
+    <li><a href="#vaiheet">Vaiheet ja aikataulu</a></li>
+    <li><a href="#kustannukset">Kustannukset</a></li>
+    <li><a href="#riskit">Riskit</a></li>
+    <li><a href="#kysymykset">Avoimet kysymykset</a></li>
+    <li><a href="#aloitus">Ensimmäinen työviikko</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 -->
+<section id="tiivistelma">
+  <h2><span class="n">01</span>Tiivistelmä</h2>
+  <p>Rakennetaan monivuokralainen SaaS: yksi järjestelmä, jossa jokaisen isännöintiyrityksen tiedot on eristetty toisistaan tietokannan tasolla. Ensimmäinen asiakas on Adepta Oy ja sen 16 asiakastaloyhtiötä (Accessissa on 20 yhtiötä, joista neljä ei ole enää asiakkaita). Tekniikkana on <strong>Next.js, Supabase (PostgreSQL, EU) ja Vercel</strong>. PPR on tehty samalla tekniikalla, joten osaaminen siirtyy suoraan. PPR:n virheet vältetään: kaikki koodi tehdään React-komponentteina, tietokantarakenne on migraatioina versionhallinnassa ja tietokannan rivitason suojaus on aina päällä.</p>
+  <div class="two">
+    <div class="panel">
+      <h4>Ensimmäinen käyttöönotto, maaliskuu 2027</h4>
+      <ul>
+        <li>Taloyhtiö- ja huoneistorekisteri, jonka tiedot on korjattu ja siirretty Accessista</li>
+        <li>Vastikkeet, lainat ja korjaushistoria valmiina HTJ-ilmoituksia varten (joulukuusta 2026 alkaen)</li>
+        <li>Osakkaat ja osakeryhmät tulevat HTJ:n kyselyrajapinnasta</li>
+        <li>Huoltopyynnöt ja asukas- ja hallitusportaali</li>
+        <li>Tiedotteet ja dokumenttipankki</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Täysi laajuus, lokakuu 2027</h4>
+      <ul>
+        <li>Vastikkeet ja lainaosuudet, maksutilanne Procountorista CSV:nä. Kirjanpito siirtyy PPR:ään 1.1.2028.</li>
+        <li>Tietojen ilmoittaminen HTJ:hin: vastikkeet, lainat, kunnossapito- ja muutostyöt sekä kunnossapitotarveselvitys</li>
+        <li>Kokoukset ja isännöitsijäntodistus</li>
+        <li>Varaukset, sopimukset ja vuosikello</li>
+        <li>Tuotteistus muille isännöitsijöille</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note warn">
+    <strong>Tee heti, ennen koodausta</strong>
+    <p>Hae Maanmittauslaitokselta pääsy HTJ:n <em>testiympäristöön</em>. Hakemuksen käsittely, tietoturvaliite ja sopimus vievät kalenteriaikaa, eikä HTJ-integraatiota voi testata ilman niitä.</p>
+    <p><strong>HTJ2-ilmoitukset ovat myöhässä.</strong> Vastikkeiden, lainojen ja kunnossapitotietojen määräaika oli 30.6.2026, eikä ilmoituksia ole tehty. Rajapintayhteys valmistuu aikaisintaan keväällä 2027, joten ilmoitukset on tehtävä nyt käsin MML:n asiointipalvelussa. Yhtiökohtainen tilanne on osiossa <a href="#htj-myohassa">06 HTJ-integraatio</a>.</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="lahtotilanne">
+  <h2><span class="n">02</span>Lähtötilanne</h2>
+  <h3>Access-tietokanta</h3>
+  <p>Tietokannassa on 17 taulua, 21 raporttia ja 6 lomaketta. Siinä on 20 yhtiötä, 182 osakeryhmää, 307 omistusriviä, 124 asukasriviä ja 53 korjausilmoitusta. Käytännössä sillä tehdään isännöitsijäntodistuksia, osake- ja ääniluetteloita, kokouskutsuja ja korjaushistoriaa.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Ongelma</th><th>Mitä uudessa järjestelmässä tehdään</th></tr></thead>
+    <tbody>
+      <tr><td>Huoneistot linkitetään juoksevalla numerolla <code>Kenttä1</code></td><td>Pysyvät uuid-tunnisteet ja viiteavaimet, joiden eheyden tietokanta varmistaa</td></tr>
+      <tr><td>Osakenumerovälit menevät päällekkäin, ovat väärinpäin tai puuttuvat (11 yhtiötä)</td><td><code>osakevalit</code>-taulun rajoite estää päällekkäisyydet, ja osakemäärä lasketaan väleistä</td></tr>
+      <tr><td>Omistusosuuksien summa ei ole 100 % (22 huoneistoa)</td><td>Osuudet murtolukuina, poikkeamanäkymä, ja HTJ on päälähde</td></tr>
+      <tr><td>181 henkilötunnusta salaamattomassa tiedostossa</td><td>Henkilötunnukset haetaan HTJ:stä vain tarvittaessa ja tallennetaan salattuina, ja jokainen luku kirjataan lokiin</td></tr>
+      <tr><td>Yhtiöt-taulussa on 63 saraketta ja toistuvat tiedot sarakkeina (§1–§15, Hall_jäsen1–5)</td><td>Tiedot on jaettu omiin tauluihinsa: rakennukset, kiinteistöt, kokousasiat ja hallitusjäsenyydet</td></tr>
+      <tr><td>Liitteet tallennetaan tietokannan sisään</td><td>Tiedostot erillisessä tallennustilassa, johon pääsee vain näkyvyysoikeuksien mukaan</td></tr>
+      <tr><td>Korjauspyynnöt ovat Accessin englanninkielinen "Issues"-malli, eikä tiloja päivitetä</td><td>Oma huoltopyyntöjen työnkulku ja tapahtumahistoria</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Adepta PPR</h3>
+  <p>Tekniikka on Next.js 14, Supabase, Auth0 ja Vercel. Järjestelmässä on tauluja, joita isännöintijärjestelmä voi hyödyntää: <code>ppr_osakkaat</code>, <code>ppr_reskontra</code> (sisältää <code>osakas_id</code>, <code>viite</code> ja <code>tila</code>) ja <code>ppr_myyntilaskut</code>. PPR:n integraatiota rajoittaa kolme asiaa:</p>
+  <ul>
+    <li><strong>Järjestelmien välistä rajapintaa ei ole.</strong> Kaikki PPR:n rajapinnat vaativat selaimen kirjautumisen.</li>
+    <li><strong>Yritysten tietojen eristys on puutteellinen.</strong> Myyntilaskujen rajapinta ei tarkista käyttäjän organisaatiota, ja RLS-säännöt ovat osittain "allow_all". Korjaus on ehdotettu erilliseksi tehtäväksi.</li>
+    <li><strong>Tietokannan perusrakenne puuttuu versionhallinnasta</strong>, joten tauluja ei voi luoda uudelleen koodista.</li>
+  </ul>
+</section>
+
+<!-- 3 -->
+<section id="tuote">
+  <h2><span class="n">03</span>Tuote ja kilpailu</h2>
+  <p>Vertailukohta on Avaa.io. <strong>Fennoa osti Avaa Solutions Oy:n 10.3.2026</strong>, ja nyt Fennoa myy isännöintijärjestelmää ja taloushallintoa yhtenä pakettina, jossa on yli 150 isännöintitoimistoa ja noin 6 000 taloyhtiötä. Tästä seuraa kaksi asiaa:</p>
+  <ul>
+    <li>eRappu ei integroidu Fennoaan omien yhtiöiden osalta. Kirjanpito siirtyy Adepta PPR:ään, joten kilpailija ei omista kriittistä rajapintaa.</li>
+    <li>eRapun pitää erottua jollain, mitä Avaa ei tee hyvin.</li>
+  </ul>
+  <div class="two">
+    <div class="panel">
+      <h4>Avaan vahvuudet, joille tarvitaan vastine</h4>
+      <ul>
+        <li>Tiketöinti ja automaattiset ilmoitukset</li>
+        <li>Tiedotteet monessa kanavassa (sähköposti, push, kirje)</li>
+        <li>Yhtiökokous kutsusta allekirjoitettuun pöytäkirjaan</li>
+        <li>Vastike- ja lainaosuuslaskenta sekä reskontrat</li>
+        <li>Isännöitsijäntodistus ja todistusten verkkotilaus</li>
+        <li>HTJ-kumppanuus ja kunnossapito- ja muutostyötiedot</li>
+        <li>Varauskalenterit ja kyselyt</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Aukot, joihin voi iskeä</h4>
+      <ul>
+        <li>Asukassovelluksen arvio on 2,5/5: pyyntöjä katoaa eikä niitä voi muokata. <strong>Tavoite on kaikkien aikojen selkein huoltopyyntöjen käsittely.</strong></li>
+        <li>Kunnossapitotarveselvitys tai PTS puuttuu omana työkalunaan</li>
+        <li>Sopimusrekisteri ja muistutukset puuttuvat</li>
+        <li>Energiankulutuksen seuranta puuttuu</li>
+        <li>Sähköinen äänestys ja etäosallistuminen yhtiökokoukseen puuttuvat</li>
+        <li>Hinnat eivät ole julkisia. Pienelle isännöitsijälle voi tarjota läpinäkyvän hinnan taloyhtiötä kohden.</li>
+        <li>Taloushallinto ei ole sidottu Fennoaan. Tarjolla on Adepta PPR tai CSV-yhteys asiakkaan omaan kirjanpitoon.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Toinen verrokki: Premis (Kiinteistötahkola)</h3>
+  <p>Premistä kehittää Pre-Ohjelmistot Oy Oulussa: 4 henkeä, liikevaihto 834 t€ vuonna 2025, selvästi tappiollinen. Premis on Kiinteistötahkolan <em>oma</em> järjestelmä sen yli 3 000 taloyhtiölle, eikä sitä myydä muille isännöintiyrityksille. PHM Group sopi kesäkuussa 2026 ostavansa Kiinteistötahkolan, joten Premiksen tulevaisuus on epävarma.</p>
+  <div class="two">
+    <div class="panel">
+      <h4>Mallia Premiksestä</h4>
+      <ul>
+        <li><strong>Hallituksen talousnäkymä:</strong> ostolaskut kuvineen, budjetin toteuma ja kassavirta</li>
+        <li><strong>Isännöitsijän lisätöiden läpinäkyvyys:</strong> hallitus näkee, mitä lisätöitä on laskutettu</li>
+        <li>Muutostyöhakemusten käsittely ja arkisto</li>
+        <li>Osakkaan oma maksutilanne ja velkaosuudet</li>
+        <li>Porraskäytävänäytöt</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Premiksen heikkoudet, joita vältetään</h4>
+      <ul>
+        <li><strong>Data jää järjestelmään, kun isännöitsijä vaihtuu.</strong> eRapussa on taloyhtiön täydellinen tietojen vienti, joka on myyntivaltti hallituksille.</li>
+        <li>Huoltopyyntöjä merkitään valmiiksi ilman tehtyä työtä. eRapussa ilmoittaja voi kuitata työn valmiiksi tai avata pyynnön uudelleen.</li>
+        <li>Mobiilisovelluksen arvio on 1,5/5, eikä sitä ole päivitetty vuoden 2018 jälkeen. Siksi eRappu tehdään PWA:na, jonka päivitykset tulevat samaan tahtiin kuin selainversioon.</li>
+        <li>HTJ-rajapintatyöstä ei löydy julkista näyttöä</li>
+      </ul>
+    </div>
+  </div>
+  <p><strong>Muut HTJ-rajapintaa testanneet toimittajat</strong> (MML:n tiedote kunnossapito- ja muutostyötietojen testauksesta): Avaa, BuilderBot, Confirma/Domus, Talotuntija ja Visma Sirius/Hausvise. Nämä ovat eRapun todelliset kilpailijat pienten isännöitsijöiden markkinalla.</p>
+  <p><strong>Kohderyhmä:</strong> 1–5 hengen isännöintiyritykset, joilla on 10–80 pientä taloyhtiötä, esimerkiksi rivitaloja maakunnissa. Niille isot järjestelmät ovat raskaita ja kalliita. Ydinlupaus: <em>HTJ-ilmoitukset, huoltopyynnöt ja isännöitsijäntodistukset hoituvat ilman, että samoja tietoja syötetään kahteen kertaan.</em></p>
+</section>
+
+<!-- 4 -->
+<section id="roolit">
+  <h2><span class="n">04</span>Roolit ja käyttöoikeudet</h2>
+  <p class="sub">Järjestelmässä on kahdenlaisia rooleja. Organisaatioroolit ovat isännöintiyrityksen omalle henkilökunnalle. Portaaliroolit ovat taloyhtiön ihmisille, ja ne syntyvät automaattisesti rekisteritiedoista: osakkaan rooli omistuksesta, asukkaan rooli asumisesta ja hallituksen rooli jäsenyydestä. Kun omistus tai jäsenyys päättyy, myös oikeus päättyy.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Toiminto</th><th>Pääkäyttäjä</th><th>Isännöitsijä</th><th>Kirjanpitäjä</th><th>Assistentti</th><th>Hallitus</th><th>Osakas</th><th>Asukas</th><th>Palvelun&shy;tuottaja</th></tr></thead>
+    <tbody>
+      <tr><td>Taloyhtiön perustiedot</td><td>muokkaa</td><td>muokkaa</td><td>näkee</td><td>muokkaa</td><td>näkee</td><td>osittain</td><td>osittain</td><td>osoite</td></tr>
+      <tr><td>Osakkaiden tiedot</td><td>muokkaa</td><td>muokkaa</td><td>laskutustiedot</td><td>näkee</td><td>nimet ja osakeryhmät</td><td>omat</td><td>–</td><td>–</td></tr>
+      <tr><td>Henkilötunnus</td><td>lokitettu luku</td><td>lokitettu luku</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+      <tr><td>Huoltopyynnöt</td><td>kaikki</td><td>kaikki</td><td>kustannukset</td><td>kaikki</td><td>yhtiön pyynnöt</td><td>omat ja uusi</td><td>omat ja uusi</td><td>vain heille osoitetut</td></tr>
+      <tr><td>Tiedotteet</td><td>laatii</td><td>laatii</td><td>–</td><td>laatii</td><td>laatii luonnoksen</td><td>lukee</td><td>lukee</td><td>–</td></tr>
+      <tr><td>Dokumentit</td><td>kaikki</td><td>kaikki</td><td>talousdokumentit</td><td>kaikki</td><td>hallitus ja osakkaat</td><td>osakkaille näkyvät ja omat</td><td>asukkaille näkyvät</td><td>liitteet tehtäviin</td></tr>
+      <tr><td>Kokoukset</td><td>kaikki</td><td>kaikki</td><td>näkee</td><td>valmistelee</td><td>näkee ja kommentoi</td><td>kutsu ja pöytäkirja</td><td>–</td><td>–</td></tr>
+      <tr><td>Vastikkeet ja lainaosuudet</td><td>muokkaa</td><td>muokkaa</td><td>muokkaa</td><td>näkee</td><td>yhtiön tasolla</td><td>omat</td><td>–</td><td>–</td></tr>
+      <tr><td>Laskutusajot ja maksutilanne</td><td>kaikki</td><td>hyväksyy</td><td>tekee ja siirtää</td><td>–</td><td>yhtiön tasolla</td><td>omat</td><td>–</td><td>–</td></tr>
+      <tr><td>HTJ-ilmoitukset</td><td>lähettää</td><td>lähettää</td><td>valmistelee vastikkeet ja lainat</td><td>valmistelee</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+      <tr><td>Varaukset</td><td>hallinnoi</td><td>hallinnoi</td><td>–</td><td>hallinnoi</td><td>varaa</td><td>varaa</td><td>varaa</td><td>–</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Adeptan henkilökunta alussa:</strong> Jukka (pääkäyttäjä ja isännöitsijä) sekä kaksi kirjanpitäjää. Kirjanpitäjät näkevät talouden, laskutuksen ja taloyhtiön perustiedot mutta eivät henkilötunnuksia.</p>
+  <p><strong>Kirjautuminen:</strong></p>
+  <ul>
+    <li><strong>Henkilökunta:</strong> Auth0-tunnus (portfolion jaettu tenant) ja pakollinen kaksivaiheinen tunnistus.</li>
+    <li><strong>Osakkaat ja hallitus:</strong> Auth0 passwordless -kirjautuminen. Kun käyttäjä tunnistautuu ensimmäisen kerran pankkitunnuksilla Telia Tunnistuksen kautta (eSinetin koodilla), hänet yhdistetään HTJ:n omistajatietoon syntymäajan ja nimen perusteella. Henkilötunnusta verrataan vain HMAC-tiivisteenä.</li>
+    <li><strong>Asukkaat:</strong> sähköpostikutsu ja Auth0 passwordless -koodi. Pankkitunnistus on vapaaehtoinen.</li>
+    <li><strong>Palveluntuottajat:</strong> tehtäväkohtainen, määräaikainen linkki. Vakituisille kumppaneille oma tunnus.</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="toiminnot">
+  <h2><span class="n">05</span>Toiminnallisuudet</h2>
+  <p class="sub">Merkinnät: <span class="chip mvp">MVP</span> kuuluu ensimmäiseen käyttöönottoon, <span class="chip v2">V2</span> täyteen laajuuteen, <span class="chip v3">V3</span> myöhempiin versioihin. <span class="chip htj">HTJ</span> tarkoittaa, että toiminto lukee tietoja HTJ:stä tai ilmoittaa niitä sinne.</p>
+
+  <h3>A. Rekisteri</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Toiminto</th><th>Sisältö</th><th>Laajuus</th></tr></thead><tbody>
+    <tr><td>Taloyhtiökortti</td><td>Perustiedot, kiinteistöt, rakennukset, yhteistilat, vakuutus, lunastuslauseke, vastuuisännöitsijä ja isännöinnin alkamispäivä</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Osakeryhmät</td><td>Huoneistotunnus, tyyppi, pinta-ala, kerros, käyttötarkoitus ja osakevälit. Järjestelmä tarkistaa, että välit ovat yhtenäiset ja osakemäärä täsmää.</td><td><span class="chip mvp">MVP</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Osakkaat ja omistukset</td><td>Tiedot haetaan HTJ:stä: omistajat, osuudet ja rajoitukset. Järjestelmään lisätään omat tiedot, kuten yhteystiedot, sähköisen kokouskutsun lupa ja asiakasnumero kirjanpidossa.</td><td><span class="chip mvp">MVP</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Asukkaat</td><td>Vuokralaiset ja muut asukkaat ajanjaksoineen. Lyhytvuokralaisten tunnistetiedot lakimuutoksen (1.10.2026) mukaisesti.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Hallitukset</td><td>Jäsenet, roolit ja toimikaudet. Hallitusoikeudet portaaliin syntyvät automaattisesti.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Palveluntuottajat</td><td>Yritykset, osaamisalueet ja päivystysnumerot. Taloyhtiöittäin määritetään, kuka hoitaa minkäkin palvelun.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Haku</td><td>Yksi hakukenttä yhtiöille, huoneistoille, henkilöille ja pyynnöille. Esimerkiksi "Jussilantie A 3" löytää huoneiston.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Taloyhtiön tietojen vienti</td><td>Kaikki yhtiön tiedot, historia ja dokumentit yhtenä pakettina (JSON, CSV ja tiedostot), kun isännöitsijä vaihtuu. Vienti kirjataan tapahtumalokiin.</td><td><span class="chip v2">V2</span></td></tr>
+  </tbody></table></div>
+
+  <h3>B. Huoltopyynnöt ja työt</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Toiminto</th><th>Sisältö</th><th>Laajuus</th></tr></thead><tbody>
+    <tr><td>Huoltopyyntölomake</td><td>
+      <ul>
+        <li>Portaalissa on valmiiksi täytettynä yhtiö ja huoneisto. Julkisella QR-koodilla ja linkillä voi ilmoittaa ilman tunnusta.</li>
+        <li>Pyyntöön voi liittää kuvia.</li>
+        <li>Kysymykset: saako yleisavainta käyttää, onko lemmikkejä, kiireellisyys.</li>
+        <li>Ohjeistus "Soita päivystykseen", jos kyseessä on vesivahinko.</li>
+      </ul>
+    </td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Työjono</td><td>
+      <ul>
+        <li>Tilat: uusi, vastaanotettu, tilattu, työn alla, odottaa, valmis, suljettu.</li>
+        <li>Suodattimet ja vastuuhenkilö.</li>
+        <li>Jokainen tilan muutos tallentuu tapahtumahistoriaan.</li>
+        <li>Pyyntö ei voi kadota: suljetunkin pyynnön voi avata uudelleen.</li>
+      </ul>
+    </td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Tilaus palveluntuottajalle</td><td>
+      <ul>
+        <li>Pyyntö lähetetään palveluntuottajalle yhdellä napilla, ja hän saa linkin.</li>
+        <li>Palveluntuottaja kuittaa pyynnön vastaanotetuksi, aloitetuksi ja valmiiksi, lisää kuvan ja kommentin sekä kirjaa kustannuksen.</li>
+      </ul>
+    </td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Ilmoitukset</td><td>Ilmoittaja saa sähköpostin jokaisesta tilamuutoksesta, jonka näkyvyys on "ilmoittaja". Hallitus saa halutessaan viikkokoosteen.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Kustannusvastuu</td><td>Merkintä yhtiö, osakas tai selvitettävä. Jos vastuu on osakkaalla, laskutus siirtyy kirjanpitoon.</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Toistuvat työt</td><td>Esimerkiksi ilmanvaihdon huolto tai lumityösopimuksen tarkistus. Toistuvuus RRULE-sääntönä (kalenterien toistosääntöjen standardi, sama logiikka kuin PPR:ssä).</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Muutostyöilmoitukset</td><td>
+      <ul>
+        <li>Osakas ilmoittaa remontista asunto-osakeyhtiölain 5. luvun mukaisesti.</li>
+        <li>Isännöitsijä käsittelee ilmoituksen: pyytää lisätietoja, hyväksyy ehdoin tai kieltää.</li>
+        <li>Kun työ valmistuu, se ilmoitetaan HTJ:hin.</li>
+      </ul>
+    </td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+  </tbody></table></div>
+
+  <h3>C. Viestintä ja dokumentit</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Toiminto</th><th>Sisältö</th><th>Laajuus</th></tr></thead><tbody>
+    <tr><td>Tiedotteet</td><td>Kohderyhmänä yhtiö, rakennus tai porras ja rooli. Kanavat: portaali ja sähköposti, V2:ssa myös tekstiviesti ja paperikirje. Jokaisesta lähetyksestä näkyy toimitustila.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Dokumenttipankki</td><td>Dokumenttilajit: yhtiöjärjestys, tilinpäätös, talousarvio, energiatodistus, pohjakuvat, pöytäkirjat, sopimukset, kuntoarviot. Näkyvyys valitaan dokumenttikohtaisesti.</td><td><span class="chip mvp">MVP</span></td></tr>
+    <tr><td>Kyselyt</td><td>Esimerkiksi "Kiinnostaako sähköauton latauspiste?". Tulokset näkyvät hallitukselle.</td><td><span class="chip v3">V3</span></td></tr>
+    <tr><td>Paperiposti</td><td>Tulostus- ja postituspalvelun rajapinta niille osakkaille, jotka eivät käytä sähköpostia</td><td><span class="chip v3">V3</span></td></tr>
+  </tbody></table></div>
+
+  <h3>D. Hallinto</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Toiminto</th><th>Sisältö</th><th>Laajuus</th></tr></thead><tbody>
+    <tr><td>Kokoukset</td><td>
+      <ul>
+        <li>Asialistapohjat: varsinaisen yhtiökokouksen pohja asunto-osakeyhtiölain 6:10 §:n mukaan, lisäksi hallituksen kokous.</li>
+        <li>Kutsu toimitetaan yhtiöjärjestyksen määräajassa.</li>
+        <li>Osakasluettelon ja ääniluettelon tiedot tulevat HTJ:stä ja ne huomioivat äänileikkurin.</li>
+        <li>Pöytäkirjapohja.</li>
+      </ul>
+    </td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Sähköinen allekirjoitus</td><td>eSinetillä: pöytäkirjat, sopimukset, valtakirjat ja muutostyöluvat. Sinetöity PDF palaa automaattisesti dokumentteihin.</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Etäosallistuminen ja äänestys</td><td>Läsnäolijat, valtakirjat ja äänestys kokouksen aikana, jos yhtiöjärjestys tai kokouskutsu sen sallii</td><td><span class="chip v3">V3</span></td></tr>
+    <tr><td>Isännöitsijäntodistus</td><td>
+      <ul>
+        <li>Osakeryhmän ja omistajien tiedot tulevat HTJ:stä, yhtiön tiedot omasta rekisteristä.</li>
+        <li>Mukaan tulevat korjaukset, lainat, vastikkeet ja maksutilanne.</li>
+        <li>Rakenne noudattaa asetusta 365/2010, ja todistukseen merkitään HTJ-merkintä.</li>
+        <li>Valmis todistus on PDF.</li>
+      </ul>
+    </td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Todistustilaukset</td><td>Välittäjä tai osakas tilaa todistuksen verkkolomakkeella ja maksaa verkkomaksulla. Tilaus tulee työjonoon.</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Sopimukset</td><td>Vastapuoli, laji, voimassaolo ja irtisanomisaika. Järjestelmä muistuttaa ennen määräaikaa.</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Vuosikello</td><td>Tilinpäätös, yhtiökokous, HTJ-päivitys yhtiökokouksen jälkeen, vakuutusten tarkistus. Tehtävät toistuvat taloyhtiöittäin.</td><td><span class="chip v2">V2</span></td></tr>
+  </tbody></table></div>
+
+  <h3>E. Talous ja kiinteistön pito</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Toiminto</th><th>Sisältö</th><th>Laajuus</th></tr></thead><tbody>
+    <tr><td>Vastikeperusteet</td><td>
+      <ul>
+        <li>Vastikelaji, peruste (osake, m², kpl, mittari) ja yksikköhinta.</li>
+        <li>Voimassaolo ja päätös, jolla vastike on hyväksytty.</li>
+        <li>Historia säilyy.</li>
+      </ul>
+    </td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Lainat ja lainaosuudet</td><td>Yhtiölainat, osakeryhmäkohtaiset osuudet ja kertasuoritukset. Lainaosuuslaskelma.</td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Laskutusajo</td><td>Kuukauden vastikerivit lasketaan ja hyväksytään. Vuonna 2027 ne viedään tiedostona Procountoriin, ja 1.1.2028 alkaen ne siirtyvät PPR:ään myyntilaskuiksi viitenumeroineen.</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Maksutilanne</td><td>Avoimet ja erääntyneet saatavat tuodaan kirjanpidosta. Ne näkyvät isännöitsijäntodistuksessa ja osakkaan omalla sivulla.</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Hallituksen talousnäkymä</td><td>Budjetin toteuma, ostolaskut kuvineen (kirjanpidosta), kassavirta ja isännöitsijän laskuttamat lisätyöt</td><td><span class="chip v2">V2</span></td></tr>
+    <tr><td>Kunnossapito- ja muutostyöhistoria</td><td>Korjaushistoria on rakenteista tietoa: hanke, työlaji ja valmistumisvuosi. Tiedot ilmoitetaan HTJ:hin.</td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Kunnossapitotarveselvitys / PTS</td><td>Viiden vuoden suunnitelma, jossa on kustannusarviot. Tilinpäätöksen liite ja HTJ-ilmoitus.</td><td><span class="chip v2">V2</span> <span class="chip htj">HTJ</span></td></tr>
+    <tr><td>Kulutusseuranta</td><td>Sähkön, veden ja lämmön kulutus sekä vertailu edellisvuoteen. Energiatodistuksen voimassaolo.</td><td><span class="chip v3">V3</span></td></tr>
+    <tr><td>Varaukset</td><td>Sauna, pesutupa ja kerhohuone. Vakiovuorot, varauskiintiöt ja päällekkäisyyksien esto.</td><td><span class="chip v2">V2</span></td></tr>
+  </tbody></table></div>
+</section>
+
+<!-- 6 -->
+<section id="htj">
+  <h2><span class="n">06</span>HTJ-integraatio</h2>
+  <p class="sub">Tämän osion tiedot on koottu Maanmittauslaitoksen sivuilta 14.9.2026. Tarkista yksityiskohdat MML:n teknisistä kuvauksista, kun pääsy testiympäristöön on saatu.</p>
+
+  <h3 id="htj-myohassa">Myöhässä olevat ilmoitukset: tilanne yhtiöittäin</h3>
+  <p>Taulukko on koottu Accessin tiedoista, ja siinä ovat vain nykyiset asiakasyhtiöt. Veertintie, Parkkola, Liiketalo ja Toivakanhaka on jätetty pois. Enintään viiden huoneiston yhtiöiden ilmoitus on vapaaehtoinen, ellei yhtiöllä ole jaettavaa yhtiölainaa tai joku (omistaja, pankki tai välittäjä) pyydä tietoja.</p>
+  <ul>
+    <li>Accessin lainatiedot voivat olla vanhoja (osa päivämääristä on vuodelta 2015), joten tarkista ne tilinpäätöksistä.</li>
+    <li>Asiakkaista ainoa KOY on Säästövakka, ja sen tila tarkistetaan erikseen.</li>
+  </ul>
+  <div class="tw"><table>
+    <thead><tr><th>Yhtiö</th><th class="num">Huoneistot</th><th class="num">Laina (Access)</th><th class="num">Hoitovastike</th><th>Tilanne</th></tr></thead>
+    <tbody>
+      <tr><td>As Oy Joutsan Launonrinne</td><td class="num">10</td><td class="num">207 500 €</td><td class="num">1,80 €/m²</td><td><span class="chip crit">pakollinen</span> Suurin laina, lainaosuudet selvitettävä</td></tr>
+      <tr><td>As Oy Peltorivi</td><td class="num">10</td><td class="num">28 971 €</td><td class="num">1,40 €/m²</td><td><span class="chip crit">pakollinen</span> Kaksi lainaa</td></tr>
+      <tr><td>As Oy Kotipesä</td><td class="num">12</td><td class="num">23 634 €</td><td class="num">3,00 €/m²</td><td><span class="chip crit">pakollinen</span></td></tr>
+      <tr><td>Toivakan Asunto Oy</td><td class="num">8 + 4 AT</td><td class="num">23 271 €</td><td class="num">5,50 €/m²</td><td><span class="chip crit">pakollinen</span></td></tr>
+      <tr><td>As Oy Toivakan Vakka</td><td class="num">4 + 2 toim.</td><td class="num">8 967 €</td><td class="num">2,30 €/m²</td><td><span class="chip crit">pakollinen</span> Pakollinen, koska yhtiöllä on laina</td></tr>
+      <tr><td>As Oy Paikkalankartano Miina</td><td class="num">8</td><td class="num">5 728 €</td><td class="num">puuttuu</td><td><span class="chip crit">pakollinen</span> Hoitovastike puuttuu Accessista</td></tr>
+      <tr><td>As Oy Vanhansillanpuisto</td><td class="num">7</td><td class="num">4 163 €</td><td class="num">2,30 €/m²</td><td><span class="chip crit">pakollinen</span></td></tr>
+      <tr><td>As Oy Jussilantie 6</td><td class="num">10</td><td class="num">–</td><td class="num">3,15 €/m²</td><td><span class="chip crit">pakollinen</span></td></tr>
+      <tr><td>As Oy Jäkälätie 3</td><td class="num">12</td><td class="num">–</td><td class="num">2,00 €/m²</td><td><span class="chip crit">pakollinen</span></td></tr>
+      <tr><td>As Oy Paikkalankartano Matti</td><td class="num">10</td><td class="num">–</td><td class="num">3,00 €/m²</td><td><span class="chip crit">pakollinen</span></td></tr>
+      <tr><td>As Oy Toivakan Jussilanpuisto 4</td><td class="num">7</td><td class="num">–</td><td class="num">3,20 €/m²</td><td><span class="chip crit">pakollinen</span> Osakenumerot puuttuvat Accessista</td></tr>
+      <tr><td>Asunto Oy Paikkalan Torpat</td><td class="num">15–16</td><td class="num">–</td><td class="num">1,85 €/m²</td><td><span class="chip crit">pakollinen</span> Huoneistojen määrä ristiriidassa</td></tr>
+      <tr><td>As Oy Pirtinrivi</td><td class="num">8</td><td class="num">–</td><td class="num">3,00 €/m²</td><td><span class="chip crit">pakollinen</span> Vain 2 huoneistoa 8:sta on Accessissa</td></tr>
+      <tr><td>As Oy Sadansavu</td><td class="num">5</td><td class="num">–</td><td class="num">2,00 €/m²</td><td><span class="chip v3">vapaaehtoinen</span></td></tr>
+      <tr><td>As Oy Toivakan Rantatuuli</td><td class="num">4</td><td class="num">–</td><td class="num">1,70 €/m²</td><td><span class="chip v3">vapaaehtoinen</span> Vastiketieto vuodelta 2015</td></tr>
+      <tr><td>KOY Toivakan Säästövakka</td><td class="num">4 liiketilaa</td><td class="num">–</td><td class="num">4,50 €/m²</td><td><span class="chip v2">tarkista</span> Tarkista yhtiön tila HTJ:ssä: onko osakeluettelo siirretty ja koskeeko HTJ2-ilmoitusvelvollisuus tätä KOY:tä</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <strong>Toimintamalli nyt, ennen kuin rajapintayhteys valmistuu</strong>
+    <ol>
+      <li>Kerää yhtiöittäin tiedot: voimassa olevat vastikkeet €/m²/kk ja päätöspäivä, yhtiölainat ja huoneistokohtaiset lainaosuudet tilinpäätöksistä, toteutuneet korjaukset (Accessissa 27 suoritettua ja 19 tulevaa korjausta) sekä kunnossapitotarveselvitys.</li>
+      <li>Ilmoita tiedot käsin MML:n asiointipalvelussa. Aloita lainallisista yhtiöistä, koska niiden tietoja pyydetään asuntokaupoissa.</li>
+      <li>Syötä samat tiedot eRappuun sen ensimmäisessä vaiheessa (V1). Kun rajapinta valmistuu, järjestelmä vertaa omia tietojaan HTJ:hin ja jatkaa ilmoituksia automaattisesti.</li>
+    </ol>
+  </div>
+
+  <h3>Rajapinnat</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Palvelu</th><th>Suunta</th><th>Käyttö järjestelmässä</th></tr></thead><tbody>
+    <tr><td><strong>Huoneistotietojen kyselypalvelu isännöintijärjestelmille</strong> (REST, <code>htj-ext.nls.fi/htj1/isannointi/v1</code>)</td><td>luku</td><td>Yhtiön perustiedot, osakeryhmät ja hallitut tilat, omistajat, yhteystiedot (VTJ-osoite ja turvakielto), rajoitukset, koodistot ja muutostiedot aikaväliltä</td></tr>
+    <tr><td><strong>Huoneistotietojen ylläpidon rajapintapalvelu</strong> (OpenAPI-kuvaus saatavilla)</td><td>ilmoitus ja luku</td><td>Kunnossapito- ja muutostyöt, kunnossapitotarveselvitys, yhtiölainat ja lainaosuudet sekä vastikkeet (hoito-, maa-, lämmitys- ja pääomavastike)</td></tr>
+    <tr><td><strong>Huoneistotietojen muutostietopalvelu</strong></td><td>luku</td><td>Omistajanvaihdokset ja muut muutokset yöllisessä synkronoinnissa. Tekniset tiedot tarkistetaan myöhemmin.</td></tr>
+  </tbody></table></div>
+
+  <h3>Tekniset vaatimukset</h3>
+  <ul>
+    <li><strong>Mutual TLS -varmenne:</strong> MML toimittaa varmenteen järjestelmätoimittajalle. Varmenne ja avain säilytetään palvelimen salaisuuksissa, eikä niitä koskaan päästetä selaimeen.</li>
+    <li><strong>Järjestelmälupa</strong> korvaa valtuutusavaimet. Molempia voi käyttää rinnakkain vuoden 2026 loppuun.
+      <ul>
+        <li>Isännöitsijä antaa luvan isännöintijärjestelmässä tunnistautumalla Suomi.fi-tunnistuksella MML:n palvelussa ja hyväksymällä ehdot.</li>
+        <li>Lupa kattaa kaikki yhtiöt, joita hän edustaa.</li>
+        <li>Lupien hallinta: <code>jarjestelmalupa.nls.fi</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Pakolliset HTTP-otsakkeet ja hakujen lokitus</strong> omassa järjestelmässä. Tapahtumalokiin kirjataan jokainen HTJ-haku: kuka haki, milloin, mitä ja mihin tarkoitukseen.</li>
+    <li><strong>Maksuttomuus:</strong> rajapintojen käyttö on maksutonta isännöintijärjestelmille.</li>
+    <li><strong>Pääsyprosessi:</strong> testiympäristön hakemus → järjestelmälupa toteutetaan omaan ohjelmaan → tietoturvaliite → MML arvioi → vakiosopimus → tuotantovarmenteet. Yhteys: <span class="mono">verkkopalvelut@maanmittauslaitos.fi</span>.</li>
+  </ul>
+  <div class="note">
+    <strong>Mitä rajapinnalla ei voi tehdä</strong>
+    <p>Osakeryhmien yhdistämiset, jakamiset, osakeannit, yhtiöjärjestysmuutokset ja hallitustiedot eivät kulje rajapinnan kautta. Ne ilmoitetaan MML:n lomakkeilla ja PRH:lle.</p>
+    <p>Järjestelmä voi tuottaa lomakkeiden tiedot valmiiksi, mutta lähetys tehdään käsin. Siksi järjestelmässä on ohjattu toiminto "Muutos osakeryhmiin", joka tekee tarkistuslistan ja liitteet.</p>
+  </div>
+
+  <h3>Synkronointi</h3>
+  <pre class="mermaid">
+flowchart LR
+  subgraph MML["Maanmittauslaitos"]
+    Q["Kyselypalvelu<br/>REST + mTLS"]
+    M["Muutostietopalvelu"]
+    Y["Ylläpitopalvelu"]
+  end
+  subgraph APP["eRappu"]
+    L["Järjestelmälupa-<br/>toiminto"]
+    S["HTJ-synkronointi<br/>(ajastettu tehtävä)"]
+    DB[("Postgres<br/>osakeryhmat · omistukset<br/>osapuolet")]
+    I["HTJ-ilmoitusjono<br/>vastikkeet · lainat<br/>kumu · KPTS"]
+    LOG["tapahtumaloki +<br/>htj_synkronoinnit"]
+  end
+  L -->|lupa| Q
+  Q -->|alkulataus| S
+  M -->|yöajo: muutokset| S
+  S -->|vertailu ja päivitys| DB
+  DB --> I
+  I -->|isännöitsijä hyväksyy| Y
+  S --> LOG
+  I --> LOG
+  </pre>
+  <ol>
+    <li><strong>Alkulataus yhtiön käyttöönotossa:</strong> haetaan yhtiö, osakeryhmät, omistajat ja rajoitukset. Jos HTJ:n ja Accessista siirretyn datan välillä on eroja, ne näytetään raporttina. Isännöitsijä päättää, mitkä erot hyväksytään. <strong>HTJ voittaa aina omistustiedoissa.</strong></li>
+    <li><strong>Yöajo:</strong> muutostiedot haetaan edellisestä onnistuneesta ajosta alkaen. Omistajanvaihdos päättää vanhan omistuksen ja portaalioikeudet, luo uuden omistuksen ja tekee isännöitsijälle tehtävän "Uusi osakas: tarkista yhteystiedot ja lähetä kutsu".</li>
+    <li><strong>Ilmoitukset HTJ:hin kulkevat aina jonon ja hyväksynnän kautta.</strong> Järjestelmä kokoaa muutokset (esim. yhtiökokouksen päättämät vastikkeet), isännöitsijä tarkistaa ne ja painaa "Lähetä HTJ:hin". Vastaus ja HTJ-tunnisteet tallennetaan riveille (<code>htj_ilmoitettu</code>, <code>htj_tunniste</code>).</li>
+    <li><strong>Muistutukset:</strong> vuosikello tekee tehtävän "HTJ-päivitys" jokaisen yhtiökokouksen jälkeen ja vähintään kerran vuodessa. Enintään viiden huoneiston yhtiöissä muistutus tehdään vain, jos yhtiöllä on jaettava laina.</li>
+  </ol>
+
+  <h3>Henkilötunnukset</h3>
+  <p>HTJ:n kyselyrajapinta palauttaa henkilötunnuksen vain laajassa haussa. Suppea haku palauttaa syntymäajan.</p>
+  <ul>
+    <li><strong>Oletuksena järjestelmä käyttää suppeaa hakua</strong> ja tallentaa vain syntymäajan.</li>
+    <li>Henkilötunnus haetaan tuoreena vain toimenpiteeseen, joka sitä vaatii. Siitä tallennetaan korkeintaan salattu kopio (<code>osapuoli_tunnisteet</code>), ja jokainen luku kirjataan lokiin.</li>
+    <li>MML:n käyttöehdot kieltävät tietojen käytön muun muassa perintään, suoramarkkinointiin ja vuokraustoimintaan. Ehdot kirjataan järjestelmän käyttöehtoihin.</li>
+  </ul>
+  <p>Kun isännöintisuhde päättyy, oikeus tietoihin päättyy heti. Yhtiön HTJ-peräiset henkilötiedot poistetaan automaattisesti 30 päivän kuluessa päättymispäivästä.</p>
+</section>
+
+<!-- 7 -->
+<section id="talous">
+  <h2><span class="n">07</span>Talousintegraatio</h2>
+  <p>Isännöintijärjestelmä on päälähde laskutuksen <em>perusteille</em>: kuka maksaa, mistä osakeryhmästä, mitä vastikelajia ja millä hinnalla. Kirjanpito on päälähde <em>rahalle</em>: laskut, suoritukset ja saldot.</p>
+  <p><strong>Päätös 15.9.2026:</strong> taloyhtiöiden kirjanpito siirretään Procountorista <strong>suoraan Adepta PPR:ään tilikauden vaihteessa 1.1.2028</strong>. Fennoa-vaihetta ei tehdä.</p>
+  <pre class="code">interface KirjanpitoAdapteri {
+  tallennaAsiakas(osapuoli: Osapuoli): Promise&lt;UlkoinenId&gt;
+  luoLaskut(ajo: Laskutusajo, rivit: Laskutusrivi[]): Promise&lt;LaskuTulos[]&gt;
+  haeMaksutilanne(taloyhtio: Taloyhtio, pvm: Date): Promise&lt;Maksutilanne[]&gt;
+}
+// toteutukset: PprAdapteri (1.1.2028 alkaen) · TiedostoAdapteri (Procountor 2027, muiden asiakkaiden järjestelmät)</pre>
+  <div class="two">
+    <div class="panel">
+      <h4>Vuosi 2027: Procountor, tiedostoina</h4>
+      <ul>
+        <li>Procountor-integraatiota ei rakenneta.</li>
+        <li>eRappu laskee vastikerivit ja lainaosuudet. Ne viedään tiedostona Procountoriin, tai laskutus jatkuu Procountorissa kuten ennenkin. Tämä ratkaistaan V5:ssä sen perusteella, mikä on vähemmän käsityötä.</li>
+        <li>Maksutilanne (avoimet ja erääntyneet vastikkeet) tuodaan kuukausittain Procountorin reskontraraportista CSV-muodossa isännöitsijäntodistusta ja osakasportaalia varten.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>1.1.2028 alkaen: Adepta PPR</h4>
+      <p>PPR:ään on tehtävä ennen vaihtoa:</p>
+      <ul>
+        <li><strong>organisaatioeristyksen korjaus</strong> ja perusrakenteen migraatiot versionhallintaan (päätetty tehdä ennen eRappua)</li>
+        <li>järjestelmien välinen tunnistus (API-avain) ja rajapinnat <code>POST /api/v1/laskut</code>, <code>POST /api/v1/asiakkaat</code> sekä <code>GET /api/v1/maksutilanne</code>, jotka rakennetaan <code>ppr_myyntilaskut</code>- ja <code>ppr_reskontra</code>-logiikoiden päälle</li>
+        <li>asunto-osakeyhtiön tilikartta ja vastikereskontra osakeryhmittäin, viitteellä kohdistettuna</li>
+        <li>taloyhtiön tilinpäätös: kunnossapitotarveselvitys toimintakertomukseen, rahoitusvastikkeiden käsittely (tulouttaminen tai rahastointi) ja lainaosuuksien erittely</li>
+        <li>pankkiyhteys tai tiliotteiden tuonti suoritusten kohdistukseen (<code>lib/matching.ts</code> on pohjana)</li>
+        <li>avaavien saldojen tuonti Procountorista 31.12.2027</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note warn">
+    <strong>Työmäärä: PPR-työ ei sisälly eRapun 20 tuntiin</strong>
+    <p>Taloyhtiökirjanpidon ominaisuudet PPR:ssä ovat oma projektinsa, arviolta 8–12 viikkoa. Jos kaikki tehdään samoilla 20 viikkotunnilla, joko eRappu valmistuu noin kolme kuukautta myöhemmin tai vaihto PPR:ään siirtyy 1.1.2029:ään. Päätä, kumpi joustaa, ennen kuin V5 alkaa (huhtikuu 2027).</p>
+  </div>
+  <p><strong>Muiden isännöintiyritysten kirjanpitojärjestelmät</strong> (Fennoa, Netvisor, Procountor) liitetään tuotteistusvaiheessa ensin CSV-tiedostoina. Rajapinta-adapteri tehdään vasta, kun jokin järjestelmä on usealla asiakkaalla.</p>
+  <p><strong>Viitenumerot:</strong> järjestelmä laskee kotimaisen viitenumeron (tarkiste 7-3-1) ja RF-viitteen. Viitenumero muodostuu taloyhtiön numerosta ja osakeryhmän numerosta, jolloin sama osakeryhmä saa aina saman viitteen. Näin kohdistus toimii myös silloin, kun omistaja vaihtuu. Laskenta tehdään omaksi testatuksi funktiokseen; PPR:ssä vastaava on nyt HTML-tiedoston sisällä.</p>
+</section>
+
+<!-- 8 -->
+<section id="arkkitehtuuri">
+  <h2><span class="n">08</span>Arkkitehtuuri ja teknologiat</h2>
+  <pre class="mermaid">
+flowchart TB
+  subgraph Kayttajat["Käyttäjät"]
+    H["Henkilökunta<br/>selain"]
+    P["Osakkaat · asukkaat · hallitus<br/>PWA-portaali"]
+    T["Palveluntuottajat<br/>tehtävälinkki"]
+  end
+  subgraph Vercel["Vercel (EU)"]
+    N["Next.js 15 App Router<br/>React Server Components<br/>Server Actions"]
+    J["Ajastetut tehtävät<br/>HTJ-yöajo · muistutukset"]
+  end
+  subgraph Supabase["Supabase: oma projekti eRapulle (EU)"]
+    PG[("Postgres + RLS<br/>Auth0-JWT")]
+    ST["Storage<br/>yksityiset bucketit"]
+    V["Vault<br/>hetut · API-avaimet"]
+  end
+  subgraph Adepta["Adeptan omat palvelut"]
+    A["Auth0 (jaettu tenant)<br/>passwordless + MFA"]
+    SIGN["eSinetti API<br/>allekirjoitus · sinetöinti"]
+    PPR["Adepta PPR API"]
+  end
+  subgraph Ulkoiset["Ulkoiset palvelut"]
+    MML["MML HTJ<br/>mTLS"]
+    PROC["Procountor<br/>CSV 2027"]
+    FTN["Telia Tunnistus<br/>FTN"]
+    MAIL["Resend"]
+  end
+  H --> N
+  P --> N
+  T --> N
+  N --> A
+  N --> PG
+  N --> ST
+  J --> PG
+  J --> MML
+  N --> MML
+  N -.-> PROC
+  N --> PPR
+  N --> FTN
+  N --> MAIL
+  N --> SIGN
+  SIGN -->|webhook| N
+  PG --- V
+  </pre>
+
+  <div class="tw"><table class="plain"><thead><tr><th>Osa</th><th>Valinta</th><th>Perustelu</th></tr></thead><tbody>
+    <tr><td>Sovelluskehys</td><td><strong>Next.js 15</strong> (App Router), TypeScript strict</td><td>Sama kuin PPR:ssä. Sivut ovat React-komponentteja eivätkä staattisia HTML-tiedostoja, joten koodia on helppo ylläpitää Clauden kanssa.</td></tr>
+    <tr><td>Käyttöliittymä</td><td><strong>Tailwind CSS ja shadcn/ui</strong>, lomakkeisiin react-hook-form ja Zod</td><td>Valmiit saavutettavat komponentit. Samat Zod-skeemat tarkistavat syötteen sekä selaimessa että palvelimella.</td></tr>
+    <tr><td>Tietokanta</td><td><strong>Oma Supabase-projekti</strong> eRapulle, EU-alue. Taulujen etuliite <code>er_</code>.</td><td>
+      <ul>
+        <li>kasamasterin ja PPR:n yhteisessä projektissa tietoja on vuotanut kahdesti (2.–3.9.2026), eikä HTJ-tietoja pidä sijoittaa samaan projektiin.</li>
+        <li>RLS ja eksplisiittiset GRANTit jokaiseen tauluun. Supabase vaatii GRANTit lokakuusta 2026 alkaen.</li>
+        <li>Migraatiot tehdään vain Supabase CLI:llä.</li>
+      </ul>
+    </td></tr>
+    <tr><td>Tietokantakutsut</td><td><strong>supabase-js</strong> ja tietokannasta generoidut TypeScript-tyypit</td><td>Kutsut tehdään käyttäjän Auth0-tokenilla, jolloin RLS on voimassa. Tämä on portfolion muista sovelluksista poikkeava valinta: niissä kutsut tehdään service rolella ja tietojen eristys varmistetaan koodissa. Service role on sallittu vain taustatehtävissä ja HTJ-palvelussa.</td></tr>
+    <tr><td>Tunnistus</td><td><strong>Auth0, portfolion jaettu tenant</strong>
+      <ul>
+        <li>Henkilökunnalle salasana ja MFA</li>
+        <li>Asukkaille passwordless-sähköpostikoodi (sama malli kuin Reilusopparissa)</li>
+        <li>Supabasen <em>third-party auth</em> hyväksyy Auth0:n tokenit RLS:ssä</li>
+        <li>Pankkitunnistus Telia Tunnistuksella, eSinetin <code>IdentityProvider</code>-koodilla</li>
+      </ul>
+    </td><td>
+      <ul>
+        <li>Sama kirjautuminen kuin eSinetissä, PPR:ssä, SKOGissa ja Reilusopparissa. Tenantin asetusskripti ja kirjautumiskoodin sähköpostipohja ovat valmiina.</li>
+        <li>RLS lukee käyttäjän tunnisteen muodossa <code>auth.jwt()-&gt;&gt;'sub'</code>.</li>
+        <li><strong>Tarkista Auth0-sopimuksesta</strong>, riittääkö kuukausittaisten aktiivisten käyttäjien raja tuhansille asukkaille.</li>
+      </ul>
+    </td></tr>
+    <tr><td>Sähköinen allekirjoitus</td><td><strong>eSinetti API</strong> (<code>app.esinetti.fi/api/v1</code>)</td><td>Pöytäkirjat, sopimukset, valtakirjat ja muutostyöluvat. Kehittynyt sähköinen allekirjoitus FTN-tunnistuksella tai sähköpostikoodilla, PAdES-sinetöinti ja webhookit. Tarkemmin osiossa 09.</td></tr>
+    <tr><td>Tiedostot</td><td>Supabase Storage, polku <code>{org}/{taloyhtio}/{uuid}/{nimi}</code></td><td>Tiedostot avataan lyhytikäisillä allekirjoitetuilla linkeillä. Julkisia linkkejä ei käytetä, toisin kuin PPR:ssä.</td></tr>
+    <tr><td>PDF</td><td>@react-pdf/renderer, <strong>Reilusopparin dokumenttipaketti</strong></td><td>Isännöitsijäntodistus, kokouskutsu, osakasluettelo ja ääniluettelo. Reilusopparista tulevat valmiina deterministinen renderöinti SHA-256-tiivisteineen, valmiit komponentit, QR-koodi ja upotetut fontit.</td></tr>
+    <tr><td>Taustatyöt</td><td>Vercel Cron ja Postgres-jono (<code>pgmq</code>) tai Inngest</td><td>HTJ-yöajo, sähköpostijono ja muistutukset. Uudelleenyritys ja tilaseuranta.</td></tr>
+    <tr><td>Ilmoitukset</td><td>Resend ja react-email sekä web push (Reilusopparin ilmoitusmoduuli)</td><td>Push-ilmoitus ensin ja sähköposti varalla, ilman tuplalähetyksiä. Toimitustilat kerätään webhookeilla. Lähetykset tulevat omasta verkkotunnuksesta, jolle on määritetty SPF, DKIM ja DMARC.</td></tr>
+    <tr><td>Virheseuranta</td><td>Sentry (EU) ja Vercel Analytics</td><td>Henkilötietojen suodatus on päällä.</td></tr>
+    <tr><td>Testit</td><td>Vitest (logiikka ja RLS-testit pgTAPilla tai supabase-testeillä), Playwright (keskeiset polut)</td><td>RLS-testit ovat pakollisia: jokaisesta roolista testataan, ettei se näe toisen organisaation dataa.</td></tr>
+    <tr><td>CI/CD</td><td>GitHub Actions: tyyppitarkistus, lint, testit ja migraatioiden ajo testitietokantaan. Vercelin esikatseluversio jokaisesta haarasta.</td><td>Erilliset Supabase-projektit <code>staging</code> ja <code>prod</code>.</td></tr>
+    <tr><td>Mobiili</td><td>PWA (asennettava verkkosovellus, push-ilmoitukset)</td><td>Ei sovelluskauppajulkaisua alkuvaiheessa. Natiivisovellus harkitaan V3:ssa.</td></tr>
+  </tbody></table></div>
+
+  <h3>Koodin rakenne</h3>
+  <pre class="code">erappu/
+├─ app/
+│  ├─ (henkilokunta)/          # isännöitsijän työpöytä, vaatii org-roolin
+│  │  ├─ taloyhtiot/[id]/…     # kortti, osakeryhmät, dokumentit, kokoukset
+│  │  ├─ huoltopyynnot/
+│  │  ├─ htj/                  # synkronoinnit, ilmoitusjono, järjestelmälupa
+│  │  └─ asetukset/
+│  ├─ (portaali)/              # osakas / asukas / hallitus
+│  ├─ tehtava/[token]/         # palveluntuottajan linkkinäkymä
+│  ├─ ilmoita/[yhtio]/         # julkinen huoltopyyntö (QR)
+│  └─ api/                     # webhookit, cron, ulkoinen API (v1)
+├─ lib/
+│  ├─ htj/                     # mTLS-asiakas, tyypit JSON-skeemoista, synkronointi
+│  ├─ kirjanpito/              # KirjanpitoAdapteri + fennoa/ppr/tiedosto
+│  ├─ domain/                  # osakevälit, äänimäärät, vastikelaskenta, viitenumero
+│  ├─ pdf/                     # todistus, kutsu, luettelot
+│  └─ auth/                    # roolit, portaalioikeuksien johtaminen
+├─ supabase/
+│  ├─ migrations/              # KAIKKI rakenne tänne
+│  ├─ seed.sql                 # testidata (kuvitteelliset yhtiöt, ei oikeita henkilöitä)
+│  └─ tests/                   # RLS-testit
+├─ scripts/migrate-access/     # Access → Postgres -siirto ja laaturaportti
+├─ CLAUDE.md                   # eSinetin mallin mukaan: päätökset, tietomalli, 7 turvakysymystä
+├─ PLAN.md · DECISIONS.md · BLOCKERS.md
+└─ src/i18n/fi.ts              # käyttöliittymätekstit suomeksi, koodi englanniksi</pre>
+</section>
+
+<!-- 9 -->
+<section id="komponentit">
+  <h2><span class="n">09</span>Portfolion valmiit osat</h2>
+  <p class="sub">Kartoitettu 15.9.2026: eSinetti, Reilusoppari, esinetti-web, reilusoppari-web, kasamaster, adepta-skog, adepta-ppr ja Uimaniemi. Suurin osa eRapun "infrasta" on jo olemassa, joten V0-vaihe lyhenee ja riskit pienenevät.</p>
+
+  <h3>eSinetti: sähköiset allekirjoitukset</h3>
+  <p>eSinetti on tuotannossa osoitteessa app.esinetti.fi.</p>
+  <ul>
+    <li>Kehittynyt sähköinen allekirjoitus Telia Tunnistuksella (tuotannossa 11.9.2026 alkaen) tai kevyellä sähköpostikoodilla.</li>
+    <li>Asiakirjat sinetöidään PAdES-B-LT-sinetillä DVV:n varmenteella.</li>
+    <li>Ulkoiset järjestelmät käyttävät valmista API:a (<code>/api/v1</code>, OpenAPI-kuvaus), API-avaimia ja HMAC-allekirjoitettuja webhookeja.</li>
+    <li>Yhtiötyyppi <code>asoy</code> on jo tuettu.</li>
+  </ul>
+  <pre class="mermaid">
+sequenceDiagram
+  participant E as eRappu
+  participant S as eSinetti API
+  participant O as Osakas / hallitus
+  E->>S: POST /companies (y-tunnus, external_ref=erappu:taloyhtio)
+  E->>E: Renderöi PDF (pöytäkirja, sopimus, lupa)
+  E->>S: POST /uploads + POST /rounds (signers, auth_level, external_ref, send)
+  S->>O: Kutsu sähköpostilla
+  O->>S: Tunnistautuu (Telia FTN / sähköpostikoodi) ja allekirjoittaa
+  S-->>E: webhook signer.signed / round.completed (HMAC)
+  E->>S: GET /rounds/{id}/documents/{doc}/download
+  E->>E: Tallentaa sinetöidyn PDF:n dokumentteihin ja päivittää tilan
+  </pre>
+  <div class="tw"><table class="plain"><thead><tr><th>Käyttökohde eRapussa</th><th>Allekirjoittajat</th><th>Tunnistustaso</th></tr></thead><tbody>
+    <tr><td>Yhtiökokouksen pöytäkirja</td><td>Puheenjohtaja ja pöytäkirjantarkastajat, allekirjoitusjärjestys määrätty</td><td>strong</td></tr>
+    <tr><td>Hallituksen kokouksen pöytäkirja</td><td>Hallituksen läsnä olleet jäsenet</td><td>strong</td></tr>
+    <tr><td>Isännöintisopimus, huolto- ja palvelusopimukset</td><td>Hallituksen puheenjohtaja tai nimenkirjoittajat ja vastapuoli</td><td>strong</td></tr>
+    <tr><td>Muutostyölupa ja sen ehdot</td><td>Isännöitsijä ja osakas</td><td>strong</td></tr>
+    <tr><td>Yhtiökokouksen valtakirja</td><td>Osakas</td><td>strong</td></tr>
+    <tr><td>Huoltotyön kuittaus, avainluovutus</td><td>Asukas tai palveluntuottaja</td><td>light, tai kasamasterin kevyt allekirjoitus näytölle</td></tr>
+    <tr><td>Isännöitsijäntodistus</td><td>Yhtiön sinetti (<code>/documents/seal</code>) ja tarkistus-QR (<code>/verify</code>)</td><td>sinetti</td></tr>
+  </tbody></table></div>
+  <div class="note">
+    <strong>eSinettiin tehtävä ennen eRapun vaihetta V6</strong>
+    <ol>
+      <li>Tuki <code>Idempotency-Key</code>-otsakkeelle POST-kutsuissa. CLAUDE.md vaatii sen, mutta sitä ei ole toteutettu.</li>
+      <li>Kierroskohtainen <code>webhook_url</code> tai kumppaniavain, joka kattaa useamman tenantin. Nyt webhook-osoite on tenanttikohtainen.</li>
+      <li>Isännöinnin roolit ja pohjat: osakas, isännöitsijä, kokouksen puheenjohtaja ja pöytäkirjantarkastaja.</li>
+      <li>Upstash-rajoitin tuotantoon. Nyt se päästää kutsut läpi, jos sitä ei ole konfiguroitu.</li>
+      <li><strong>Telian sopimus:</strong> saako tunnistuksia välittää muiden käyttöön? Kysymys on eSinetin PLAN-listalla kohdassa 5.1, ja sama kysymys koskee eRapun osakaskirjautumista.</li>
+    </ol>
+    <p><strong>Tenanttimalli:</strong> jokaisella eRapun isännöintiyrityksellä on oma eSinetti-tenant ja API-avain, joka tallennetaan eRappuun salattuna. Allekirjoitukset laskutetaan isännöintiyritykseltä eSinetin normaalilla hinnoittelulla.</p>
+  </div>
+
+  <h3>Päällekkäisyys eSinetin kanssa</h3>
+  <p>eSinetissä on myös pöytäkirjakone (HTML-pohjat, kenttäskeema ja versioidut pohjat), yhtiöiden ja hallitusten henkilörekisteri, arkisto ja vuosikello. Kaksi järjestelmää ei saa ylläpitää samaa tietoa.</p>
+  <ul>
+    <li><strong>eRappu on päälähde</strong> taloyhtiöille, hallituksille, kokouksille ja asialistoille. Se synkronoi yhtiön ja hallituksen eSinettiin rajapinnoilla <code>/companies</code> ja <code>/persons</code>.</li>
+    <li><strong>Pöytäkirjojen pohjat:</strong> eRappu käyttää eSinetin pohjamoottoria (<code>/documents/render</code> ja <code>/templates</code>) eikä rakenna omaa. Isännöinnin pohjat (AOYL 6:10 §:n mukainen yhtiökokous ja hallituksen kokous) lisätään eSinettiin, jolloin ne hyödyttävät molempia tuotteita.</li>
+    <li><strong>Arkisto ja vuosikello</strong> ovat eRapussa. eSinetin arkisto säilyttää vain allekirjoitetun ja sinetöidyn alkuperäisen.</li>
+  </ul>
+
+  <h3>Muut hyödynnettävät osat</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Osa</th><th>Lähde</th><th>Käyttö eRapussa</th><th>Työ</th></tr></thead><tbody>
+    <tr><td>FTN-tunnistus (Telia)</td><td><code>esinetti/src/lib/identity/</code> (IdentityProvider, telia.ts, mock), <code>crypto/hetu</code>, <code>token-encryption</code></td><td>Osakkaiden ja hallituksen pankkitunnistus. Henkilötunnus tallennetaan HMAC-tiivisteenä, jolloin sen voi verrata HTJ:n omistajaan ilman selväkielistä tunnusta.</td><td>paketiksi</td></tr>
+    <tr><td>eSinetti-asiakas</td><td><code>reilusoppari/src/lib/esinetti/</code> (http-client, webhook, mock, types)</td><td>Suoraan käyttöön. Myöhemmin tyypitetty asiakas generoidaan eSinetin <code>openapi.json</code>-kuvauksesta.</td><td>kopio</td></tr>
+    <tr><td>PDF-paketti</td><td><code>reilusoppari/src/documents/</code> (render.ts, components.tsx, qr.tsx, fonts)</td><td>Isännöitsijäntodistus, osakas- ja ääniluettelo sekä kokouskutsu</td><td>kopio</td></tr>
+    <tr><td>Kuvat ja huoltokirja</td><td><code>reilusoppari/src/lib/photos/</code>, PhotoCapture, MaintenanceForm</td><td>Huoltopyyntöjen kuvat: pakkaus, EXIF-tietojen poisto ja pikkukuvat</td><td>mukautus</td></tr>
+    <tr><td>Ilmoitukset ja PWA</td><td><code>reilusoppari/src/lib/notifications/</code>, <code>public/sw.js</code>, PushToggle</td><td>Huoltopyyntöjen tilamuutokset ja tiedotteet asukkaille</td><td>kopio</td></tr>
+    <tr><td>Auth0 passwordless</td><td><code>reilusoppari/src/lib/auth/</code>, <code>scripts/auth0-asetukset.mts</code>, <code>auth0/kirjautumiskoodi.liquid</code></td><td>Asukas- ja osakasportaalin kirjautuminen. Skripti suojaa jaetun tenantin muita sovelluksia.</td><td>kopio</td></tr>
+    <tr><td>Suomalaiset tarkistimet</td><td><code>reilusoppari/src/lib/identity/finnish-id.ts</code>, <code>iban.ts</code>, <code>crypto.ts</code></td><td>Henkilötunnus, Y-tunnus ja IBAN, kenttien salaus</td><td>paketiksi</td></tr>
+    <tr><td>Tietoturva-apurit</td><td><code>reilusoppari/src/lib/security/</code> (CSP, rate-limit), kutsu- ja jakotokenit, zip-vienti</td><td>Palveluntuottajan tehtävälinkki, taloyhtiön tietojen vienti ja portaalikutsut</td><td>kopio</td></tr>
+    <tr><td>Toistuvat maksukaudet ja cron</td><td><code>reilusoppari/src/lib/tenancy/rent-periods.ts</code>, <code>api/cron/vuokrat</code></td><td>Vastikejaksojen logiikan ja muistutusten malli</td><td>mukautus</td></tr>
+    <tr><td>Salaisuuksien salaus</td><td><code>kasamaster/app/api/_salaus.js</code> (AES-256-GCM)</td><td>PPR:n ja eSinetin API-avaimet sekä MML:n varmenteen salasana</td><td>kopio</td></tr>
+    <tr><td>Säädösseuranta</td><td><code>kasamaster/app/scripts/tarkista-saadokset.mjs</code> + GitHub Action</td><td>Asunto-osakeyhtiölain, HTJ-lain (1328/2018) ja asetuksen 365/2010 muutokset avaavat GitHub-issuen automaattisesti.</td><td>kopio</td></tr>
+    <tr><td>Asiakirjojen luku Claudella</td><td><code>kasamaster/app/api/scan.js</code>, <code>reilusoppari/src/lib/receipts/</code></td><td>Vanhojen korjausmuistioiden muuttaminen rakenteisiksi kunnossapitotiedoiksi, laskukuvat ja mittarikuvat</td><td>mukautus</td></tr>
+    <tr><td>Kutsurajoitin</td><td><code>kasamaster/app/api/_kutsuraja.js</code></td><td>Julkinen huoltopyyntölomake ja todistustilaukset</td><td>kopio</td></tr>
+    <tr><td>Tuonti oletuksena kuivaharjoituksena</td><td><code>kasamaster/app/scripts/tuo-asiakkaat.mjs</code></td><td>Uuden isännöintiyrityksen käyttöönoton tuonti: kirjoittaa vain tyhjiin kenttiin</td><td>mukautus</td></tr>
+    <tr><td>Joukkoallekirjoitus</td><td><code>Uimaniemi/luo_manifest.py</code> + <code>esinetti/scripts/batch-create-rounds.ts</code></td><td>Rekisteri ja PDF-tiedostot tarkistetaan, niistä tehdään JSONL-tiedosto, joka lähetetään eSinettiin. Soveltuu esimerkiksi yhtiön kaikkien osakkaiden sopimuksiin. Toteutetaan eRappuun TypeScriptillä.</td><td>mukautus</td></tr>
+    <tr><td>Geokoodaus</td><td><code>kasamaster/app/api/geocode.js</code> (Digitransit)</td><td>Palveluntuottajan reitti kohteeseen ja taloyhtiöt kartalla</td><td>kopio</td></tr>
+    <tr><td>Markkinointisivusto</td><td><code>esinetti-web</code> (MDX-blogi, toimialasivut, SEO, jonotuslista, Plausible, CSP)</td><td>erappu.fi haarautetaan esinetti-webistä, jolloin vaihdetaan vain teema ja sisältö. esinetti-webissä on jo sivu <code>/isannoitsijoille</code>.</td><td>haarautus</td></tr>
+    <tr><td>Projektin ohjauspohjat</td><td><code>esinetti/CLAUDE.md</code>, PLAN/DECISIONS/BLOCKERS, <code>.github/workflows/ci.yml</code></td><td>eRapun CLAUDE.md, CI (lint, tyyppitarkistus, testit ja henkilötunnusten grep lokeista) ja istuntoprotokolla</td><td>kopio</td></tr>
+  </tbody></table></div>
+  <p><strong>Yhteinen paketti myöhemmin:</strong> kun eRappu on kolmas sovellus, joka kopioi samat osat, ne kannattaa koota yksityiseksi <code>@adepta/*</code>-paketiksi: <code>identity</code>, <code>esinetti-client</code>, <code>security</code>, <code>notifications</code>, <code>pdf</code> ja <code>fi-validators</code>. Vaiheessa V0 osat kopioidaan, ja paketti tehdään vasta, kun rajapinnat ovat vakiintuneet. Näin eSinetin kehitys ei hidastu.</p>
+  <p><strong>Mitä ei löytynyt mistään:</strong> HTJ-integraatio, varauskalenteri, kokouskutsujen lähetys, Fingrid/Datahub-kulutustiedot ja osakevälilogiikka. Ne rakennetaan eRappuun alusta.</p>
+</section>
+
+<!-- 9 -->
+<section id="tietomalli">
+  <h2><span class="n">10</span>Tietomalli</h2>
+  <p class="sub">Kaikki taulut: <a href="schema_v0.sql">schema_v0.sql</a>. Tiedosto on SQL-luonnos, josta tehdään ensimmäinen migraatio. Kaikissa tauluissa on <code>organisaatio_id</code>, RLS ja GRANTit. Migraatioissa tauluihin lisätään portfolion käytännön mukainen etuliite <code>er_</code> (vrt. <code>sin_</code>, <code>rs_</code>, <code>km_</code>, <code>ppr_</code>). Käyttäjä tunnistetaan Auth0:n <code>sub</code>-tunnisteella funktion <code>app.kayttaja_id()</code> kautta.</p>
+  <pre class="mermaid">
+erDiagram
+  ORGANISAATIOT ||--o{ TALOYHTIOT : isannoi
+  TALOYHTIOT ||--o{ RAKENNUKSET : "sisältää"
+  TALOYHTIOT ||--o{ KIINTEISTOT : omistaa
+  TALOYHTIOT ||--o{ OSAKERYHMAT : jakautuu
+  OSAKERYHMAT ||--|{ OSAKEVALIT : "osakkeet"
+  OSAKERYHMAT ||--o{ OMISTUKSET : "omistetaan"
+  OSAPUOLET ||--o{ OMISTUKSET : omistaa
+  OSAKERYHMAT ||--o{ ASUMISET : "asutaan"
+  OSAPUOLET ||--o{ ASUMISET : asuu
+  TALOYHTIOT ||--o{ HALLITUSJASENYYDET : hallitus
+  OSAPUOLET ||--o| OSAPUOLI_TUNNISTEET : "salattu hetu"
+  KAYTTAJAT ||--o{ PORTAALI_OIKEUDET : saa
+  TALOYHTIOT ||--o{ HUOLTOPYYNNOT : koskee
+  HUOLTOPYYNNOT ||--o{ HUOLTOPYYNTO_TAPAHTUMAT : historia
+  PALVELUNTUOTTAJAT ||--o{ HUOLTOPYYNNOT : hoitaa
+  TALOYHTIOT ||--o{ KOKOUKSET : pitaa
+  KOKOUKSET ||--o{ KOKOUS_ASIAT : asialista
+  TALOYHTIOT ||--o{ VASTIKEPERUSTEET : "päättää"
+  TALOYHTIOT ||--o{ LAINAT : ottaa
+  LAINAT ||--o{ LAINAOSUUDET : jaetaan
+  LASKUTUSAJOT ||--o{ LASKUTUSRIVIT : tuottaa
+  TALOYHTIOT ||--o{ KUNNOSSAPITOTYOT : kumu
+  TALOYHTIOT ||--o{ DOKUMENTIT : arkisto
+  </pre>
+
+  <h3>Taulut ryhmittäin</h3>
+  <div class="tw"><table class="plain"><thead><tr><th>Ryhmä</th><th>Taulut</th></tr></thead><tbody>
+    <tr><td>Organisaatio</td><td><code>organisaatiot</code> · <code>kayttajat</code> · <code>organisaatio_jasenet</code> · <code>portaali_oikeudet</code></td></tr>
+    <tr><td>Rekisteri</td><td><code>taloyhtiot</code> · <code>kiinteistot</code> · <code>rakennukset</code> · <code>osakeryhmat</code> · <code>osakevalit</code> · <code>osapuolet</code> · <code>osapuoli_tunnisteet</code> · <code>omistukset</code> · <code>asumiset</code> · <code>hallitusjasenyydet</code></td></tr>
+    <tr><td>Työ</td><td><code>palveluntuottajat</code> · <code>taloyhtio_palvelut</code> · <code>huoltopyynnot</code> · <code>huoltopyynto_tapahtumat</code> · <code>muutostyoilmoitukset</code> · <code>tehtavat</code></td></tr>
+    <tr><td>Kiinteistön pito</td><td><code>kunnossapitotyot</code> · <code>kunnossapitotarve</code> · <code>kulutuslukemat</code> · <code>sopimukset</code> · <code>varattavat_kohteet</code> · <code>varaukset</code></td></tr>
+    <tr><td>Viestintä</td><td><code>tiedotteet</code> · <code>viestilahetykset</code> · <code>dokumentit</code></td></tr>
+    <tr><td>Hallinto</td><td><code>kokoukset</code> · <code>kokous_asiat</code> · <code>asialistapohjat</code> · <code>kokous_osallistujat</code> · <code>todistustilaukset</code></td></tr>
+    <tr><td>Talous</td><td><code>vastikeperusteet</code> · <code>lainat</code> · <code>lainaosuudet</code> · <code>laskutusajot</code> · <code>laskutusrivit</code> · <code>maksutilanteet</code></td></tr>
+    <tr><td>Integraatio</td><td><code>htj_synkronoinnit</code> · <code>allekirjoituskierrokset</code> (eSinetti) · <code>tapahtumaloki</code></td></tr>
+  </tbody></table></div>
+
+  <h3>Periaatteet, jotka korjaavat Accessin ongelmat</h3>
+  <ul>
+    <li><strong>Osakevälit:</strong> <code>exclude using gist (taloyhtio_id with =, int4range(alku, loppu, '[]') with &amp;&amp;)</code> estää päällekkäiset osakenumerot jo tietokannassa. Rantatuulen huoneistojen 3 ja 4 virhe ei olisi mahdollinen.</li>
+    <li><strong>Omistusosuudet</strong> tallennetaan murtolukuina (osoittaja ja nimittäjä) niin kuin HTJ:ssä. Esimerkiksi ⅓ ei pyöristy muotoon 0,333.</li>
+    <li><strong>Historia säilyy:</strong> omistuksilla, asumisilla, hallitusjäsenyyksillä ja vastikeperusteilla on alku- ja loppupäivä. Rivejä ei poisteta.</li>
+    <li><strong>Alkuperä on merkitty:</strong> sarakkeet <code>lahde</code> ja <code>htj_*</code> kertovat, tuleeko tieto HTJ:stä vai onko se syötetty käsin. HTJ-peräistä tietoa ei voi muokata käyttöliittymässä.</li>
+    <li><strong>Tietotyypit:</strong> postinumerot ovat tekstiä, rahasummat tyyppiä <code>numeric</code>, päivämäärät tyyppiä <code>date</code>, ja tilat on määritelty enum-tyypeillä.</li>
+    <li><strong>Varaukset:</strong> päällekkäiset varaukset estetään tietokannassa <code>tstzrange</code>-tyypin ja exclusion constraintin avulla.</li>
+  </ul>
+
+  <h3>RLS-malli</h3>
+  <pre class="code">-- Henkilökunta: kaikki oman organisaation rivit
+create policy henkilokunta on &lt;taulu&gt; for all
+  using (organisaatio_id in (select app.omat_organisaatiot()))
+  with check (organisaatio_id in (select app.omat_organisaatiot()));
+
+-- Portaali: vain ne taloyhtiöt, joihin käyttäjällä on voimassa oleva oikeus
+create policy portaali_luku on &lt;taulu&gt; for select
+  using (taloyhtio_id in (select app.portaali_taloyhtiot('{hallitus,osakas}')));
+
+-- Arkaluonteinen: ei politiikkaa lainkaan → vain palvelinfunktio + lokimerkintä
+alter table osapuoli_tunnisteet enable row level security;</pre>
+  <p>Politiikat luodaan migraatiossa taulukohtaisen luettelon perusteella. CI-testi epäonnistuu, jos jossain taulussa ei ole RLS:ää.</p>
+</section>
+
+<!-- 10 -->
+<section id="tietoturva">
+  <h2><span class="n">11</span>Tietosuoja ja tietoturva</h2>
+  <div class="two">
+    <div class="panel">
+      <h4>Roolit GDPR:n mukaan</h4>
+      <ul>
+        <li><strong>Taloyhtiö</strong> on osakas- ja asukasrekisterin rekisterinpitäjä.</li>
+        <li><strong>Isännöintiyritys</strong> on käsittelijä. Isännöintisopimukseen tarvitaan käsittelysopimus (DPA).</li>
+        <li><strong>Adepta Tilat Oy ohjelmistotoimittajana</strong> on MML:n sopimusosapuoli ja järjestelmätoimittaja, Adepta Oy:n isännöinnin käsittelijä ja muiden isännöintiyritysten alikäsittelijä. Sitä varten tarvitaan DPA-malli, alikäsittelijäluettelo (Supabase, Vercel, sähköposti, Sentry) ja tietosuojaseloste.</li>
+        <li><strong>MML:n käyttöehdot:</strong> taloyhtiö ja käsittelijä vastaavat yhdessä siitä, että HTJ-tietoja käytetään vain sallittuun tarkoitukseen.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Tekniset suojaukset</h4>
+      <ul>
+        <li>RLS kaikissa tauluissa ja organisaatioeristyksen testit CI:ssä</li>
+        <li>Henkilötunnukset Supabase Vaultissa, luvut lokiin</li>
+        <li>Pakollinen kaksivaiheinen tunnistus henkilökunnalle, istunnon aikakatkaisu</li>
+        <li>Tapahtumaloki kaikista muutoksista ja tietojen vienneistä</li>
+        <li>Tiedostot yksityisinä, linkit vanhenevat 10 minuutissa</li>
+        <li>Varmuuskopiot ja palautus tiettyyn ajanhetkeen (Supabase Pro), palautusharjoitus kerran vuodessa</li>
+        <li>Salaisuudet Vercelin ympäristömuuttujissa, MML:n varmenne erikseen kierrätettävänä</li>
+        <li>Ulkoinen tietoturvatestaus ennen ensimmäistä ulkopuolista asiakasta</li>
+      </ul>
+    </div>
+  </div>
+  <p><strong>Säilytysajat:</strong></p>
+  <ul>
+    <li>Päättyneiden omistusten ja asumisten henkilötiedot pseudonymisoidaan 2 vuoden kuluttua.</li>
+    <li>Huoltopyyntöjen yhteystiedot poistetaan 3 vuoden kuluttua sulkemisesta. Itse pyyntö säilyy kiinteistön historiana.</li>
+    <li>Tapahtumaloki säilytetään 5 vuotta.</li>
+    <li>Tarkista säilytysajat vielä tietosuoja-asiantuntijan kanssa.</li>
+  </ul>
+  <div class="note warn">
+    <strong>Nykyinen Access-tiedosto</strong>
+    <p>Tiedostossa on 181 henkilötunnusta, ja se sijaitsee jaetussa asiakaskansiossa. Rajaa kansion käyttöoikeudet jo nyt. Kun siirto on tehty ja todettu toimivaksi, poista henkilötunnukset tiedostosta tai arkistoi koko tiedosto salattuna.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="nakymat">
+  <h2><span class="n">12</span>Keskeiset näkymät</h2>
+  <div class="two">
+    <div class="panel">
+      <h4>Isännöitsijä</h4>
+      <ul>
+        <li><strong>Työpöytä:</strong> avoimet huoltopyynnöt kiireellisyyden mukaan, lähestyvät määräajat, HTJ-muutokset ("3 uutta osakasta"), epäonnistuneet lähetykset</li>
+        <li><strong>Taloyhtiökortti</strong> välilehdillä: Yleiset · Osakeryhmät · Osakkaat · Hallitus · Huolto · Dokumentit · Kokoukset · Talous · HTJ</li>
+        <li><strong>Osakeryhmäkortti:</strong> omistajat, asukkaat, muutostyöt, lainaosuudet, maksutilanne ja painike "Tee isännöitsijäntodistus"</li>
+        <li><strong>Huoltopyyntöjen jono:</strong> taulukko- ja korttinäkymä, tilanvaihto vetämällä</li>
+        <li><strong>HTJ-keskus:</strong> järjestelmälupa, synkronointien historia, ilmoitusjono ja erot</li>
+        <li><strong>Vuosikello:</strong> kaikkien yhtiöiden tehtävät kalenterina</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Portaali</h4>
+      <ul>
+        <li><strong>Etusivu:</strong> yhtiön tiedotteet, omat huoltopyynnöt tiloineen ja seuraava kokous</li>
+        <li><strong>"Tee huoltopyyntö"</strong> on aina näkyvissä. Lomakkeen voi täyttää puhelimella 60 sekunnissa.</li>
+        <li><strong>Oma huoneisto:</strong> tiedot, dokumentit, remonttiluvat, lainaosuus ja vastikkeet (osakkaalle)</li>
+        <li><strong>Hallitus:</strong> kaikki yhtiön pyynnöt, talousraportit, kokousmateriaalit ja tiedotteen luonnos isännöitsijälle</li>
+        <li><strong>Varaukset:</strong> viikkonäkymä, jossa varaaminen onnistuu yhdellä napautuksella</li>
+        <li><strong>Palveluntuottaja:</strong> tehtävä, osoite, avainohjeet, painikkeet "Aloitettu" ja "Valmis" sekä kuvan lisäys</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="migraatio">
+  <h2><span class="n">13</span>Tietojen siirto Accessista</h2>
+  <p class="sub">Siirto tehdään skriptillä, joka lukee tiedoston <span class="mono">.accdb</span> ACE-ajurilla ja kirjoittaa välitaulukot CSV-tiedostoihin. Samat vaiheet voi ajaa uudelleen niin monta kertaa kuin tarvitaan.</p>
+  <p><strong>Rajaus:</strong> siirretään vain 16 asiakasyhtiötä. As Oy Joutsan Veertintie, Koy Joutsan Parkkola, KOY Toivakan Liiketalo ja KOY Toivakanhaka jätetään pois. Access-arkistoon jäävät niiden henkilötunnukset poistetaan tai arkistoidaan salattuna.</p>
+  <ol>
+    <li><strong>Vienti:</strong> taulut viedään CSV-tiedostoihin ilman henkilötunnuksia.</li>
+    <li><strong>Laaturaportti</strong> listaa korjattavat kohdat, kuten tämän suunnitelman analyysissä.</li>
+    <li><strong>Korjaukset tehdään Accessiin tai korjaustiedostoon</strong> ennen siirtoa. Osakevälit korjataan yhtiöjärjestysten perusteella.</li>
+    <li><strong>Tuonti testiympäristöön</strong> ja tarkistukset: osakemäärät täsmäävät ja osakevälit ovat yhtenäisiä.</li>
+    <li><strong>HTJ-vertailu:</strong> kun kyselyrajapinta toimii, osakeryhmät ja omistajat haetaan HTJ:stä ja niitä verrataan siirrettyyn dataan. Omistajat otetaan HTJ:stä, eikä Accessin omistajarivejä siirretä päälähteeksi.</li>
+    <li><strong>Tuotantosiirto</strong> ja Access-tiedosto vain lukukäyttöön.</li>
+  </ol>
+  <div class="tw"><table class="plain"><thead><tr><th>Access</th><th>Uusi taulu</th><th>Huomiot</th></tr></thead><tbody>
+    <tr><td><code>Yhtiöt</code> (63 saraketta)</td><td><code>taloyhtiot</code>, <code>kiinteistot</code>, <code>rakennukset</code>, <code>vakuutukset</code>→<code>sopimukset</code></td><td>Kiinteistötunnus puhdistetaan: nyt kentässä on myös nimiä, kuten "…-0420-A SÄÄSTÖVAKKA". Lun_*-kentät siirtyvät kenttään <code>lunastuslauseke</code>.</td></tr>
+    <tr><td><code>asunnot</code></td><td><code>osakeryhmat</code>, <code>osakevalit</code></td><td><code>Osakkeet_numerot</code> jäsennetään väleiksi. <code>Kenttä1</code>, <code>Kenttä2</code> ja <code>Field1</code> hylätään. Pohjakuvat siirtyvät dokumentteihin.</td></tr>
+    <tr><td><code>Omistajat</code></td><td><code>osapuolet</code>, <code>omistukset</code> (lähde: migraatio)</td><td>Käytetään vain vertailuun ja yhteystietojen täydentämiseen. Henkilötunnuksia ei siirretä. <code>asukasnumero_Tikon</code> siirtyy kenttään <code>kirjanpito_asiakasnro</code>.</td></tr>
+    <tr><td><code>Asukkaat</code></td><td><code>osapuolet</code>, <code>asumiset</code></td><td><code>Field80</code> on osoite, <code>Field81</code> postitoimipaikka, <code>Field83</code> omistajan osoite ja <code>Field84</code> puhelin</td></tr>
+    <tr><td><code>Korjauspyynnöt</code></td><td>Tyypit 4 ja 5 → <code>kunnossapitotyot</code> / <code>kunnossapitotarve</code>. Tyyppi 3 → <code>muutostyoilmoitukset</code>. Tyypit 1 ja 2 → <code>huoltopyynnot</code> (suljettuina).</td><td>Vapaa teksti muutetaan rakenteiseksi (hanke, työlaji, vuosi) HTJ:n koodiston mukaan. Claude voi tehdä ehdotukset, ja isännöitsijä hyväksyy ne.</td></tr>
+    <tr><td><code>Vastikkeet</code></td><td><code>vastikeperusteet</code></td><td>Yksikkö on €/m²/kk, joten peruste on <code>m2</code>. Loppupäivä johdetaan seuraavan muutoksen päivästä.</td></tr>
+    <tr><td><code>Lainat</code></td><td><code>lainat</code></td><td>Tekstimuotoiset päivämäärät muunnetaan. Lainaosuudet tuodaan kirjanpidosta tai HTJ-ilmoituksista.</td></tr>
+    <tr><td><code>kokoukset</code> §1–§15</td><td><code>asialistapohjat</code></td><td>Pohjaksi käytetään kolmea eri versiota.</td></tr>
+    <tr><td><code>isännöitsijät</code>, <code>Korjausfirmat</code>, <code>Katteet</code>, <code>Vakuutusyhtiöt</code>, <code>Kiinteistöntoito</code></td><td><code>kayttajat</code>, <code>palveluntuottajat</code>, luokittelut</td><td>Luokittelutaulut muuttuvat kenttien arvolistoiksi</td></tr>
+    <tr><td>Liitteet (Yhtiöjärjestys, Tasekirja …)</td><td><code>dokumentit</code> ja tallennustila</td><td>Tiedostoja on 25, ja ne puretaan tietokannasta ACE-rajapinnan kautta</td></tr>
+  </tbody></table></div>
+</section>
+
+<!-- 13 -->
+<section id="vaiheet">
+  <h2><span class="n">14</span>Vaiheet ja aikataulu</h2>
+  <p class="sub">Arvio olettaa 20 tuntia kehitystä viikossa Claude Coden kanssa. Viikkomäärät ovat kehitysviikkoja, ja aikatauluun on lisätty joulu- ja kesäloma. Kaksi työtä etenee rinnalla: HTJ-rajapinnan hakemusprosessi, joka on suunnitelman kriittinen polku, ja myöhästyneiden HTJ-ilmoitusten tekeminen käsin.</p>
+
+  <pre class="mermaid">
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %m/%y
+  section HTJ ja MML
+  HTJ2-ilmoitukset käsin (myöhässä)  :crit, h0, 2026-09-21, 8w
+  MML-testiympäristö + hakemus      :crit, a1, 2026-09-21, 10w
+  MML-sopimus ja tuotantovarmenne   :crit, a2, after a1, 8w
+  section Rakentaminen
+  PPR tietoturvakorjaus             :crit, p0, 2026-09-21, 1w
+  V0 Perusta                        :v0, after p0, 3w
+  V1 Rekisteri, HTJ-tiedot, Access  :v1, after v0, 6w
+  V2 HTJ-luku                       :v2, after v1, 4w
+  Joululoma                         :done, l1, after v2, 2w
+  V3 Huoltopyynnöt + portaali       :v3, after l1, 7w
+  Käyttöönotto omille yhtiöille     :milestone, m1, after v3, 0d
+  V4 Viestintä + dokumentit         :v4, after v3, 4w
+  V5 Talous + HTJ-ilmoitukset       :v5, after v4, 6w
+  V6 Kokoukset + todistus           :v6, after v5, 5w
+  Kesäloma                          :done, l2, after v6, 4w
+  V7 Arjen työkalut                 :v7, after l2, 4w
+  V8 Tuotteistus                    :v8, after v7, 8w
+  V9 PPR-integraatio                :v9, after v8, 4w
+  </pre>
+
+  <div class="phases">
+    <div class="phase"><div class="when"><b>V0</b>3 vk</div><div>
+      <h3>Perusta</h3>
+      <ul>
+        <li>Repositorio, Next.js 15, Tailwind 4 ja shadcn</li>
+        <li><code>CLAUDE.md</code>, PLAN, DECISIONS, BLOCKERS ja CI kopioidaan eSinetin mallista</li>
+        <li>Omat Supabase-projektit staging ja prod EU-alueelle, Auth0-sovellus jaettuun tenanttiin ja Supabasen third-party auth</li>
+        <li>Ensimmäinen migraatio: organisaatiot, käyttäjät, roolit, RLS-funktiot, GRANTit ja tapahtumaloki</li>
+        <li>Kopioidaan valmiit osat: Auth0 passwordless, tietoturva-apurit, suomalaiset tarkistimet, salaus, ilmoitukset ja PDF-paketti (osio 09)</li>
+        <li>RLS-testikehys, Sentry</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> kaksi testiorganisaatiota on olemassa, eikä kumpikaan näe toisen dataa missään taulussa (testi todistaa tämän).</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V1</b>6 vk</div><div>
+      <h3>Rekisteri, HTJ-tiedot ja siirto Accessista</h3>
+      <ul>
+        <li>Taloyhtiökortti, rakennukset ja kiinteistöt, osakeryhmät ja osakevälit tarkistuksineen</li>
+        <li>Osapuolet, asukkaat, hallitukset ja palveluntuottajat. Haku.</li>
+        <li><strong>HTJ-tietojen rekisterit ilman rajapintaa:</strong> vastikeperusteet (€/m²), yhtiölainat ja lainaosuudet, kunnossapito- ja muutostyöt sekä kunnossapitotarveselvitys. Jokaisesta yhtiöstä tulostettava yhteenveto, jonka avulla ilmoitukset tehdään MML:n asiointipalvelussa.</li>
+        <li>Siirtoskripti ja laaturaportti, jonka perusteella Jukka korjaa virheet</li>
+        <li>Dokumenttien perusversio: liitteiden purku Accessista</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> kaikki 16 asiakasyhtiötä on siirretty, osakemäärät täsmäävät, laaturaportissa ei ole avoimia virheitä ja jokaiselle pakolliselle yhtiölle on tulostettavissa HTJ-yhteenveto.</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V2</b>4 vk</div><div>
+      <h3>HTJ-luku <span class="chip htj">HTJ</span></h3>
+      <ul>
+        <li>mTLS-asiakas ja tyypit MML:n JSON-skeemoista</li>
+        <li>Järjestelmälupa-toiminto</li>
+        <li>Alkulataus ja vertailuraportti, omistukset ja portaalioikeudet</li>
+        <li>Muutostiedot yöajona</li>
+        <li>Testit MML:n kuvitteellisilla yhtiöillä</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> testiympäristön yhtiö synkronoituu ja omistajanvaihdos päivittää oikeudet. Tuotannossa tämä edellyttää MML-sopimusta.</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V3</b>7 vk</div><div>
+      <h3>Huoltopyynnöt ja portaali</h3>
+      <ul>
+        <li>Portaali PWA-sovelluksena, kutsuprosessi ja pankkitunnistus osakkaille</li>
+        <li>Huoltopyyntölomake ja QR-linkki, työjono ja tapahtumahistoria</li>
+        <li>Palveluntuottajan tehtävälinkki</li>
+        <li>Sähköposti-ilmoitukset ja hallituksen näkymä</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> järjestelmä on käytössä pilottiyhtiöissä As Oy Paikkalankartano Matti ja As Oy Jussilantie 6 kuukauden ajan, eikä yksikään pyyntö ole kadonnut.</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V4</b>4 vk</div><div>
+      <h3>Viestintä ja dokumentit</h3>
+      <ul>
+        <li>Tiedotteet ja kohderyhmät, lähetysjono ja toimitustilat</li>
+        <li>Dokumenttipankki näkyvyyksin, versiot ja haku</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> kaikki 16 asiakasyhtiötä ovat käytössä ja tiedote tavoittaa porraskohtaisen kohderyhmän.</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V5</b>6 vk</div><div>
+      <h3>Talous ja HTJ-ilmoitukset <span class="chip htj">HTJ</span></h3>
+      <ul>
+        <li>Vastikeperusteet, lainat ja lainaosuudet</li>
+        <li>Laskutusajo, tiedostovienti Procountoriin tai laskutus Procountorissa entiseen tapaan (valitaan V5:ssä) ja maksutilanteen CSV-tuonti Procountorista</li>
+        <li>HTJ:n ylläpitorajapinta: vastikkeet, lainat, kunnossapito- ja muutostyöt sekä kunnossapitotarveselvitys ilmoitusjonon kautta</li>
+        <li>Vertailu: V1:ssä syötetyt ja käsin ilmoitetut tiedot verrataan HTJ:n tietoihin</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> 16 yhtiön vastikkeet ja lainaosuudet ovat eRapussa, maksutilanne päivittyy Procountorista ja HTJ-ilmoitus onnistuu tuotannossa.</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V6</b>5 vk</div><div>
+      <h3>Kokoukset ja isännöitsijäntodistus <span class="chip htj">HTJ</span></h3>
+      <ul>
+        <li>Asialistapohjat, kutsu ja osakasluettelo sekä ääniluettelo HTJ:n tiedoista</li>
+        <li>eSinetti-integraatio: yhtiöiden synkronointi, allekirjoituskierrokset, webhookit ja sinetöidyn PDF:n tallennus</li>
+        <li>Pöytäkirjat eSinetin pohjamoottorilla, johon lisätään isännöinnin pohjat</li>
+        <li>Isännöitsijäntodistus PDF:nä, jossa on eSinetin sinetti ja tarkistus-QR. Todistustilaukset ja verkkomaksu.</li>
+        <li>Edellytys: eSinetin muutokset on tehty (Idempotency-Key, webhook-malli, isännöinnin roolit)</li>
+      </ul>
+      <p class="dod"><strong>Valmis, kun:</strong> isännöitsijäntodistuksen tekeminen kestää alle 5 minuuttia ja syksyn 2027 kokouskutsut lähtevät järjestelmästä. Kevään 2027 kokoukset hoidetaan vielä vanhalla tavalla.</p>
+    </div></div>
+    <div class="phase"><div class="when"><b>V7</b>4 vk</div><div>
+      <h3>Arjen työkalut</h3>
+      <ul>
+        <li>Varaukset</li>
+        <li>Sopimusrekisteri ja muistutukset</li>
+        <li>Vuosikello ja toistuvat työt</li>
+        <li>Muutostyöilmoitusten työnkulku</li>
+        <li>Kulutusseurannan perusversio</li>
+      </ul>
+    </div></div>
+    <div class="phase"><div class="when"><b>V8</b>8 vk</div><div>
+      <h3>Tuotteistus</h3>
+      <ul>
+        <li>Uuden organisaation itsepalvelukäyttöönotto ja tuontityökalu CSV-tiedostoista</li>
+        <li>Asiakkaiden laskutus (tilaus taloyhtiötä kohden)</li>
+        <li>Käyttöehdot, DPA ja tietosuojaseloste</li>
+        <li>Ohjeet ja tukiprosessi</li>
+        <li>Ulkoinen tietoturvatestaus ja MML-tietoturvaliitteen päivitys</li>
+        <li>Suorituskyvyn testaus 100 yhtiön datalla</li>
+      </ul>
+    </div></div>
+    <div class="phase"><div class="when"><b>V9</b>4 vk</div><div>
+      <h3>PPR-integraatio ja kirjanpidon vaihto 1.1.2028</h3>
+      <ul>
+        <li>PprAdapteri: laskutusajot PPR:n myyntilaskuiksi, osakkaat PPR:n asiakkaiksi ja maksutilanne takaisin</li>
+        <li>Joulukuussa 2027 koeajo kahdella pilottiyhtiöllä PPR:n testiympäristössä</li>
+        <li>Avaavat saldot Procountorista 31.12.2027 ja tammikuun 2028 ensimmäinen laskutus PPR:stä</li>
+      </ul>
+      <p class="dod"><strong>Edellytys:</strong> PPR:n taloyhtiöominaisuudet (osio 07) on tehty syksyyn 2027 mennessä. Ne ovat erillinen PPR-projekti.</p>
+    </div></div>
+  </div>
+  <p><strong>Yhteensä noin 51 kehitysviikkoa ja 6 viikkoa lomia, eli noin 1 000 tuntia.</strong></p>
+  <ul>
+    <li><strong>Maaliskuu 2027:</strong> omien yhtiöiden huoltopyynnöt ja portaali käytössä.</li>
+    <li><strong>Kesäkuu 2027:</strong> talous, HTJ-ilmoitukset rajapinnan kautta ja isännöitsijäntodistus valmiina.</li>
+    <li><strong>Lokakuu 2027:</strong> tuote valmis muille isännöitsijöille.</li>
+    <li><strong>Marraskuu 2027:</strong> PPR-integraatio valmis. 1.1.2028 kirjanpito vaihtuu Procountorista PPR:ään.</li>
+  </ul>
+  <p>Vaiheiden V5–V7 järjestystä voi vaihtaa tarpeen mukaan.</p>
+</section>
+
+<!-- 14 -->
+<section id="kustannukset">
+  <h2><span class="n">15</span>Käyttökustannukset</h2>
+  <p class="sub">Kaikki luvut ovat arvioita, ja hinnat on tarkistettava palveluntarjoajilta. Laskelma koskee Adeptan omaa käyttöä: 16 yhtiötä, 3 henkilökunnan käyttäjää ja noin 200 portaalikäyttäjää.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Palvelu</th><th>Taso</th><th class="num">Arvio / kk</th></tr></thead>
+    <tbody>
+      <tr><td>Vercel</td><td>Pro, 1 kehittäjä</td><td class="num">~20 $</td></tr>
+      <tr><td>Supabase ×2 (staging ja prod)</td><td>Pro ja pieni laskentakapasiteetti. Staging voi olla Free-tasolla.</td><td class="num">25–60 $</td></tr>
+      <tr><td>Sähköposti</td><td>Resend (portfolion yhteinen), noin 10 000 viestiä</td><td class="num">~20 $</td></tr>
+      <tr><td>Sentry</td><td>Developer / Team</td><td class="num">0–26 $</td></tr>
+      <tr><td>Pankkitunnistus (Telia Tunnistus)</td><td>Telian sopimuksen tunnistushinta. Osakkaat tunnistautuvat vain kerran, kun tili yhdistetään.</td><td class="num">tarkista sopimuksesta</td></tr>
+      <tr><td>eSinetti</td><td>Oma tuote. Kustannus on Adeptalle sisäinen, ja muut isännöitsijät maksavat eSinetin hinnaston mukaan.</td><td class="num">sisäinen</td></tr>
+      <tr><td>Auth0</td><td>Jaettu tenant. Asukkaiden määrä kasvattaa kuukausittaisten aktiivisten käyttäjien määrää.</td><td class="num">tarkista sopimus</td></tr>
+      <tr><td>MML HTJ-rajapinnat</td><td>Maksuton isännöintijärjestelmille</td><td class="num">0 €</td></tr>
+      <tr><td>Verkkotunnus</td><td></td><td class="num">~2 €</td></tr>
+      <tr><td><strong>Yhteensä</strong></td><td></td><td class="num"><strong>~100–230 €</strong></td></tr>
+    </tbody>
+  </table></div>
+  <p>Kertaluonteinen kustannus on ulkoinen tietoturvatestaus ennen tuotteistusta, arviolta 3 000–8 000 €.</p>
+</section>
+
+<!-- 15 -->
+<section id="riskit">
+  <h2><span class="n">16</span>Riskit</h2>
+  <div class="tw"><table class="plain"><thead><tr><th>Riski</th><th>Vakavuus</th><th>Hallinta</th></tr></thead><tbody>
+    <tr><td>MML:n hyväksyntä viivästyy tai tietoturvaliite ei riitä yhden hengen toimittajalta</td><td><span class="chip crit">korkea</span></td><td>Hakemus heti. Tietoturvaliitteen pohjana tämän suunnitelman luku 10. Siihen asti HTJ-tiedot päivitetään käsin MML:n asiointipalvelussa ja tuodaan CSV:nä.</td></tr>
+    <tr><td>HTJ-toteutus on raskas: pienempi toimittaja Asteri on luopunut siitä</td><td><span class="chip crit">korkea</span></td><td>Ensin toteutetaan vain luku. Ilmoitukset tehdään yksi tietolaji kerrallaan. Tyypit generoidaan MML:n skeemoista, ja testiympäristöä käytetään paljon.</td></tr>
+    <tr><td>PPR:n taloyhtiökirjanpito ei valmistu 1.1.2028 mennessä, koska sama 20 h/vk jakautuu eRapun ja PPR:n kesken</td><td><span class="chip crit">korkea</span></td><td>Päätä huhtikuussa 2027, kumpi joustaa. Varasuunnitelma: Procountor jatkuu vuoden 2028, ja vaihto tehdään 1.1.2029. Procountorin irtisanomisaika tarkistetaan etukäteen.</td></tr>
+    <tr><td>Kaikki riippuu yhdestä kehittäjästä</td><td><span class="chip v2">keskitaso</span></td><td>Koodi dokumentoidaan <code>CLAUDE.md</code>:ssä ja migraatioissa, testikattavuus pidetään hyvänä ja tuotetaan tavanomaisella tekniikalla, jotta ulkopuolinen kehittäjä pääsee mukaan.</td></tr>
+    <tr><td>Henkilötietojen vuoto</td><td><span class="chip crit">korkea</span></td><td>
+      <ul>
+        <li>Oma Supabase-projekti, koska jaetussa projektissa on vuotanut tietoja kahdesti syyskuussa 2026.</li>
+        <li>RLS käyttäjän tokenilla, RLS-testit ja eSinetin seitsemän turvakysymystä jokaisessa tehtävässä.</li>
+        <li>Henkilötunnusten minimointi, lokit ja ulkoinen testaus.</li>
+      </ul>
+    </td></tr>
+    <tr><td>Telian tunnistussopimus ei salli tunnistusten välittämistä eRapun osakaskirjautumiseen tai muille isännöitsijöille</td><td><span class="chip v2">keskitaso</span></td><td>Kysy Telialta jo nyt (sama avoin kohta on eSinetin PLAN-listalla, kohta 5.1). Varavaihtoehtona passwordless-kirjautuminen ja tunnistus vasta allekirjoitettaessa eSinetissä.</td></tr>
+    <tr><td>eSinetin muutokset viivästyttävät eRappua</td><td><span class="chip v3">matala</span></td><td>Muutokset ovat pieniä, ja ne voidaan tehdä eSinetin vaiheessa 5 ennen eRapun V6:ta. Mock-asiakas mahdollistaa eRapun kehityksen niitä odottamatta.</td></tr>
+    <tr><td>Laajuus paisuu, koska Avaa tekee niin paljon</td><td><span class="chip v2">keskitaso</span></td><td>Pysytään MVP-rajauksessa. Jokainen uusi toive merkitään V2- tai V3-tasolle, ja siitä päätetään vaiheiden välissä.</td></tr>
+    <tr><td>Asunto-osakeyhtiölain ja HTJ-asetusten muutokset</td><td><span class="chip v3">matala</span></td><td>MML:n palvelutiedotteiden seuranta. Koodistot haetaan rajapinnasta, eikä niitä kirjoiteta koodiin.</td></tr>
+  </tbody></table></div>
+</section>
+
+<!-- 16 -->
+<section id="kysymykset">
+  <h2><span class="n">17</span>Päätökset ja avoimet kysymykset</h2>
+  <h4>Päätetty 15.9.2026</h4>
+  <ul>
+    <li>Työnimi on <strong>eRappu</strong>.</li>
+    <li>HTJ2-ilmoituksia ei ole tehty, joten ne tehdään käsin nyt ja myöhemmin rajapinnan kautta.</li>
+    <li>Kirjanpito siirretään Procountorista suoraan Adepta PPR:ään 1.1.2028. Fennoa-vaihetta ei tehdä.</li>
+    <li>Hoitovastikkeiden yksikkö on €/m²/kk.</li>
+    <li>Kehitykseen käytetään 20 tuntia viikossa.</li>
+    <li>Siirretään 16 asiakasyhtiötä. Veertintie, Parkkola, Liiketalo ja Toivakanhaka jätetään pois.</li>
+    <li>Henkilökunta alussa: Jukka isännöitsijänä sekä kaksi kirjanpitäjää.</li>
+    <li>Huoltopyyntöjen pilottiyhtiöt ovat As Oy Paikkalankartano Matti ja As Oy Jussilantie 6.</li>
+    <li>Nimi eRappu hyväksytty.</li>
+    <li>MML:n sopimusosapuoli ja järjestelmätoimittaja on Adepta Tilat Oy.</li>
+    <li>PPR:n organisaatioeristys korjataan ennen eRapun aloitusta.</li>
+  </ul>
+  <h4>Avoinna</h4>
+  <ol>
+    <li><strong>Säästövakka:</strong> onko osakeluettelo siirretty HTJ:hin, ja koskeeko HTJ2-ilmoitusvelvollisuus sitä?</li>
+    <li><strong>Adepta Tilat Oy:n rooli käytännössä:</strong>
+      <ul>
+        <li>Kattaako yhtiön toimiala ohjelmistojen tuottamisen?</li>
+        <li>Mikä yhtiö omistaa eRapun koodin ja Supabase-, Vercel- ja Auth0-tilit?</li>
+        <li>Mikä yhtiö laskuttaa muita isännöitsijöitä?</li>
+      </ul>
+      eSinetin Telia-sopimus ja DVV-sinetti ovat Adepta Oy:n nimissä, joten Adepta Tilat Oy:n ja Adepta Oy:n välille tarvitaan sopimus, jos eRappu käyttää niitä.</li>
+    <li><strong>Työmäärän jako:</strong> PPR:n taloyhtiökirjanpito vie arviolta 8–12 viikkoa samasta 20 tunnista. Jos se ei mahdu, kumpi joustaa: eRapun aikataulu vai PPR-vaihdon ajankohta? Päätös viimeistään huhtikuussa 2027.</li>
+    <li><strong>Laskutus vuonna 2027:</strong> viedäänkö eRapun vastikerivit tiedostona Procountoriin, vai jatkuuko laskutus Procountorissa ennallaan? Päätetään V5:ssä.</li>
+  </ol>
+</section>
+
+<!-- 17 -->
+<section id="aloitus">
+  <h2><span class="n">18</span>Ensimmäinen työviikko</h2>
+  <ol>
+    <li>Korjaa PPR:n organisaatioeristys. Tehtäväehdotus on valmiina tämän istunnon sivupalkissa: "Fix missing tenant check in PPR sales invoices API".</li>
+    <li>Lähetä MML:lle testiympäristöhakemus <strong>Adepta Tilat Oy:n nimissä</strong> (<span class="mono">verkkopalvelut@maanmittauslaitos.fi</span>) ja lataa JSON-skeemat. Tarkista samalla Säästövakan tila HTJ:ssä.</li>
+    <li>Aloita myöhästyneet HTJ2-ilmoitukset käsin lainallisista yhtiöistä: Launonrinne, Peltorivi, Kotipesä, Toivakan Asunto Oy, Vakka, Miina ja Vanhansillanpuisto.</li>
+    <li>Kysy Telialta, saako tunnistuksia käyttää eRapun osakaskirjautumisessa ja välittää muille isännöintiyrityksille.</li>
+    <li>Luo <code>PROJECTS/erappu/brief.md</code> (luonnos on kansiossa <code>CLAUDE_OUTPUTS/erappu</code>), repositorio <code>erappu</code> sekä oma Supabase-projekti <code>erappu-staging</code>.</li>
+    <li>Claude Code -sessio 1: Next.js-runko, Tailwind 4 ja shadcn. <code>CLAUDE.md</code>, PLAN, DECISIONS ja BLOCKERS eSinetin mallin mukaan, lisäsääntöinä:
+      <ul>
+        <li>kaikki muutokset tietokantaan tehdään migraatioina</li>
+        <li>RLS ja GRANTit jokaiseen tauluun, ja jokaiselle taululle testi</li>
+        <li>kutsut käyttäjän tokenilla, service role vain taustatöissä</li>
+        <li>taulujen etuliite <code>er_</code>, suomenkieliset nimet</li>
+        <li>eSinetin seitsemän turvakysymystä</li>
+      </ul>
+    </li>
+    <li>Session 2 tavoite: <code>schema_v0.sql</code> jaetaan migraatioiksi (organisaatiot, rekisteri) ja tehdään RLS-testit kahdella organisaatiolla.</li>
+    <li>Session 3 tavoite: Access-siirtoskriptin ensimmäinen versio ja laaturaportti. Korjaa osakevälit yhtiöjärjestysten perusteella.</li>
+  </ol>
+  <p class="foot">Suunnitelman lähteet: taloyhtiöt.accdb-analyysi (14.9.2026), adepta-ppr-koodikartoitus, Maanmittauslaitoksen HTJ-rajapintasivut, Fennoan ja Avaan julkiset sivut, portfolion koodikartoitus (eSinetti, Reilusoppari, kasamaster, adepta-skog), Premiksen ja Kiinteistötahkolan julkiset sivut sekä Asiakastieto. Lakiviittaukset ja MML:n tekniset yksityiskohdat on tarkistettava alkuperäislähteistä ennen toteutusta.</p>
+</section>
+
+</main>
+</div>

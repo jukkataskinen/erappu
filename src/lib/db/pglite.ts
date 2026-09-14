@@ -9,6 +9,11 @@ import type { Database, Sql } from "./types";
  * joten transaktiot jonoutuvat; kehityskäytössä se riittää.
  */
 export async function createPgliteDatabase(dataDir?: string): Promise<Database> {
+  if (dataDir) {
+    const { mkdir } = await import("node:fs/promises");
+    const path = await import("node:path");
+    await mkdir(path.dirname(dataDir), { recursive: true });
+  }
   const pg = await PGlite.create({ dataDir, extensions: { btree_gist } });
 
   const wrap = (tx: { query: PGlite["query"] }): Sql => ({
