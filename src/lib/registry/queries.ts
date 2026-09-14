@@ -47,11 +47,11 @@ export interface Company {
   street_address: string | null;
   postal_code: string | null;
   city: string | null;
-  articles_date: string | null;
+  articles_date: string | Date | null;
   fiscal_year_start: string;
   total_shares: number | null;
   manager_user_id: string | null;
-  management_started_on: string | null;
+  management_started_on: string | Date | null;
   redemption_clause: Record<string, boolean>;
   same_charge_basis: boolean | null;
   insurance_company: string | null;

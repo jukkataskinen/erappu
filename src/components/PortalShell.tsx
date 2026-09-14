@@ -2,33 +2,37 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Brand } from "./Brand";
 import { NavLink } from "./NavLink";
-import { PORTAL_NAV } from "@/config/nav";
+import { PORTAL_NAV, PORTAL_TABBAR } from "@/config/nav";
 
 /**
  * Osakkaan, asukkaan ja hallituksen portaali. Puhelin ensin kuten
- * Reilusopparissa: navigaatio alalaidassa peukalon ulottuvilla.
+ * Reilusopparissa: viisi yleisintä kohtaa alapalkissa peukalon ulottuvilla,
+ * loput "Oma"-sivulla. Leveällä näytöllä koko valikko ylätunnisteessa.
  */
 export function PortalShell({ children, staffLink }: { children: ReactNode; staffLink?: boolean }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-10 border-b border-line bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[var(--container-content)] items-center justify-between px-5">
-          <Link href="/portaali" className="flex items-center">
+        <div className="mx-auto flex h-14 max-w-[var(--container-wide)] items-center justify-between gap-3 px-5">
+          <Link href="/portaali" className="flex shrink-0 items-center">
             <Brand />
           </Link>
-          <div className="flex items-center gap-1">
-            <nav className="hidden sm:flex sm:items-center sm:gap-1">
-              {PORTAL_NAV.map((i) => (
-                <Link key={i.href} href={i.href} className="rounded-full px-3 py-2 text-sm text-ink/70 hover:text-ink">
-                  {i.label}
-                </Link>
-              ))}
-            </nav>
+          <nav className="hidden min-w-0 lg:flex lg:items-center lg:gap-0.5" aria-label="Portaalin valikko">
+            {PORTAL_NAV.map((i) => (
+              <NavLink key={i.href} href={i.href}>
+                {i.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="flex shrink-0 items-center gap-1">
             {staffLink ? (
               <Link href="/tyopoyta" className="px-3 py-2 text-sm text-sky">
                 Työpöytä
               </Link>
             ) : null}
+            <Link href="/portaali/profiili" className="px-3 py-2 text-sm text-ink/60 hover:text-ink">
+              Profiili
+            </Link>
             <a href="/kirjaudu/ulos" className="px-3 py-2 text-sm text-ink/60 hover:text-ink">
               Kirjaudu ulos
             </a>
@@ -36,9 +40,9 @@ export function PortalShell({ children, staffLink }: { children: ReactNode; staf
         </div>
       </header>
       <main className="mx-auto w-full max-w-[var(--container-content)] flex-1 px-5 py-8">{children}</main>
-      <nav className="sticky bottom-0 border-t border-line bg-paper/95 backdrop-blur sm:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav className="sticky bottom-0 border-t border-line bg-paper/95 backdrop-blur lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Portaalin pikavalikko">
         <div className="mx-auto flex max-w-[var(--container-content)]">
-          {PORTAL_NAV.map((i) => (
+          {PORTAL_TABBAR.map((i) => (
             <NavLink key={i.href} href={i.href} compact>
               {i.label}
             </NavLink>

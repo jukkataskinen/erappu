@@ -35,6 +35,19 @@ export function formatNumber(value: number | string | null | undefined, unit?: s
   return unit ? `${numFmt.format(Number(value))} ${unit}` : numFmt.format(Number(value));
 }
 
+/**
+ * Kannan date-sarake lomakkeen arvoksi (VVVV-KK-PP). pg ja PGlite palauttavat
+ * date-sarakkeen Date-oliona paikallisena keskiyönä, joten toISOString
+ * siirtäisi päivää taaksepäin Suomen aikavyöhykkeellä.
+ */
+export function toIsoDate(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  }
+  return value.slice(0, 10);
+}
+
 /** ISO-päivä (VVVV-KK-PP) Helsingin ajassa. */
 export function isoDateHelsinki(date = new Date()): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Helsinki" }).format(date);

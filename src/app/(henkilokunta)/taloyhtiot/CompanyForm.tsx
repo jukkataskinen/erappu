@@ -1,6 +1,7 @@
 import { Button, Field, Input, Panel, Select, SectionTitle } from "@/components/ui";
 import type { Company } from "@/lib/registry/queries";
 import { REDEMPTION_CLAUSE } from "@/lib/registry/labels";
+import { toIsoDate } from "@/lib/format";
 
 export function CompanyForm({
   action,
@@ -48,7 +49,7 @@ export function CompanyForm({
             </Field>
           </div>
           <Field label="Yhtiöjärjestyksen päivämäärä" htmlFor="articles_date">
-            <Input id="articles_date" name="articles_date" type="date" defaultValue={c?.articles_date?.slice(0, 10) ?? ""} />
+            <Input id="articles_date" name="articles_date" type="date" defaultValue={toIsoDate(c?.articles_date)} />
           </Field>
           <Field label="Tilikausi alkaa (KK-PP)" htmlFor="fiscal_year_start">
             <Input id="fiscal_year_start" name="fiscal_year_start" defaultValue={c?.fiscal_year_start ?? "01-01"} />
@@ -73,7 +74,7 @@ export function CompanyForm({
             </Select>
           </Field>
           <Field label="Isännöinti alkoi" htmlFor="management_started_on">
-            <Input id="management_started_on" name="management_started_on" type="date" defaultValue={c?.management_started_on?.slice(0, 10) ?? ""} />
+            <Input id="management_started_on" name="management_started_on" type="date" defaultValue={toIsoDate(c?.management_started_on)} />
           </Field>
           <Field label="Vakuutusyhtiö" htmlFor="insurance_company">
             <Input id="insurance_company" name="insurance_company" defaultValue={c?.insurance_company ?? ""} />

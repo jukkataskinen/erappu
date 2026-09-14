@@ -1,0 +1,8 @@
+{
+  "regions": ["arn1"],
+  "crons": [
+    { "path": "/api/cron/viestit", "schedule": "5,15,25,35,45,55 * * * *" },
+    { "path": "/api/cron/muistutukset", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/htj", "schedule": "0 0 * * *" }
+  ]
+}
