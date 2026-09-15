@@ -246,3 +246,11 @@
 **MFA:ta ei voi ohittaa toisella yhteydellä.** Muut tenantin yhteydet (google-oauth2) kytketään pois eRapulta. Henkilökunnan kutsun hyväksyntä ja bootstrapin suora jäsenyys vaativat tietokantayhteyden tunnisteen (`auth0|`); sähköpostikoodilla (`email|`) kirjautunut ei saa organisaatioroolia. Tiedossa oleva rajoitus: `er_users.email` on uniikki, joten sama osoite ei voi olla sekä henkilökunnan salasanatunnus että portaalin sähköpostikooditunnus (toinen kirjautuminen kaatuu rivin luontiin). Ratkaisu (Auth0 account linking tai useampi tunniste per käyttäjä) on erillinen päätös.
 
 **Vercel-vienti vain tuotantoon, AUTH_MODE viimeisenä.** `--vercel` lisää puuttuvat Auth0-muuttujat ja `APP_BASE_URL`in (SDK kieltäytyy tuotannossa ilman sitä, ja kutsulinkit muodostetaan siitä), korvaa vain lipulla `--korvaa`, ja vaihtaa `AUTH_MODE=auth0` vasta kun Vercelin todellisessa listassa ovat kaikki. Paikallinen `.env.local` ei saa AUTH_MODEa.
+
+## 2026-09-15 Access: vastikkeet ja lainat (import-finance.mts)
+
+**Accessissa ei ole enempää talousdataa.** Taulut ja kyselyt käytiin läpi: vastikkeista vain Vastikkeet (laji, hinta, muutospäivä; käytössä Hoitovastike ja kaksi 0 €:n Rahoitusvastike-riviä), lainoista yksi Lainat-rivi yhtiötä kohden (saldo, päivä tekstinä, nostamattomat). Lainaosuus ja vastikevelka olivat isännöitsijäntodistuksen sidonnattomia kenttiä, Kulutustiedot on tyhjä. Lainanantajaa, korkoa, eräpäivää, lyhennystapaa ja lainaosuuksia ei tuoda eikä arvata; migraatiota ei tarvittu.
+
+**Lainat-rivi on saldo, laina ei-jaettava.** Lomakkeessa kenttä on "Yhtiön lainat" ja "Lainan pvm", joten määrä on `balance_eur`/`balance_date`; pääomaksi merkitään sama, kunnes käyttäjä korjaa sen. Yhdelläkään lainalliselle yhtiölle ei ole rahoitusvastiketta, joten `allocated = false`.
+
+**Uudelleenajettava tuonti.** Vain `source = 'migration'` -rivejä päivitetään (vastikkeet alkupäivän mukaan). Käsin syötetty vastikeperuste katkaisee Accessin perusteet alkupäivästään, käsin syötetty laina estää lainan tuonnin, ja laskutukseen tai lainaosuuksiin sidottua riviä ei poisteta. Ensimmäisen tuonnin virhe (voimassa oleva hoitovastike päättyi alkupäivänään) korjautuu ajossa. Kuivaharjoitus ajaa muutokset transaktiossa ja peruu ne, jolloin kannan rajoitteet tarkistuvat.

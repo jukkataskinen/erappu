@@ -1,6 +1,8 @@
 ﻿param(
   [string]$Source = "C:\Users\JukkaTaskinen\Adepta Oy\Asiakkaat - Tiedostot\00 tiedostot\Isännöinti\taloyhtiöt.accdb",
-  [string]$OutDir = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "data\private")
+  [string]$OutDir = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "data\private"),
+  # Vain talousvienti (access-finance-export.json); rekisterivientiä ja liitteitä ei kirjoiteta uudelleen.
+  [switch]$VainTalous
 )
 # Access-vienti eRapun tuontia varten.
 #
@@ -8,6 +10,10 @@
 # - Vie vain nykyiset asiakasyhtiöt (lista alla, Jukan päätös 14.9.2026).
 # - Henkilötunnuksia EI viedä: sarakkeita Hetu1, HeTu2 ja HeTu/Y-Tunnus ei lueta lainkaan.
 # - Tulos kansioon data/private (gitignore). Kopio poistetaan lopuksi.
+# - Talousvienti access-finance-export.json (scripts/access/import-finance.mts):
+#   Vastikkeet ja Lainat kokonaan, yhtiön Yhtiön lainat -kenttä ja osakeryhmien
+#   pinta-alat summien tarkistukseen. Mukana taulujen ja kyselyjen luettelo
+#   ilman dataa, jotta raportti kertoo, mistä laina- ja vastiketiedot haettiin.
 
 $ErrorActionPreference = "Stop"
 $Clients = @(
@@ -70,6 +76,45 @@ $all = Rows "SELECT * FROM Yhtiöt" $companyFields
 $companies = @($all | Where-Object { $Clients -contains $_."Yhtiö" })
 $missing = @($Clients | Where-Object { $n = $_; -not ($companies | Where-Object { $_."Yhtiö" -eq $n }) })
 $ids = ($companies | ForEach-Object { $_.ID }) -join ","
+
+# ---------------------------------------------------------------------------
+# Talousvienti
+# ---------------------------------------------------------------------------
+$inventory = New-Object System.Collections.ArrayList
+foreach ($t in $db.TableDefs) {
+  if ($t.Name -like "MSys*" -or $t.Name -like "~*") { continue }
+  $rsc = $db.OpenRecordset("SELECT COUNT(*) FROM [$($t.Name)]")
+  $count = $rsc.Fields.Item(0).Value
+  $rsc.Close()
+  $cols = @(); foreach ($f in $t.Fields) { $cols += $f.Name }
+  [void]$inventory.Add([pscustomobject]@{ kind = "table"; name = $t.Name; rows = $count; columns = $cols; sql = $null })
+}
+foreach ($q in $db.QueryDefs) {
+  if ($q.Name -like "~*") { continue }
+  # Kyselyistä vain laina- ja vastiketauluja käyttävät, SQL mukaan (ei dataa).
+  if ($q.SQL -match "Vastik|Laina") { [void]$inventory.Add([pscustomobject]@{ kind = "query"; name = $q.Name; rows = $null; columns = @(); sql = ($q.SQL -replace "\s+", " ").Trim() }) }
+}
+$finance = [ordered]@{
+  exportedAt = (Get-Date).ToString("s")
+  source = "taloyhtiöt.accdb"
+  missingClients = $missing
+  inventory = $inventory
+  companies = Rows "SELECT ID, Yhtiö, [Yhtiön lainat], [Sama vastikeperuste], [Osakkeiden lukumäärä], [Pinta-ala], Huoneistoala, [Asuntojen lkm] FROM Yhtiöt WHERE ID IN ($ids)" @("ID","Yhtiö","Yhtiön lainat","Sama vastikeperuste","Osakkeiden lukumäärä","Pinta-ala","Huoneistoala","Asuntojen lkm")
+  units = Rows "SELECT ID, Yhtiö, Asunnon_nro, koko, osakkeiden_määrä, Käyttötarkoitus, [Hakeuduttu alv-velvolliseksi] FROM asunnot WHERE Yhtiö IN ($ids)" @("ID","Yhtiö","Asunnon_nro","koko","osakkeiden_määrä","Käyttötarkoitus","Hakeuduttu alv-velvolliseksi")
+  charges = Rows "SELECT ID, Yhtiö_id, Vastikelaji, Hoitovastike, HV_Muutos_pvn FROM Vastikkeet WHERE Yhtiö_id IN ($ids)" @("ID","Yhtiö_id","Vastikelaji","Hoitovastike","HV_Muutos_pvn")
+  loans = Rows "SELECT ID, YhtiöId, [Yhtiön laina], [Lainan pvm], [Nostamattomat lainat, eur], [Nostamattomat lainat, pvm] FROM Lainat WHERE YhtiöId IN ($ids)" @("ID","YhtiöId","Yhtiön laina","Lainan pvm","Nostamattomat lainat, eur","Nostamattomat lainat, pvm")
+}
+$financeJson = $finance | ConvertTo-Json -Depth 6
+[System.IO.File]::WriteAllText((Join-Path $OutDir "access-finance-export.json"), $financeJson, (New-Object System.Text.UTF8Encoding($false)))
+"Talousvienti valmis: $($finance.charges.Count) vastikeriviä, $($finance.loans.Count) lainariviä, $($finance.units.Count) osakeryhmää."
+
+if ($VainTalous) {
+  $db.Close()
+  [System.Runtime.InteropServices.Marshal]::ReleaseComObject($engine) | Out-Null
+  Remove-Item -LiteralPath $work -Recurse -Force
+  if ($missing.Count) { "PUUTTUU ACCESSISTA: $($missing -join ', ')" }
+  return
+}
 
 $lookups = [ordered]@{
   katteet = Rows "SELECT ID, Katemateriaali FROM Katteet" @("ID","Katemateriaali")
