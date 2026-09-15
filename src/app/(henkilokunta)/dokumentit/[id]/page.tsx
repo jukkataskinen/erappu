@@ -31,7 +31,8 @@ export default async function DocumentPage({ params, searchParams }: { params: P
   const canEdit = ctx.can("owner", "manager", "assistant", "accountant");
   const canDelete = ctx.can("owner", "manager") && !doc.sealed;
   const back = doc.company_id ? `/taloyhtiot/${doc.company_id}/dokumentit` : "/dokumentit";
-  const lockedVisibility = !(SELECTABLE_VISIBILITIES as readonly string[]).includes(doc.visibility);
+  const isImage = doc.mime_type.startsWith("image/");
+  const lockedVisibility =!(SELECTABLE_VISIBILITIES as readonly string[]).includes(doc.visibility);
 
   return (
     <>
@@ -46,6 +47,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
           </span>
         }
         actions={
+          isImage ? null : (
           <>
             <LinkButton variant="secondary" href={`/api/dokumentit/${doc.id}`} target="_blank" prefetch={false}>
               Avaa
@@ -54,6 +56,7 @@ export default async function DocumentPage({ params, searchParams }: { params: P
               Lataa
             </LinkButton>
           </>
+          )
         }
       />
       <FormError message={virhe} />
@@ -79,6 +82,22 @@ export default async function DocumentPage({ params, searchParams }: { params: P
               { label: "Liittyy", value: doc.subject_table ? "Toisen moduulin liite" : "–" },
             ]}
           />
+          {isImage ? (
+            <div className="mt-5 grid gap-3">
+              <a href={`/api/dokumentit/${doc.id}`} target="_blank" rel="noopener" className="block rounded-xl border border-line bg-white p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element -- suojattu reitti, ei next/image-optimointia */}
+                <img src={`/api/dokumentit/${doc.id}`} alt={doc.title} width={1200} height={900} className="mx-auto h-auto max-h-80 w-auto max-w-full" />
+              </a>
+              <div className="flex flex-wrap gap-2">
+                <LinkButton variant="secondary" href={`/api/dokumentit/${doc.id}`} target="_blank" prefetch={false}>
+                  Avaa isompana
+                </LinkButton>
+                <LinkButton variant="secondary" href={`/api/dokumentit/${doc.id}?lataa=1`} prefetch={false}>
+                  Lataa
+                </LinkButton>
+              </div>
+            </div>
+          ) : null}
         </Panel>
 
         <div className="grid content-start gap-6">
