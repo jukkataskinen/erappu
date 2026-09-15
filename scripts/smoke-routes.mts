@@ -41,8 +41,12 @@ const gid = [...units.matchAll(/\/huoneistot\/([0-9a-f-]{36})/g)].map((m) => m[1
 for (const p of [
   "/tyopoyta", "/haku?q=rinne", "/huoltopyynnot", "/huoltopyynnot/uusi", "/palveluntuottajat", "/htj", "/talous", "/kokoukset",
   "/tiedotteet", "/tiedotteet/uusi", "/tiedotteet/lahetykset", "/dokumentit", "/vuosikello", "/vuosikello/uusi", "/varaukset",
-  "/sopimukset", "/sopimukset/uusi", "/kulutus", "/todistukset", "/asetukset",
+  "/sopimukset", "/sopimukset/uusi", "/kulutus", "/asetukset", "/asetukset/organisaatio",
 ]) await check(p, staffSub);
+
+const certificates = await check("/todistukset", staffSub);
+const orderId = [...certificates.matchAll(/\/todistukset\/([0-9a-f-]{36})/g)].map((m) => m[1])[0];
+if (orderId) await check(`/todistukset/${orderId}`, staffSub);
 
 if (cid) {
   for (const tab of [
@@ -55,6 +59,12 @@ if (cid) {
     await check(`/taloyhtiot/${cid}/huoneistot/${gid}`, staffSub);
     await check(`/taloyhtiot/${cid}/talous/huoneisto/${gid}`, staffSub);
   }
+  const loans = await check(`/taloyhtiot/${cid}/talous`, staffSub);
+  const loanId = [...loans.matchAll(/\/talous\/lainat\/([0-9a-f-]{36})/g)].map((m) => m[1])[0];
+  if (loanId) await check(`/taloyhtiot/${cid}/talous/lainat/${loanId}`, staffSub);
+  const buildings = await check(`/taloyhtiot/${cid}/kiinteisto`, staffSub);
+  const buildingId = [...buildings.matchAll(/kiinteisto\?muokkaa=([0-9a-f-]{36})/g)].map((m) => m[1])[0];
+  if (buildingId) await check(`/taloyhtiot/${cid}/kiinteisto?muokkaa=${buildingId}`, staffSub);
 }
 
 for (const p of [

@@ -1,18 +1,122 @@
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { openLocalDb } from "./lib/local-db.mts";
 import { syncPortalAccessForBoard, syncPortalAccessForGroup } from "../src/lib/registry/portal-access.ts";
+import { makePdf, makePng } from "../tests/helpers/pdf-fixtures.ts";
+import type { Sql } from "../src/lib/db/types.ts";
 
 /**
  * Kuvitteellinen esimerkkidata kehitykseen ja esittelyyn. Kaikki nimet,
  * osoitteet ja tunnukset ovat keksittyjä (Y-tunnukset tarkistemerkiltään
  * kelvollisia mutta eivät oikeiden yhtiöiden). Idempotentti: ajaa uudelleen
- * vain, jos demo-organisaatiota ei ole.
+ * vain, jos demo-organisaatiota ei ole. Isännöitsijäntodistuksen tiedot ja
+ * liitteet lisätään myös aiemmin luotuun demokantaan, jos niitä ei vielä ole.
  */
 const db = await openLocalDb();
+
+/** Demoliite paikalliseen tiedostovarastoon samalla polkurakenteella kuin `storeFile` (vain STORAGE_DRIVER=local). */
+async function demoDocument(tx: Sql, o: { org: string; company: string; shareGroup: string | null; category: string; title: string; fileName: string; mime: string; bytes: Uint8Array; year: number | null; visibility: string }) {
+  const storagePath = `${o.org}/${o.company}/${randomUUID()}/${o.fileName}`;
+  const full = path.join(process.cwd(), ".data", "files", storagePath);
+  await mkdir(path.dirname(full), { recursive: true });
+  await writeFile(full, o.bytes);
+  await tx.query(
+    `insert into er_documents (organization_id, company_id, share_group_id, category, title, file_name, storage_path, mime_type, size_bytes, sha256, visibility, year)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    [o.org, o.company, o.shareGroup, o.category, o.title, o.fileName, storagePath, o.mime, o.bytes.length, createHash("sha256").update(o.bytes).digest("hex"), o.visibility, o.year],
+  );
+}
+
+/** Isännöitsijäntodistuksen demotiedot As Oy Esimerkkirinteelle (0090–0091). */
+async function seedCertificateDemo(tx: Sql, org: string, rinne: string) {
+  const [done] = await tx.query("select 1 from er_housing_companies where id = $1 and registered_on is not null", [rinne]);
+  if (done) return false;
+  const groups = Object.fromEntries(
+    (await tx.query<{ id: string; unit_label: string }>("select id, unit_label from er_share_groups where company_id = $1", [rinne])).map((g) => [g.unit_label, g.id]),
+  );
+
+  await tx.query(
+    `update er_organizations set settings = settings || $2::jsonb where id = $1`,
+    [org, JSON.stringify({ contact: { phone: "010 000 0000", email: "isannointi@example.test", street_address: "Esimerkkikatu 1", postal_code: "41660", city: "Toivakka" } })],
+  );
+  await tx.query(
+    `update er_housing_companies set registered_on = '2007-11-20', htj_register_transferred_on = '2023-06-12', vat_registered = false,
+        charges_decided_by = 'Yhtiökokous', maintenance_needs_report_on = '2026-04-15', maintenance_plan_on = '2024-04-18',
+        maintenance_plan_summary = 'Julkisivujen huoltomaalaus 2027, ilmanvaihtokoneiden uusiminen 2029 ja pihan salaojituksen tarkastus 2030.',
+        certificate_notes = 'Yhtiökokous 2026 päätti valmistella yhtiöjärjestyksen muutoksen autopaikkojen jakamisesta. Muutos on vireillä.',
+        parking_hall_spaces = 0, parking_other_spaces = 4, parking_company_spaces = 0,
+        parking_allocation_rules = 'Jokaisella huoneistolla on yksi lämpöpistokepaikka hallituksen päätöksellä.'
+      where id = $1`,
+    [rinne],
+  );
+  await tx.query(
+    `update er_buildings set staircases = 4, elevators = 0, floor_area_m2 = 520, volume_m3 = 2100, heat_distribution = 'Vesikiertoinen lattialämmitys',
+        cooling = 'Ei', antenna = 'Kaapeli-tv', antenna_provider = 'Esimerkkikaapeli Oy', broadband = 'Valokuitu', broadband_provider = 'Esimerkkikuitu Oy',
+        energy_class = 'C', energy_certificate_year = 2019
+      where company_id = $1`,
+    [rinne],
+  );
+  await tx.query("update er_properties set building_rights_m2 = 800, unused_building_rights_m2 = 150 where company_id = $1", [rinne]);
+  await tx.query(
+    `update er_loans set loan_type = 'capital_charge', reference_rate = 'Euribor 12 kk', margin_percent = 0.85, purpose = 'Vesikaton uusiminen'
+      where company_id = $1 and name = 'Kattoremonttilaina 2023'`,
+    [rinne],
+  );
+  await tx.query(
+    `insert into er_loans (organization_id, company_id, name, lender, principal_eur, balance_eur, balance_date, loan_type, interest_percent, allocated)
+     values ($1,$2,'Tililimiitti','Esimerkkipankki',10000,0,'2025-12-31','credit_limit',4.5,false)`,
+    [org, rinne],
+  );
+  await tx.query(
+    `insert into er_property_mortgages (organization_id, company_id, property_id, amount_eur, holder, registered_on)
+     select $1, $2, p.id, v.amount, v.holder, v.registered::date
+       from er_properties p, (values (150000, 'Esimerkkipankki, Kattoremonttilaina 2023', '2023-09-15'), (50000, 'Yhtiön hallussa', '2008-05-02')) as v(amount, holder, registered)
+      where p.company_id = $2`,
+    [org, rinne],
+  );
+  await tx.query(
+    `insert into er_company_insurances (organization_id, company_id, insurance_type, name, insurer, description)
+     values ($1,$2,'Kiinteistövakuutus','Täysarvovakuutus','Esimerkkivakuutus','Sisältää vuotovahingot ja rakennusajan vakuutuksen'),
+            ($1,$2,'Vastuuvakuutus','Hallituksen vastuuvakuutus','Esimerkkivakuutus',null)`,
+    [org, rinne],
+  );
+  await tx.query("update er_maintenance_needs set status = 'decided', decided_on = '2026-04-15' where company_id = $1 and target = 'Julkisivut'", [rinne]);
+  await tx.query(
+    "update er_share_groups set votes = 1, area_verified = true, staircase = 'A', street_address = 'Rinnetie 4 A ' || split_part(unit_label, ' ', 2) where company_id = $1",
+    [rinne],
+  );
+  await tx.query(
+    "update er_share_groups set certificate_notes = 'Kylpyhuoneen lattiakaivon tiivisteessä todettiin vuoto 2025; korjattu yhtiön toimesta 10/2025.', spouses_common_home = 'unknown' where id = $1",
+    [groups["A 2"]],
+  );
+
+  const docs: { category: string; title: string; fileName: string; bytes: Uint8Array; mime: string; year: number | null; unit?: string }[] = [
+    { category: "articles", title: "Yhtiöjärjestys", fileName: "yhtiojarjestys.pdf", bytes: await makePdf(2, "Yhtiojarjestys"), mime: "application/pdf", year: null },
+    { category: "financial_statement", title: "Tilinpäätös ja toimintakertomus 2025", fileName: "tilinpaatos-2025.pdf", bytes: await makePdf(3, "Tilinpaatos 2025"), mime: "application/pdf", year: 2025 },
+    { category: "budget", title: "Talousarvio 2026", fileName: "talousarvio-2026.pdf", bytes: await makePdf(1, "Talousarvio 2026"), mime: "application/pdf", year: 2026 },
+    { category: "energy_certificate", title: "Energiatodistus", fileName: "energiatodistus.pdf", bytes: await makePdf(1, "Energiatodistus"), mime: "application/pdf", year: 2019 },
+    { category: "maintenance_needs_report", title: "Kunnossapitotarveselvitys 2026", fileName: "kpts-2026.pdf", bytes: await makePdf(1, "Kunnossapitotarveselvitys 2026"), mime: "application/pdf", year: 2026 },
+    { category: "floor_plan", title: "Pohjapiirustus A 1", fileName: "pohjakuva-a1.png", bytes: makePng(640, 420), mime: "image/png", year: null, unit: "A 1" },
+    { category: "floor_plan", title: "Pohjapiirustus A 2", fileName: "pohjakuva-a2.png", bytes: makePng(420, 600), mime: "image/png", year: null, unit: "A 2" },
+  ];
+  for (const d of docs) {
+    await demoDocument(tx, { org, company: rinne, shareGroup: d.unit ? groups[d.unit] : null, category: d.category, title: d.title, fileName: d.fileName, mime: d.mime, bytes: d.bytes, year: d.year, visibility: "owners" });
+  }
+  await tx.query(
+    `insert into er_certificate_orders (organization_id, company_id, share_group_id, orderer_name, orderer_email, price_eur, source, with_attachments, purpose)
+     values ($1,$2,$3,'Välittäjä Esimerkki','valittaja@example.test',120,'public_form',true,'sale')`,
+    [org, rinne, groups["A 2"]],
+  );
+  return true;
+}
 
 await db.asService(async (tx) => {
   const [existing] = await tx.query<{ id: string }>("select id from er_organizations where business_id = '0000001-9'");
   if (existing) {
-    console.log("Demodata on jo kannassa.");
+    const [rinne] = await tx.query<{ id: string }>("select id from er_housing_companies where organization_id = $1 and business_id = '1000000-9'", [existing.id]);
+    const added = rinne ? await seedCertificateDemo(tx, existing.id, rinne.id) : false;
+    console.log(added ? "Demodata oli jo kannassa; lisättiin isännöitsijäntodistuksen tiedot ja liitteet." : "Demodata on jo kannassa.");
     return;
   }
 
@@ -148,6 +252,7 @@ await db.asService(async (tx) => {
 
   for (const id of Object.values(groupIds)) await syncPortalAccessForGroup(tx, id);
   await syncPortalAccessForBoard(tx, rinne);
+  await seedCertificateDemo(tx, org.id, rinne);
   console.log("Demodata luotu: Demo Isännöinti Oy, 2 taloyhtiötä, 14 huoneistoa, 6 käyttäjää.");
 });
 

@@ -89,7 +89,8 @@ export async function findAttachmentCandidates(tx: Sql, companyId: string, share
 
 export function documentDateText(doc: { year: number | null; createdAt: string } | null): string | null {
   if (!doc) return null;
-  return doc.year ? String(doc.year) : formatDate(doc.createdAt.slice(0, 10));
+  // Ilman vuotta tiedetään vain tallennuspäivä, joka ei ole asiakirjan oma päiväys.
+  return doc.year ? String(doc.year) : `tallennettu ${formatDate(doc.createdAt.slice(0, 10))}`;
 }
 
 /** Ilman liitteitä -version luettelo: mitä asiakirjoja isännöitsijältä on saatavilla. */
