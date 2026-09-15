@@ -87,21 +87,50 @@ describe("asiakirjojen renderöinti", () => {
       approved: false,
       organizationName: "Isännöinti Testi Oy",
       issuedOn: "2026-09-15",
-      verifyUrl: "https://erappu.fi/tarkista/luonnos",
+      verifyUrl: "https://app.esinetti.fi/verify",
+      legalBasis: "AOYL 7:27 §",
+      order: { purpose: null, ordererName: null, withAttachments: false },
       company: {
-        name: "As Oy Kuvitteellinen", businessId: "1234567-1", address: null, propertyCodes: [], articlesDate: null, tenure: null, lessor: null,
-        leaseEndsOn: null, propertyArea: null, insurance: null, propertyMaintenance: null, apartmentCount: 0, commercialCount: 0,
-        apartmentAreaM2: 0, commercialAreaM2: 0, parkingSpaces: null, totalShares: null, htjSynced: false, commonSpaces: [],
+        name: "As Oy Kuvitteellinen", businessId: "1234567-1", registeredOn: null, address: null, articlesDate: null, commercialRegisterNote: null,
+        htjSynced: false, htjTransferredOn: null, boardChair: null, propertyMaintenance: null, totalShares: null, sharesApartments: 0, sharesOther: 0,
+        vat: "Ei tiedossa", chargesDecidedBy: null, articlesMaintenanceClause: null, shareIssueAuthorization: null, articlesLawsuit: null, notes: null,
+        shareCertificates: "–", energy: "–",
       },
+      manager: { name: null, email: null, phone: null, office: "Isännöinti Testi Oy", officeAddress: null, officePhone: null },
+      properties: [],
+      buildingSummary: { count: "0", apartmentArea: "–", floorArea: "–", volume: "–", staircases: "–", elevators: "0" },
       buildings: [],
-      unit: { label: "A 1", kindLabel: "Asuinhuoneisto", shareRanges: "–", shareCount: 0, areaM2: null, layout: null, floor: null, intendedUse: null, building: null },
-      finance: { charges: [], monthlyTotal: null, loans: [], loanShare: [], paymentStatus: null },
-      repairs: { done: [], planned: [] },
+      spaces: [],
+      parking: { built: null, hall: null, other: null, company: null, rules: null },
+      asbestosNote: null,
+      unit: {
+        label: "A 1", kindLabel: "Asuinhuoneisto", shareRanges: "–", shareCount: 0, votes: null, areaM2: null, areaVerified: "Ei tiedossa", layout: null, floor: null,
+        staircase: null, intendedUse: null, building: null, address: null, htjId: null, notes: null,
+      },
+      possession: { companyPossession: "Ei", companyRented: "Ei", widowRight: "Ei tiedossa", spousesCommonHome: "Ei tiedossa", otherRestrictions: null, shortTermRental: "–" },
+      renovationNotices: [],
+      renovationNoticesSince: null,
+      finance: { charges: [], monthlyTotal: null, priceList: [], loans: [], creditLimits: [], loanShare: [], paymentStatus: null, mortgages: [], mortgagesTotal: null, insurances: [] },
+      repairs: { needsReportOn: null, planOn: null, planSummary: null, decided: [], done: [], planned: [] },
       restrictions: [],
-      manager: { name: null, email: null, phone: null },
+      attachments: [],
     };
     const pdf = await renderDocumentPdf(<ManagerCertificate data={data} />);
     expect(isPdf(pdf.bytes)).toBe(true);
+    const withAttachments = await renderDocumentPdf(
+      <ManagerCertificate
+        data={{
+          ...data,
+          order: { purpose: "Pankkia varten", ordererName: "Testi Tilaaja", withAttachments: true },
+          attachments: [
+            { number: 1, key: "articles", label: "Yhtiöjärjestys", title: "YJ", dateText: "2008", pages: 4, status: "attached" },
+            { number: 2, key: "budget", label: "Talousarvio", title: null, dateText: null, pages: null, status: "missing" },
+            { number: 3, key: "energy_certificate", label: "Energiatodistus", title: "ET", dateText: "2019", pages: null, status: "failed", reason: "suojattu PDF" },
+          ],
+        }}
+      />,
+    );
+    expect(isPdf(withAttachments.bytes)).toBe(true);
   });
 });
 

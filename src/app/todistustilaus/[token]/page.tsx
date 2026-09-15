@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { formatEur } from "@/lib/format";
 import { resolveAccessLink } from "@/lib/security/access-links";
 import { submitCertificateOrder } from "./actions";
+import { PurposeFields } from "@/components/certificates/PurposeFields";
 
 export const metadata = { title: "Tilaa isännöitsijäntodistus", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -87,6 +88,7 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
                   ))}
                 </Select>
               </Field>
+              <PurposeFields />
               <Field label="Nimi" htmlFor="orderer_name">
                 <Input id="orderer_name" name="orderer_name" required autoComplete="name" />
               </Field>

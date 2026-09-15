@@ -27,6 +27,8 @@ const orderSchema = z.object({
   orderer_email: z.string().email("Sähköpostiosoite ei ole kelvollinen.").max(200),
   orderer_phone: z.preprocess(emptyToNull, z.string().max(40).regex(/^[+0-9 ()-]*$/, "Puhelinnumero ei ole kelvollinen.").nullable()),
   express: z.preprocess((v) => v === "on", z.boolean()),
+  purpose: z.preprocess(emptyToNull, z.enum(["bank", "sale", "rental", "other"]).nullable()),
+  purpose_text: z.preprocess(emptyToNull, z.string().max(200).nullable()),
   terms: z.literal("on", { message: "Hyväksy tilausehdot." }),
   // Roskapostiansa: ihminen ei täytä piilokenttää.
   website: z.string().max(0).optional().default(""),
@@ -57,9 +59,11 @@ export async function submitCertificateOrder(formData: FormData) {
     if (!group) return "no_group" as const;
     const price = certificatePrice(data.express);
     const [order] = await tx.query<{ id: string }>(
-      `insert into er_certificate_orders (organization_id, company_id, share_group_id, kind, orderer_name, orderer_email, orderer_phone, express, price_eur, source)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'public_form') returning id`,
-      [link.organizationId, link.subjectId, group.id, data.kind, data.orderer_name, data.orderer_email, data.orderer_phone, data.express, price],
+      `insert into er_certificate_orders (organization_id, company_id, share_group_id, kind, orderer_name, orderer_email, orderer_phone, express, price_eur, source,
+                                          purpose, purpose_text)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'public_form',$10,$11) returning id`,
+      [link.organizationId, link.subjectId, group.id, data.kind, data.orderer_name, data.orderer_email, data.orderer_phone, data.express, price,
+        data.purpose, data.purpose === "other" ? data.purpose_text : null],
     );
     const kindLabel = CERTIFICATE_KIND[data.kind];
     await queueMessage(tx, {

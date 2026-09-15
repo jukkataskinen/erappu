@@ -57,12 +57,17 @@ export async function listOrders(tx: Sql, organizationId: string, opts: { openOn
  */
 export async function generateCertificateForOrder(run: Runner, userId: string, orderId: string): Promise<string | null> {
   const loaded = await run(async (tx) => {
-    const [order] = await tx.query<{ organization_id: string; company_id: string; share_group_id: string; kind: string; status: string }>(
-      "select organization_id, company_id, share_group_id, kind, status from er_certificate_orders where id = $1",
+    const [order] = await tx.query<{
+      organization_id: string; company_id: string; share_group_id: string; kind: string; status: string; purpose: string | null; purpose_text: string | null;
+      orderer_name: string; with_attachments: boolean;
+    }>(
+      "select organization_id, company_id, share_group_id, kind, status, purpose, purpose_text, orderer_name, with_attachments from er_certificate_orders where id = $1",
       [orderId],
     );
     if (!order || order.status === "cancelled") return null;
-    const data = await loadManagerCertificateData(tx, order.share_group_id);
+    const data = await loadManagerCertificateData(tx, order.share_group_id, {
+      order: { purpose: order.purpose, purposeText: order.purpose_text, ordererName: order.orderer_name, withAttachments: false },
+    });
     return data ? { order, data } : null;
   });
   if (!loaded) return null;

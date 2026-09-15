@@ -12,6 +12,7 @@ import { createStaffCertificateAction, generateCertificateAction, markDeliveredA
 import { OrderLinkControls } from "./OrderLinkPanel";
 import { latestKeyDocuments } from "@/lib/documents/key-documents";
 import { KeyDocumentLinks } from "@/components/KeyDocuments";
+import { PurposeFields } from "@/components/certificates/PurposeFields";
 
 /**
  * Isännöitsijäntodistukset koko organisaatiolle tai yhdelle yhtiölle
@@ -207,6 +208,7 @@ export async function CertificatesView({
                     ))}
                   </Select>
                 </Field>
+                <PurposeFields />
                 <Field label="Tilaaja" htmlFor="orderer_name" hint="Tyhjä = sinä">
                   <Input id="orderer_name" name="orderer_name" />
                 </Field>

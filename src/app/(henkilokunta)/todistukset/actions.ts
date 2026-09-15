@@ -66,6 +66,8 @@ const staffOrderSchema = z.object({
   orderer_email: z.preprocess(emptyToNull, z.string().email("Sähköpostiosoite ei ole kelvollinen.").max(200).nullable()),
   orderer_phone: z.preprocess(emptyToNull, z.string().max(40).nullable()),
   express: z.preprocess((v) => v === "on", z.boolean()),
+  purpose: z.preprocess(emptyToNull, z.enum(["bank", "sale", "rental", "other"]).nullable()),
+  purpose_text: z.preprocess(emptyToNull, z.string().max(200).nullable()),
 });
 
 /** "Uusi todistus" suoraan huoneistosta: tilausrivi ja PDF heti. */
@@ -73,14 +75,16 @@ export async function createStaffCertificateAction(formData: FormData) {
   const back = safeBack(formData.get("back"));
   const ctx = await writer(back);
   const d = parseForm(staffOrderSchema, formData, back);
+  if (d.purpose === "other" && !d.purpose_text) fail(back, "Kerro todistuksen käyttötarkoitus.");
   const orderId = await ctx.run(async (tx) => {
     const [g] = await tx.query<{ organization_id: string; company_id: string }>("select organization_id, company_id from er_share_groups where id = $1", [d.share_group_id]);
     if (!g) return null;
     const [row] = await tx.query<{ id: string }>(
-      `insert into er_certificate_orders (organization_id, company_id, share_group_id, kind, orderer_name, orderer_email, orderer_phone, express, price_eur, source, created_by)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'staff',$10) returning id`,
+      `insert into er_certificate_orders (organization_id, company_id, share_group_id, kind, orderer_name, orderer_email, orderer_phone, express, price_eur, source, created_by,
+                                          purpose, purpose_text)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'staff',$10,$11,$12) returning id`,
       [g.organization_id, g.company_id, d.share_group_id, d.kind, d.orderer_name ?? (ctx.user.fullName || "Isännöinti"), d.orderer_email ?? ctx.user.email,
-        d.orderer_phone, d.express, certificatePrice(d.express), ctx.user.id],
+        d.orderer_phone, d.express, certificatePrice(d.express), ctx.user.id, d.purpose, d.purpose === "other" ? d.purpose_text : null],
     );
     await audit(tx, { organizationId: g.organization_id, userId: ctx.user.id, action: "create", entity: "certificate_order", entityId: row.id });
     return row.id;
