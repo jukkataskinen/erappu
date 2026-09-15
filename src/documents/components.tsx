@@ -123,7 +123,9 @@ export function Title({ children, lead }: { children: ReactNode; lead?: string |
 
 export function Panel({ children, style, wrap }: { children: ReactNode; style?: Style; wrap?: boolean }) {
   return (
-    <View wrap={wrap} style={[s.panel, style ?? {}]}>
+    // `wrap={undefined}` estää React-PDF:ssä sivunvaihdon paneelin sisällä
+    // (paneeli siirtyi kokonaan seuraavalle sivulle ja jätti otsikon yksin).
+    <View wrap={wrap ?? true} style={[s.panel, style ?? {}]}>
       {children}
     </View>
   );

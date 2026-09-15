@@ -27,10 +27,12 @@ export function AttachmentSeparators({ data }: { data: AttachmentSeparatorData }
           <DocumentHeader right={`${data.companyName} · huoneisto ${data.unitLabel}`} />
           <View style={{ marginTop: 180, alignItems: "center" }}>
             <Text style={{ fontSize: typeScale.label, color: colors.inkFaint, letterSpacing: 1 }}>ISÄNNÖITSIJÄNTODISTUKSEN LIITE</Text>
-            <Text style={{ marginTop: 10, fontSize: typeScale.title, fontWeight: weight.bold }}>
+            <Text style={{ marginTop: 10, fontSize: typeScale.title, fontWeight: weight.bold, lineHeight: 1.3, textAlign: "center" }}>
               Liite {item.number}: {item.label}
             </Text>
-            {item.title && item.title !== item.label ? <Text style={{ marginTop: 8, fontSize: typeScale.subtitle }}>{item.title}</Text> : null}
+            {item.title && item.title !== item.label ? (
+              <Text style={{ marginTop: 10, fontSize: typeScale.subtitle, lineHeight: 1.4, textAlign: "center" }}>{item.title}</Text>
+            ) : null}
             <Muted style={{ marginTop: 8 }}>
               {[item.dateText ? `Päiväys / vuosi ${item.dateText}` : null, item.pages ? `${item.pages} sivua` : null].filter(Boolean).join(" · ")}
             </Muted>
