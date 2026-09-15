@@ -154,6 +154,8 @@ export function osoitteetPuuttuvat(nyt: Partial<SovellusOsoitteet>, halutut: Sov
 export type Asetukset = Record<string, unknown>;
 
 const SALASANATASOT = ["none", "low", "fair", "good", "excellent"] as const;
+/** Uuden `password_options`-rakenteen vähimmäispituus; pidempää ei lyhennetä. */
+const MIN_SALASANAN_PITUUS = 12;
 
 /**
  * Henkilökunnan tietokantayhteys: salasanapolitiikka vähintään "good",
@@ -170,10 +172,28 @@ export function tietokantayhteydenAsetukset(nyt: Asetukset): { options: Asetukse
   const options: Asetukset = { ...nyt };
   const muutokset: string[] = [];
 
+  // Uudet tenantit käyttävät `password_options`-rakennetta, eikä sitä saa
+  // yhdistää vanhaan `passwordPolicy`-kenttään (Auth0: "Cannot set both").
+  const uusi = nyt.password_options && typeof nyt.password_options === "object" ? (nyt.password_options as Asetukset) : null;
+  if (uusi) {
+    const complexity = { ...((uusi.complexity as Asetukset | undefined) ?? {}) };
+    const dictionary = { ...((uusi.dictionary as Asetukset | undefined) ?? {}) };
+    const next: Asetukset = { ...uusi };
+    if (Number(complexity.min_length ?? 0) < MIN_SALASANAN_PITUUS) {
+      muutokset.push(`salasanan vähimmäispituus ${String(complexity.min_length ?? "(ei asetettu)")} → ${MIN_SALASANAN_PITUUS}`);
+      complexity.min_length = MIN_SALASANAN_PITUUS;
+      next.complexity = complexity;
+    }
+    // Sanakirjaesto (`dictionary`) vaatii maksullisen tason
+    // ("password-advanced-options"), joten sitä ei aseteta ilmaistasolla.
+    void dictionary;
+    options.password_options = next;
+  } else {
   const taso = SALASANATASOT.indexOf(String(nyt.passwordPolicy ?? "none") as (typeof SALASANATASOT)[number]);
   if (taso < SALASANATASOT.indexOf("good")) {
     options.passwordPolicy = "good";
     muutokset.push(`salasanapolitiikka ${String(nyt.passwordPolicy ?? "(ei asetettu)")} → good`);
+  }
   }
   if (nyt.brute_force_protection !== true) {
     options.brute_force_protection = true;

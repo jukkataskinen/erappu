@@ -100,6 +100,19 @@ describe("tietokantayhteys (henkilökunta)", () => {
     expect(muutokset).toEqual([]);
   });
 
+  it("uudessa password_options-rakenteessa ei kirjoiteta vanhaa passwordPolicy-kenttää", () => {
+    const nyt = {
+      password_options: { complexity: { min_length: 15, character_types: [] }, dictionary: { active: false, default: "en_100k" }, history: { size: 3 } },
+      brute_force_protection: true,
+    };
+    const { options, muutokset } = tietokantayhteydenAsetukset(nyt);
+    expect(options.passwordPolicy).toBeUndefined();
+    expect(options.password_options).toMatchObject({ complexity: { min_length: 15 }, dictionary: { active: false, default: "en_100k" }, history: { size: 3 } });
+    expect(muutokset).toEqual(["rekisteröityminen pois"]);
+    const lyhyt = tietokantayhteydenAsetukset({ password_options: { complexity: { min_length: 8 } } });
+    expect((lyhyt.options.password_options as { complexity: { min_length: number } }).complexity.min_length).toBe(12);
+  });
+
   it("tuntematon tai puuttuva politiikka tulkitaan heikoksi", () => {
     expect(tietokantayhteydenAsetukset({}).options.passwordPolicy).toBe("good");
     expect(tietokantayhteydenAsetukset({ passwordPolicy: "outo" }).options.passwordPolicy).toBe("good");

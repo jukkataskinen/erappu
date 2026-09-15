@@ -143,11 +143,19 @@ let token = "";
 let domain = "";
 
 async function kutsu<T>(metodi: "GET" | "POST" | "PATCH" | "PUT", polku: string, runko?: unknown): Promise<T> {
-  const vastaus = await fetch(`https://${domain}/api/v2${polku}`, {
-    method: metodi,
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-    body: runko === undefined ? undefined : JSON.stringify(runko),
-  });
+  let vastaus: Response;
+  // Ilmaistason rajoitus (429 "Global limit"): odotetaan ja yritetään uudelleen.
+  for (let yritys = 1; ; yritys++) {
+    vastaus = await fetch(`https://${domain}/api/v2${polku}`, {
+      method: metodi,
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: runko === undefined ? undefined : JSON.stringify(runko),
+    });
+    if (vastaus.status !== 429 || yritys >= 6) break;
+    const odota = Math.max(Number(vastaus.headers.get("retry-after") ?? 0) * 1000, 2000 * yritys);
+    await vastaus.text();
+    await new Promise((r) => setTimeout(r, odota));
+  }
   const teksti = await vastaus.text();
   if (!vastaus.ok) {
     // Auth0:n virheviesti sellaisenaan: se kertoo täsmälleen, mikä kenttä tai oikeus puuttuu.
