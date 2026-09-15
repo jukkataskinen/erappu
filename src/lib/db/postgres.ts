@@ -1,5 +1,6 @@
 import pg from "pg";
 import type { Database, Sql } from "./types";
+import { stripSslMode } from "../config/deploy-env";
 
 /**
  * Tuotantokanta (Supabase). Yhteys Supabasen session pooleriin käyttäjällä
@@ -7,7 +8,7 @@ import type { Database, Sql } from "./types";
  * PGlitessä, joten RLS-säännöt käyttäytyvät samoin kuin testeissä.
  */
 export function createPostgresDatabase(connectionString: string): Database {
-  const pool = new pg.Pool({ connectionString, max: 5, ssl: { rejectUnauthorized: false } });
+  const pool = new pg.Pool({ connectionString: stripSslMode(connectionString), max: 5, ssl: { rejectUnauthorized: false } });
 
   async function run<T>(claims: Record<string, unknown>, role: string, fn: (tx: Sql) => Promise<T>) {
     const client = await pool.connect();

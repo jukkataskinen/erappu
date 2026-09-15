@@ -1,6 +1,7 @@
 import "server-only";
 import path from "node:path";
 import type { Database } from "./types";
+import { databaseUrl, dbDriver } from "@/lib/config/deploy-env";
 
 export type { Database, Sql } from "./types";
 
@@ -13,10 +14,11 @@ const globalForDb = globalThis as unknown as { __erappuDb?: Promise<Database> };
 export function getDb(): Promise<Database> {
   if (!globalForDb.__erappuDb) {
     globalForDb.__erappuDb = (async () => {
-      if (process.env.DB_DRIVER === "postgres") {
+      if (dbDriver() === "postgres") {
         const { createPostgresDatabase } = await import("./postgres");
-        if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL puuttuu");
-        return createPostgresDatabase(process.env.DATABASE_URL);
+        const url = databaseUrl();
+        if (!url) throw new Error("DATABASE_URL tai POSTGRES_URL puuttuu");
+        return createPostgresDatabase(url);
       }
       const { createPgliteDatabase } = await import("./pglite");
       const { migrateLocal } = await import("./migrate");

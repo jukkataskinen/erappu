@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "tsx scripts/db/migrate-remote.mts --vercel && next build",
+    "db:migrate:remote": "tsx scripts/db/migrate-remote.mts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

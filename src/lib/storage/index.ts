@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { sha256Hex } from "@/lib/security/crypto";
+import { supabaseHeaders, supabaseSecretKey } from "@/lib/config/deploy-env";
 
 /**
  * Tiedostovarasto. Paikallisesti `.data/files`, tuotannossa Supabase Storage
@@ -15,6 +16,15 @@ const LOCAL_ROOT = path.join(process.cwd(), ".data", "files");
 const BUCKET = "documents";
 
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+function storageRequest(storagePath: string, init: { method?: string; headers?: Record<string, string>; body?: BodyInit } = {}) {
+  const key = supabaseSecretKey();
+  if (!process.env.SUPABASE_URL || !key) throw new Error("SUPABASE_URL tai Supabasen salainen avain puuttuu");
+  return fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURI(storagePath)}`, {
+    ...init,
+    headers: { ...supabaseHeaders(key), ...init.headers },
+  });
+}
 
 const ALLOWED: Record<string, string[]> = {
   "application/pdf": ["%PDF"],
@@ -71,9 +81,9 @@ export async function storeFile(opts: { organizationId: string; companyId?: stri
   const storagePath = `${opts.organizationId}/${opts.companyId ?? "_"}/${randomUUID()}/${storageKeyName(fileName)}`;
 
   if (process.env.STORAGE_DRIVER === "supabase") {
-    const res = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURI(storagePath)}`, {
+    const res = await storageRequest(storagePath, {
       method: "POST",
-      headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": mime, "x-upsert": "false" },
+      headers: { "Content-Type": mime, "x-upsert": "false" },
       body: new Uint8Array(opts.bytes),
     });
     if (!res.ok) throw new Error("Tiedoston tallennus epäonnistui.");
@@ -89,9 +99,7 @@ export async function storeFile(opts: { organizationId: string; companyId?: stri
 export async function readStoredFile(storagePath: string): Promise<Buffer> {
   if (storagePath.includes("..")) throw new Error("Virheellinen polku.");
   if (process.env.STORAGE_DRIVER === "supabase") {
-    const res = await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURI(storagePath)}`, {
-      headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
-    });
+    const res = await storageRequest(storagePath);
     if (!res.ok) throw new Error("Tiedostoa ei löytynyt.");
     return Buffer.from(await res.arrayBuffer());
   }
@@ -101,10 +109,7 @@ export async function readStoredFile(storagePath: string): Promise<Buffer> {
 export async function deleteStoredFile(storagePath: string): Promise<void> {
   if (storagePath.includes("..")) return;
   if (process.env.STORAGE_DRIVER === "supabase") {
-    await fetch(`${process.env.SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURI(storagePath)}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
-    });
+    await storageRequest(storagePath, { method: "DELETE" });
     return;
   }
   await unlink(path.join(LOCAL_ROOT, storagePath)).catch(() => undefined);

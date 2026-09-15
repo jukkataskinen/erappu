@@ -1,4 +1,5 @@
 {
+  "framework": "nextjs",
   "regions": ["arn1"],
   "crons": [
     { "path": "/api/cron/viestit", "schedule": "5,15,25,35,45,55 * * * *" },
