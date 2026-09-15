@@ -19,8 +19,12 @@ export default async function OwnersPage({ params }: { params: Promise<{ id: str
   const company = await loadCompany(ctx, id);
   const owners = await ctx.run((tx) => listOwners(tx, id));
 
+  // Huoneistojärjestys (A 2 ennen A 10), saman huoneiston omistajat nimen mukaan.
+  const unitOrder = new Intl.Collator("fi", { numeric: true, sensitivity: "base" });
+  const sorted = [...owners].sort((a, b) => unitOrder.compare(a.unit_label, b.unit_label) || unitOrder.compare(a.display_name, b.display_name));
+
   const byParty = new Map<string, { name: string; email: string | null; phone: string | null; address: string; units: string[]; shares: number; portal: boolean; sources: Set<string> }>();
-  for (const o of owners) {
+  for (const o of sorted) {
     const entry = byParty.get(o.party_id) ?? {
       name: o.display_name,
       email: o.email,

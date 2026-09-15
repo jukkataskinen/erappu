@@ -6,6 +6,7 @@ import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatFraction } from "@/lib/format";
 import { listBuildings } from "@/lib/registry/queries";
 import { SOURCE } from "@/lib/registry/labels";
+import { CATEGORY_LABEL, VISIBILITY_LABEL, VISIBILITY_TONE, type DocumentCategory } from "@/lib/documents/labels";
 import type { ShareRange } from "@/lib/registry/share-ranges";
 import { InvitePartyButton } from "@/components/invitations/InvitePartyButton";
 import { ShareGroupForm } from "../ShareGroupForm";
@@ -60,10 +61,15 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
       [gid],
     );
     const buildings = await listBuildings(tx, id);
-    return { group, owners, residents, buildings };
+    const documents = await tx.query<{ id: string; category: string; title: string; file_name: string; mime_type: string; visibility: string }>(
+      `select id, category, title, file_name, mime_type, visibility from er_documents
+        where share_group_id = $1 order by case when category = 'floor_plan' then 0 else 1 end, created_at desc`,
+      [gid],
+    );
+    return { group, owners, residents, buildings, documents };
   });
   if (!data) notFound();
-  const { group, owners, residents, buildings } = data;
+  const { group, owners, residents, buildings, documents } = data;
   const canWrite = ctx.can("owner", "manager", "assistant");
   const canInvite = ctx.can("owner", "manager");
   const shareSum = owners.reduce((s, o) => s + (o.share_numerator ?? 1) / (o.share_denominator ?? 1), 0);
@@ -150,6 +156,35 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                       </form>
                     ) : null}
                   </div>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          <Panel>
+            <SectionTitle>Pohjapiirustus ja liitteet</SectionTitle>
+            {documents.length === 0 ? <p className="text-sm text-ink/65">Huoneistolle ei ole tallennettu liitteitä.</p> : null}
+            <ul className="grid gap-4">
+              {documents.map((d) => (
+                <li key={d.id} className="grid gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <a href={`/api/dokumentit/${d.id}`} target="_blank" rel="noopener" className="font-semibold hover:text-sky">
+                      {d.title}
+                    </a>
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-ink/55">{CATEGORY_LABEL[d.category as DocumentCategory] ?? d.category}</span>
+                      <Badge tone={VISIBILITY_TONE[d.visibility] ?? "neutral"}>{VISIBILITY_LABEL[d.visibility] ?? d.visibility}</Badge>
+                      <a href={`/api/dokumentit/${d.id}?lataa=1`} className="text-sm text-sky">
+                        Lataa
+                      </a>
+                    </span>
+                  </div>
+                  {d.mime_type.startsWith("image/") ? (
+                    <a href={`/api/dokumentit/${d.id}`} target="_blank" rel="noopener" className="block overflow-hidden rounded-xl border border-line bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- suojattu reitti, ei next/image-optimointia */}
+                      <img src={`/api/dokumentit/${d.id}`} alt={d.title} className="h-auto w-full" loading="lazy" />
+                    </a>
+                  ) : null}
                 </li>
               ))}
             </ul>
