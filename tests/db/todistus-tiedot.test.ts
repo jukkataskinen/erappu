@@ -43,6 +43,20 @@ describe("kiinnitykset (er_property_mortgages)", () => {
   });
 });
 
+describe("vakuutukset (er_company_insurances)", () => {
+  it("isännöitsijä lisää, kirjanpitäjä ja hallitus lukevat, toinen organisaatio ei näe", async () => {
+    await db.asUser(f.managerA.sub, (tx) =>
+      tx.query("insert into er_company_insurances (organization_id, company_id, insurance_type, insurer) values ($1,$2,'Kiinteistövakuutus','Esimerkkivakuutus')", [f.orgA, f.companyA]),
+    );
+    expect(await db.asUser(f.accountantA.sub, (tx) => tx.query("select id from er_company_insurances"))).toHaveLength(1);
+    expect(await db.asUser(board.sub, (tx) => tx.query("select id from er_company_insurances"))).toHaveLength(1);
+    expect(await db.asUser(f.managerB.sub, (tx) => tx.query("select id from er_company_insurances"))).toHaveLength(0);
+    await expect(
+      db.asUser(f.accountantA.sub, (tx) => tx.query("insert into er_company_insurances (organization_id, company_id, insurance_type) values ($1,$2,'Muu')", [f.orgA, f.companyA])),
+    ).rejects.toThrow();
+  });
+});
+
 describe("todistuksen lisäsarakkeet", () => {
   it("huoneiston hallintatiedot ja rajoitteet tallentuvat, puolisoiden koti rajataan arvojoukkoon", async () => {
     await db.asUser(f.managerA.sub, (tx) =>

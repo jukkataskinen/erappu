@@ -11,6 +11,10 @@ export interface UnitCertificateValues {
   widow_right: boolean | null;
   spouses_common_home: string | null;
   other_restrictions: string | null;
+  votes: number | null;
+  area_verified: boolean | null;
+  staircase: string | null;
+  street_address: string | null;
 }
 
 /** Huoneiston isännöitsijäntodistuksen tiedot: hallinta, rajoitukset ja lisätiedot (VNa 365/2010 4 § 6, 7 ja 13 kohta). */
@@ -24,6 +28,24 @@ export function UnitCertificateForm({ companyId, groupId, values, readOnly }: { 
         <input type="hidden" name="company_id" value={companyId} />
         <input type="hidden" name="share_group_id" value={groupId} />
         <fieldset disabled={readOnly} className="grid gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Huoneiston osoite" htmlFor="unit_street_address" hint="Jos eri kuin yhtiön osoite">
+              <Input id="unit_street_address" name="street_address" defaultValue={v.street_address ?? ""} />
+            </Field>
+            <Field label="Porras" htmlFor="staircase">
+              <Input id="staircase" name="staircase" defaultValue={v.staircase ?? ""} />
+            </Field>
+            <Field label="Äänimäärä" htmlFor="votes" hint="Yhtiöjärjestyksen mukaan">
+              <Input id="votes" name="votes" inputMode="numeric" defaultValue={v.votes ?? ""} />
+            </Field>
+            <Field label="Pinta-ala tarkistusmitattu" htmlFor="area_verified" hint="SFS 5139 mukaan">
+              <Select id="area_verified" name="area_verified" defaultValue={tri(v.area_verified)}>
+                <option value="">Ei tiedossa</option>
+                <option value="yes">Kyllä</option>
+                <option value="no">Ei</option>
+              </Select>
+            </Field>
+          </div>
           <div className="grid gap-3 rounded-xl border border-line p-3">
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input type="checkbox" name="company_possession" defaultChecked={v.company_possession} className="size-4" />

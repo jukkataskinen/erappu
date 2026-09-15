@@ -67,6 +67,17 @@ export interface Company {
   maintenance_needs_report_on: string | Date | null;
   maintenance_plan_on: string | Date | null;
   maintenance_plan_summary: string | null;
+  htj_register_transferred_on: string | Date | null;
+  vat_registered: boolean | null;
+  vat_note: string | null;
+  charges_decided_by: string | null;
+  articles_maintenance_clause: string | null;
+  share_issue_authorization: string | null;
+  articles_lawsuit: string | null;
+  parking_hall_spaces: number | null;
+  parking_other_spaces: number | null;
+  parking_company_spaces: number | null;
+  parking_allocation_rules: string | null;
 }
 
 /** Kevyt nimilista sivupalkille (myös päättyneet, jotta vanhan yhtiön sivulla näkyy nimi). */
@@ -193,15 +204,40 @@ export interface BuildingRow {
   energy_class: string | null;
   energy_certificate_year: number | null;
   common_spaces: string[];
+  staircases: number | null;
+  elevators: number;
+  antenna: string | null;
+  antenna_provider: string | null;
+  broadband: string | null;
+  broadband_provider: string | null;
+  heat_distribution: string | null;
+  cooling: string | null;
 }
 
 export async function listBuildings(tx: Sql, companyId: string): Promise<BuildingRow[]> {
   return tx.query<BuildingRow>("select * from er_buildings where company_id = $1 order by label nulls first", [companyId]);
 }
 
-export async function listProperties(tx: Sql, companyId: string) {
-  return tx.query<{ id: string; property_code: string; tenure: string | null; area_m2: string | null; parking_spaces_planned: number | null; parking_spaces_built: number | null; unused_building_rights_m2: string | null }>(
-    "select * from er_properties where company_id = $1 order by property_code",
+export interface PropertyRow {
+  id: string;
+  property_code: string;
+  tenure: string | null;
+  area_m2: string | null;
+  lessor: string | null;
+  lease_ends_on: string | null;
+  annual_rent_eur: string | null;
+  rent_review_basis: string | null;
+  building_rights_m2: string | null;
+  unused_building_rights_m2: string | null;
+  parking_spaces_planned: number | null;
+  parking_spaces_built: number | null;
+}
+
+export async function listProperties(tx: Sql, companyId: string): Promise<PropertyRow[]> {
+  return tx.query<PropertyRow>(
+    `select id, property_code, tenure, area_m2::text, lessor, lease_ends_on::text, annual_rent_eur::text, rent_review_basis,
+            building_rights_m2::text, unused_building_rights_m2::text, parking_spaces_planned, parking_spaces_built
+       from er_properties where company_id = $1 order by property_code`,
     [companyId],
   );
 }

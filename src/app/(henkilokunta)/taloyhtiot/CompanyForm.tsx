@@ -60,22 +60,72 @@ export function CompanyForm({
           <Field label="Rekisteröintipäivä" htmlFor="registered_on" hint="Kaupparekisteriin merkitsemisen päivä (isännöitsijäntodistus)">
             <Input id="registered_on" name="registered_on" type="date" defaultValue={toIsoDate(c?.registered_on)} />
           </Field>
+          <Field label="Osakeluettelo siirretty HTJ:hin" htmlFor="htj_register_transferred_on">
+            <Input id="htj_register_transferred_on" name="htj_register_transferred_on" type="date" defaultValue={toIsoDate(c?.htj_register_transferred_on)} />
+          </Field>
         </div>
       </Panel>
 
       <Panel>
         <SectionTitle>Isännöitsijäntodistuksen lisätiedot</SectionTitle>
-        <Field
-          label="Yhtiön lisätiedot"
-          htmlFor="certificate_notes"
-          hint="Tulostuu jokaiseen yhtiön todistukseen, esim. vireillä oleva yhtiöjärjestyksen muutos tai muu yhtiön taloudelliseen tilaan olennaisesti vaikuttava seikka."
-        >
-          <Textarea id="certificate_notes" name="certificate_notes" rows={4} maxLength={4000} defaultValue={c?.certificate_notes ?? ""} />
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Arvonlisäverovelvollinen" htmlFor="vat_registered">
+            <Select id="vat_registered" name="vat_registered" defaultValue={c?.vat_registered === true ? "yes" : c?.vat_registered === false ? "no" : ""}>
+              <option value="">Ei kirjattu</option>
+              <option value="yes">Kyllä</option>
+              <option value="no">Ei</option>
+            </Select>
+          </Field>
+          <Field label="ALV-rekisteröinnin tarkennus" htmlFor="vat_note" hint="esim. liiketilat 1.1.2020 alkaen">
+            <Input id="vat_note" name="vat_note" defaultValue={c?.vat_note ?? ""} />
+          </Field>
+          <Field label="Vastikkeen suuruuden ja maksutavan määrää" htmlFor="charges_decided_by" hint="Yhtiöjärjestyksen mukaan">
+            <Input id="charges_decided_by" name="charges_decided_by" defaultValue={c?.charges_decided_by ?? ""} placeholder="Yhtiökokous" />
+          </Field>
+          <Field label="Kunnossapitovastuu tai muutostyöt yhtiöjärjestyksessä" htmlFor="articles_maintenance_clause" hint="Tyhjä = ei laista poikkeavia määräyksiä">
+            <Input id="articles_maintenance_clause" name="articles_maintenance_clause" defaultValue={c?.articles_maintenance_clause ?? ""} />
+          </Field>
+          <Field label="Osakeanti- tai optiovaltuutus" htmlFor="share_issue_authorization">
+            <Input id="share_issue_authorization" name="share_issue_authorization" defaultValue={c?.share_issue_authorization ?? ""} />
+          </Field>
+          <Field label="Kanne yhtiöjärjestyksen muuttamiseksi (AOYL 6:36 §)" htmlFor="articles_lawsuit">
+            <Input id="articles_lawsuit" name="articles_lawsuit" defaultValue={c?.articles_lawsuit ?? ""} />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field
+            label="Yhtiön lisätiedot"
+            htmlFor="certificate_notes"
+            hint="Tulostuu jokaiseen yhtiön todistukseen, esim. vireillä oleva yhtiöjärjestyksen muutos tai muu yhtiön taloudelliseen tilaan olennaisesti vaikuttava seikka."
+          >
+            <Textarea id="certificate_notes" name="certificate_notes" rows={4} maxLength={4000} defaultValue={c?.certificate_notes ?? ""} />
+          </Field>
+        </div>
       </Panel>
 
       <Panel>
-        <SectionTitle>Isännöinti ja vakuutus</SectionTitle>
+        <SectionTitle>Autopaikat</SectionTitle>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Hallipaikat" htmlFor="parking_hall_spaces">
+            <Input id="parking_hall_spaces" name="parking_hall_spaces" inputMode="numeric" defaultValue={c?.parking_hall_spaces ?? ""} />
+          </Field>
+          <Field label="Muut paikat" htmlFor="parking_other_spaces" hint="Piha-, katos- ja lämpöpaikat">
+            <Input id="parking_other_spaces" name="parking_other_spaces" inputMode="numeric" defaultValue={c?.parking_other_spaces ?? ""} />
+          </Field>
+          <Field label="Yhtiön hallinnassa" htmlFor="parking_company_spaces">
+            <Input id="parking_company_spaces" name="parking_company_spaces" inputMode="numeric" defaultValue={c?.parking_company_spaces ?? ""} />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field label="Jakosäännöt" htmlFor="parking_allocation_rules" hint="esim. hallituksen päätöksellä vuokrattavat paikat, jonotus">
+            <Textarea id="parking_allocation_rules" name="parking_allocation_rules" rows={2} maxLength={2000} defaultValue={c?.parking_allocation_rules ?? ""} />
+          </Field>
+        </div>
+      </Panel>
+
+      <Panel>
+        <SectionTitle>Isännöinti</SectionTitle>
+        <p className="mb-3 text-sm text-ink/60">Vakuutukset kirjataan luettelona yhtiön perustiedoissa.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Vastuuisännöitsijä" htmlFor="manager_user_id">
             <Select id="manager_user_id" name="manager_user_id" defaultValue={c?.manager_user_id ?? ""}>
@@ -89,12 +139,6 @@ export function CompanyForm({
           </Field>
           <Field label="Isännöinti alkoi" htmlFor="management_started_on">
             <Input id="management_started_on" name="management_started_on" type="date" defaultValue={toIsoDate(c?.management_started_on)} />
-          </Field>
-          <Field label="Vakuutusyhtiö" htmlFor="insurance_company">
-            <Input id="insurance_company" name="insurance_company" defaultValue={c?.insurance_company ?? ""} />
-          </Field>
-          <Field label="Vakuutustyyppi" htmlFor="insurance_type">
-            <Input id="insurance_type" name="insurance_type" defaultValue={c?.insurance_type ?? ""} />
           </Field>
           <Field label="Kiinteistönhoito" htmlFor="property_maintenance">
             <Select id="property_maintenance" name="property_maintenance" defaultValue={c?.property_maintenance ?? ""}>

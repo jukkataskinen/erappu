@@ -37,13 +37,36 @@ const companySchema = z.object({
   manager_user_id: z.preprocess(emptyToNull, uuid.nullable()),
   management_started_on: optDate,
   same_charge_basis: z.preprocess((v) => v === "on", z.boolean()),
-  insurance_company: optText,
-  insurance_type: optText,
   property_maintenance: optText,
   commercial_register_note: optText,
   registered_on: optDate,
   certificate_notes: z.preprocess(emptyToNull, z.string().max(4000).nullable()),
+  htj_register_transferred_on: optDate,
+  vat_registered: z.preprocess((v) => (v === "yes" ? true : v === "no" ? false : null), z.boolean().nullable()),
+  vat_note: optText,
+  charges_decided_by: optText,
+  articles_maintenance_clause: optText,
+  share_issue_authorization: optText,
+  articles_lawsuit: optText,
+  parking_hall_spaces: optInt,
+  parking_other_spaces: optInt,
+  parking_company_spaces: optInt,
+  parking_allocation_rules: z.preprocess(emptyToNull, z.string().max(2000).nullable()),
 });
+
+type CompanyInput = z.infer<typeof companySchema>;
+
+/**
+ * Lomakkeen sarakkeet järjestyksessä. Vakuutussarakkeita (insurance_company,
+ * insurance_type) ei enää kirjoiteta: vakuutukset ovat luettelona
+ * er_company_insurances-taulussa (0091), ja vanha arvo jää talteen.
+ */
+const COMPANY_COLUMNS = [
+  "name", "business_id", "company_form", "street_address", "postal_code", "city", "articles_date", "fiscal_year_start", "total_shares",
+  "manager_user_id", "management_started_on", "same_charge_basis", "property_maintenance", "commercial_register_note", "registered_on",
+  "certificate_notes", "htj_register_transferred_on", "vat_registered", "vat_note", "charges_decided_by", "articles_maintenance_clause",
+  "share_issue_authorization", "articles_lawsuit", "parking_hall_spaces", "parking_other_spaces", "parking_company_spaces", "parking_allocation_rules",
+] as const satisfies readonly (keyof CompanyInput)[];
 
 function redemptionFrom(formData: FormData) {
   return Object.fromEntries(REDEMPTION_CLAUSE.map((r) => [r.key, formData.get(`rc_${r.key}`) === "on"]));
@@ -55,15 +78,11 @@ export async function createCompany(formData: FormData) {
   let id: string;
   try {
     id = await ctx.run(async (tx) => {
+      const values = COMPANY_COLUMNS.map((c) => (c === "manager_user_id" ? data.manager_user_id ?? ctx.user.id : data[c]));
       const [row] = await tx.query<{ id: string }>(
-        `insert into er_housing_companies (organization_id, name, business_id, company_form, street_address, postal_code, city,
-            articles_date, fiscal_year_start, total_shares, manager_user_id, management_started_on, same_charge_basis,
-            insurance_company, insurance_type, property_maintenance, commercial_register_note, redemption_clause, registered_on, certificate_notes)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) returning id`,
-        [ctx.org.organizationId, data.name, data.business_id, data.company_form, data.street_address, data.postal_code, data.city,
-          data.articles_date, data.fiscal_year_start, data.total_shares, data.manager_user_id ?? ctx.user.id, data.management_started_on,
-          data.same_charge_basis, data.insurance_company, data.insurance_type, data.property_maintenance, data.commercial_register_note,
-          JSON.stringify(redemptionFrom(formData)), data.registered_on, data.certificate_notes],
+        `insert into er_housing_companies (organization_id, ${COMPANY_COLUMNS.join(", ")}, redemption_clause)
+         values (${[ctx.org.organizationId, ...values, null].map((_, i) => `$${i + 1}`).join(",")}) returning id`,
+        [ctx.org.organizationId, ...values, JSON.stringify(redemptionFrom(formData))],
       );
       await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "create", entity: "housing_company", entityId: row.id });
       return row.id;
@@ -83,16 +102,10 @@ export async function updateCompany(formData: FormData) {
   const data = parseForm(companySchema, formData, back);
   try {
     const rows = await ctx.run(async (tx) => {
+      const sets = COMPANY_COLUMNS.map((c, i) => `${c}=$${i + 2}`).join(", ");
       const r = await tx.query(
-        `update er_housing_companies set name=$2, business_id=$3, company_form=$4, street_address=$5, postal_code=$6, city=$7,
-            articles_date=$8, fiscal_year_start=$9, total_shares=$10, manager_user_id=$11, management_started_on=$12,
-            same_charge_basis=$13, insurance_company=$14, insurance_type=$15, property_maintenance=$16,
-            commercial_register_note=$17, redemption_clause=$18, registered_on=$19, certificate_notes=$20
-          where id=$1 returning id`,
-        [id, data.name, data.business_id, data.company_form, data.street_address, data.postal_code, data.city, data.articles_date,
-          data.fiscal_year_start, data.total_shares, data.manager_user_id, data.management_started_on, data.same_charge_basis,
-          data.insurance_company, data.insurance_type, data.property_maintenance, data.commercial_register_note, JSON.stringify(redemptionFrom(formData)),
-          data.registered_on, data.certificate_notes],
+        `update er_housing_companies set ${sets}, redemption_clause=$${COMPANY_COLUMNS.length + 2} where id=$1 returning id`,
+        [id, ...COMPANY_COLUMNS.map((c) => data[c]), JSON.stringify(redemptionFrom(formData))],
       );
       if (r.length) await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "update", entity: "housing_company", entityId: id });
       return r;
@@ -168,6 +181,141 @@ export async function saveShareGroup(formData: FormData) {
   redirect(`/taloyhtiot/${companyId}/huoneistot/${id}`);
 }
 
+// ---------------------------------------------------------------------------
+// Vakuutukset (er_company_insurances)
+// ---------------------------------------------------------------------------
+const insuranceSchema = z.object({
+  insurance_type: z.string().min(2, "Anna vakuutuksen tyyppi.").max(200),
+  name: optText,
+  insurer: optText,
+  description: z.preprocess(emptyToNull, z.string().max(2000).nullable()),
+});
+
+export async function addInsurance(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const back = `/taloyhtiot/${companyId}/perustiedot`;
+  const d = parseForm(insuranceSchema, formData, back);
+  await ctx.run(async (tx) => {
+    const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [companyId]);
+    if (!company) fail("/taloyhtiot", "Yhtiötä ei löytynyt.");
+    const [row] = await tx.query<{ id: string }>(
+      "insert into er_company_insurances (organization_id, company_id, insurance_type, name, insurer, description) values ($1,$2,$3,$4,$5,$6) returning id",
+      [company.organization_id, companyId, d.insurance_type, d.name, d.insurer, d.description],
+    );
+    await audit(tx, { organizationId: company.organization_id, userId: ctx.user.id, action: "create", entity: "company_insurance", entityId: row.id });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+export async function deleteInsurance(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const id = uuid.parse(formData.get("id"));
+  const back = `/taloyhtiot/${companyId}/perustiedot`;
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>("delete from er_company_insurances where id = $1 and company_id = $2 returning organization_id", [id, companyId]);
+    if (rows[0]) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "delete", entity: "company_insurance", entityId: id });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+// ---------------------------------------------------------------------------
+// Kiinteistöt (tontti)
+// ---------------------------------------------------------------------------
+const propertySchema = z.object({
+  property_code: z.string().regex(/^\d{1,3}-\d{1,3}-\d{1,4}-\d{1,4}(-[A-Za-z0-9]+)?$/, "Kiinteistötunnus muodossa 179-15-1508-9.").max(40),
+  tenure: z.preprocess(emptyToNull, z.enum(["own", "lease"]).nullable()),
+  area_m2: optNum,
+  lessor: optText,
+  lease_ends_on: optDate,
+  annual_rent_eur: optNum,
+  rent_review_basis: optText,
+  building_rights_m2: optNum,
+  unused_building_rights_m2: optNum,
+  parking_spaces_planned: optInt,
+  parking_spaces_built: optInt,
+});
+
+const PROPERTY_COLUMNS = [
+  "property_code", "tenure", "area_m2", "lessor", "lease_ends_on", "annual_rent_eur", "rent_review_basis", "building_rights_m2",
+  "unused_building_rights_m2", "parking_spaces_planned", "parking_spaces_built",
+] as const;
+
+export async function saveProperty(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const propertyId = z.preprocess(emptyToNull, uuid.nullable()).parse(formData.get("id"));
+  const back = `/taloyhtiot/${companyId}/kiinteisto`;
+  const d = parseForm(propertySchema, formData, back);
+  if (d.building_rights_m2 !== null && d.unused_building_rights_m2 !== null && d.unused_building_rights_m2 > d.building_rights_m2) {
+    fail(back, "Käyttämätön rakennusoikeus ei voi olla suurempi kuin myönnetty.");
+  }
+  const values = PROPERTY_COLUMNS.map((c) => d[c]);
+  await ctx.run(async (tx) => {
+    const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [companyId]);
+    if (!company) fail("/taloyhtiot", "Yhtiötä ei löytynyt.");
+    let id = propertyId;
+    if (id) {
+      const rows = await tx.query(
+        `update er_properties set ${PROPERTY_COLUMNS.map((c, i) => `${c}=$${i + 3}`).join(", ")} where id = $1 and company_id = $2 returning id`,
+        [id, companyId, ...values],
+      );
+      if (rows.length === 0) fail(back, "Kiinteistöä ei löytynyt.");
+    } else {
+      const [row] = await tx.query<{ id: string }>(
+        `insert into er_properties (organization_id, company_id, ${PROPERTY_COLUMNS.join(", ")})
+         values (${[0, 1, ...values].map((_, i) => `$${i + 1}`).join(",")}) returning id`,
+        [company.organization_id, companyId, ...values],
+      );
+      id = row.id;
+    }
+    await audit(tx, { organizationId: company.organization_id, userId: ctx.user.id, action: propertyId ? "update" : "create", entity: "property", entityId: id });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+// ---------------------------------------------------------------------------
+// Rakennuksen tietojen muokkaus
+// ---------------------------------------------------------------------------
+const buildingDetailSchema = buildingSchemaBase().extend({
+  heat_distribution: optText,
+  cooling: optText,
+  broadband: optText,
+  broadband_provider: optText,
+  antenna_provider: optText,
+});
+
+const BUILDING_COLUMNS = [
+  "label", "building_type", "completed_year", "floors", "staircases", "elevators", "floor_area_m2", "apartment_area_m2", "volume_m3",
+  "construction_material", "roof_type", "roof_material", "heating", "heating_type", "heat_distribution", "cooling", "ventilation", "antenna",
+  "antenna_provider", "broadband", "broadband_provider", "energy_class", "energy_certificate_year",
+] as const;
+
+export async function updateBuilding(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const buildingId = uuid.parse(formData.get("building_id"));
+  const back = `/taloyhtiot/${companyId}/kiinteisto?muokkaa=${buildingId}`;
+  const d = parseForm(buildingDetailSchema, formData, back);
+  const spaces = d.common_spaces.split(",").map((s) => s.trim()).filter(Boolean);
+  const values = BUILDING_COLUMNS.map((c) => (c === "elevators" ? d.elevators ?? 0 : d[c]));
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>(
+      `update er_buildings set ${BUILDING_COLUMNS.map((c, i) => `${c}=$${i + 3}`).join(", ")}, common_spaces=$${BUILDING_COLUMNS.length + 3}
+        where id = $1 and company_id = $2 returning organization_id`,
+      [buildingId, companyId, ...values, spaces],
+    );
+    if (rows.length === 0) fail(back, "Rakennusta ei löytynyt.");
+    await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "building", entityId: buildingId });
+  });
+  revalidatePath(`/taloyhtiot/${companyId}/kiinteisto`);
+  redirect(`/taloyhtiot/${companyId}/kiinteisto`);
+}
+
 const triState = z.preprocess((v) => (v === "yes" ? true : v === "no" ? false : null), z.boolean().nullable());
 
 const unitCertificateSchema = z.object({
@@ -179,6 +327,10 @@ const unitCertificateSchema = z.object({
   widow_right: triState,
   spouses_common_home: z.preprocess(emptyToNull, z.enum(["yes", "no", "unknown"]).nullable()),
   other_restrictions: z.preprocess(emptyToNull, z.string().max(2000).nullable()),
+  votes: optInt,
+  area_verified: triState,
+  staircase: z.preprocess(emptyToNull, z.string().max(20).nullable()),
+  street_address: optText,
 });
 
 /**
@@ -198,10 +350,10 @@ export async function saveUnitCertificateInfo(formData: FormData) {
   await ctx.run(async (tx) => {
     const rows = await tx.query<{ organization_id: string }>(
       `update er_share_groups set certificate_notes=$3, company_possession=$4, company_possession_decided_on=$5, company_possession_ends_on=$6,
-          company_rented=$7, widow_right=$8, spouses_common_home=$9, other_restrictions=$10
+          company_rented=$7, widow_right=$8, spouses_common_home=$9, other_restrictions=$10, votes=$11, area_verified=$12, staircase=$13, street_address=$14
         where id=$1 and company_id=$2 returning organization_id`,
       [groupId, companyId, d.certificate_notes, d.company_possession, d.company_possession_decided_on, d.company_possession_ends_on,
-        d.company_possession && d.company_rented, d.widow_right, d.spouses_common_home, d.other_restrictions],
+        d.company_possession && d.company_rented, d.widow_right, d.spouses_common_home, d.other_restrictions, d.votes, d.area_verified, d.staircase, d.street_address],
     );
     if (rows.length === 0) fail(back, "Huoneistoa ei löytynyt.");
     await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "share_group_certificate_info", entityId: groupId });
@@ -353,7 +505,11 @@ export async function endBoardMembership(formData: FormData) {
   redirect(back);
 }
 
-const buildingSchema = z.object({
+const buildingSchema = buildingSchemaBase();
+
+/** Funktio eikä vakio, koska rakennuksen muokkausskeema (ylempänä tiedostossa) laajentaa tätä. */
+function buildingSchemaBase() {
+  return z.object({
   company_id: uuid,
   label: optText,
   building_type: optText,
@@ -374,7 +530,8 @@ const buildingSchema = z.object({
   energy_class: optText,
   energy_certificate_year: z.preprocess(emptyToNull, z.coerce.number().int().min(1990).max(2100).nullable()),
   common_spaces: z.string().default(""),
-});
+  });
+}
 
 export async function addBuilding(formData: FormData) {
   const ctx = await staffWriter();
