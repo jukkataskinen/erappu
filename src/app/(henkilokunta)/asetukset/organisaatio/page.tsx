@@ -63,6 +63,9 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
                 <Field label="Pikatoimitus (€, sis. alv)" htmlFor="certificate_express_eur">
                   <Input id="certificate_express_eur" name="certificate_express_eur" inputMode="decimal" defaultValue={prices.express_eur ?? ""} />
                 </Field>
+                <Field label="Todistus liitteineen (€, sis. alv)" htmlFor="certificate_with_attachments_eur" hint="Tyhjä = sama kuin todistus. Pikatoimitus lisää saman lisähinnan.">
+                  <Input id="certificate_with_attachments_eur" name="certificate_with_attachments_eur" inputMode="decimal" defaultValue={prices.with_attachments_eur ?? ""} />
+                </Field>
               </div>
             </div>
             <div>
@@ -81,6 +84,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
               { label: "Osoite", value: [contact.street_address, [contact.postal_code, contact.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null },
               { label: "Todistus", value: prices.standard_eur != null ? formatEur(prices.standard_eur) : null },
               { label: "Pikatoimitus", value: prices.express_eur != null ? formatEur(prices.express_eur) : null },
+              { label: "Todistus liitteineen", value: prices.with_attachments_eur != null ? formatEur(prices.with_attachments_eur) : "Sama kuin todistus" },
             ]}
           />
           <p className="mt-4 text-sm text-ink/60">Organisaation tietoja muuttaa pääkäyttäjä.</p>

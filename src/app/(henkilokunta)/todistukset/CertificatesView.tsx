@@ -4,7 +4,7 @@ import { FormError } from "@/components/FormError";
 import { Badge, Button, EmptyState, Field, Input, Notice, Panel, SectionTitle, Select, Table, Td, Th } from "@/components/ui";
 import type { StaffContext } from "@/lib/auth/current-user";
 import { activeOrderLinks, readOrderLinkFlash } from "@/lib/certificates/order-link";
-import { listOrders } from "@/lib/certificates/orders";
+import { listOrders, loadPrices } from "@/lib/certificates/orders";
 import { CERTIFICATE_KIND, CERTIFICATE_TEMPLATE_APPROVED, ORDER_STATUS, ORDER_STATUS_TONE } from "@/lib/certificates/pricing";
 import { formatDate, formatDateTime, formatEur } from "@/lib/format";
 import { listCompanies } from "@/lib/registry/queries";
@@ -48,8 +48,8 @@ export async function CertificatesView({
     ]),
   );
   const companies = fixedCompanyId ? allCompanies.filter((c) => c.id === fixedCompanyId) : allCompanies;
-  const [links, keyDocs] = await ctx.run((tx) =>
-    Promise.all([activeOrderLinks(tx, companies.map((c) => c.id)), latestKeyDocuments(tx, companies.map((c) => c.id))]),
+  const [links, keyDocs, prices] = await ctx.run((tx) =>
+    Promise.all([activeOrderLinks(tx, companies.map((c) => c.id)), latestKeyDocuments(tx, companies.map((c) => c.id)), loadPrices(tx, orgId)]),
   );
   const flash = await readOrderLinkFlash();
   const canWrite = ctx.can("owner", "manager", "assistant");
@@ -90,7 +90,11 @@ export async function CertificatesView({
                 {o.company_name}
               </Link>
               <div className="text-ink/65">
-                {o.unit_label} · {CERTIFICATE_KIND[o.kind]}
+                <Link href={`/todistukset/${o.id}`} className="hover:text-sky">
+                  {o.unit_label} · {CERTIFICATE_KIND[o.kind]}
+                </Link>
+                {o.with_attachments ? <span className="ml-2"><Badge tone="info">Liitteineen</Badge></span> : null}
+                {o.sealed_at ? <span className="ml-2"><Badge tone="ok">Sinetöity</Badge></span> : null}
               </div>
               <div className="mt-1.5">
                 <span className="mr-2 text-xs text-ink/55">Liitteet:</span>
@@ -116,11 +120,17 @@ export async function CertificatesView({
                 ) : null}
                 {canWrite && actions ? (
                   <>
-                    <form action={generateCertificateAction}>
-                      <input type="hidden" name="order_id" value={o.id} />
-                      <input type="hidden" name="back" value={basePath} />
-                      <button className="text-sm text-sky">{o.document_id ? "Tee uudelleen" : "Tee todistus"}</button>
-                    </form>
+                    {o.with_attachments || o.sealed_at ? (
+                      <Link href={`/todistukset/${o.id}`} className="text-sm text-sky">
+                        {o.sealed_at ? "Avaa tilaus" : o.document_id ? "Liitteet ja uudelleenmuodostus" : "Valitse liitteet ja muodosta"}
+                      </Link>
+                    ) : (
+                      <form action={generateCertificateAction}>
+                        <input type="hidden" name="order_id" value={o.id} />
+                        <input type="hidden" name="back" value={basePath} />
+                        <button className="text-sm text-sky">{o.document_id ? "Tee uudelleen" : "Tee todistus"}</button>
+                      </form>
+                    )}
                     {o.document_id ? (
                       <form action={markDeliveredAction}>
                         <input type="hidden" name="order_id" value={o.id} />
@@ -208,6 +218,15 @@ export async function CertificatesView({
                     ))}
                   </Select>
                 </Field>
+                <fieldset className="grid gap-2">
+                  <legend className="mb-1 text-sm font-semibold">Liitteet</legend>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="radio" name="with_attachments" value="no" defaultChecked /> Ilman liitteitä · {formatEur(prices.standard)}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="radio" name="with_attachments" value="yes" /> Liitteineen · {formatEur(prices.withAttachments)} (liitteet valitaan seuraavaksi)
+                  </label>
+                </fieldset>
                 <PurposeFields />
                 <Field label="Tilaaja" htmlFor="orderer_name" hint="Tyhjä = sinä">
                   <Input id="orderer_name" name="orderer_name" />

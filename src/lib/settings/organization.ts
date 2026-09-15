@@ -25,6 +25,7 @@ export interface OrganizationSettings {
   certificate_prices?: {
     standard_eur?: number | null;
     express_eur?: number | null;
+    with_attachments_eur?: number | null;
   };
 }
 
@@ -57,6 +58,7 @@ export const organizationSchema = z.object({
   city: optText,
   certificate_standard_eur: optPrice,
   certificate_express_eur: optPrice,
+  certificate_with_attachments_eur: optPrice,
 });
 
 export type OrganizationInput = z.infer<typeof organizationSchema>;
@@ -70,7 +72,11 @@ export async function getOrganization(tx: Sql, organizationId: string): Promise<
 export async function updateOrganization(tx: Sql, organizationId: string, actorId: string, input: OrganizationInput): Promise<boolean> {
   const patch: OrganizationSettings = {
     contact: { phone: input.phone, email: input.email, street_address: input.street_address, postal_code: input.postal_code, city: input.city },
-    certificate_prices: { standard_eur: input.certificate_standard_eur, express_eur: input.certificate_express_eur },
+    certificate_prices: {
+      standard_eur: input.certificate_standard_eur,
+      express_eur: input.certificate_express_eur,
+      with_attachments_eur: input.certificate_with_attachments_eur,
+    },
   };
   const rows = await tx.query(
     "update er_organizations set name = $2, business_id = $3, settings = settings || $4::jsonb where id = $1 returning id",

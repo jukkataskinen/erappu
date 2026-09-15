@@ -73,8 +73,13 @@ export interface StoredFile {
   fileName: string;
 }
 
-export async function storeFile(opts: { organizationId: string; companyId?: string | null; fileName: string; mimeType: string; bytes: Buffer }): Promise<StoredFile> {
-  if (opts.bytes.length > MAX_UPLOAD_BYTES) throw new Error("Tiedosto on liian suuri (enintään 20 Mt).");
+/**
+ * `maxBytes` vain palvelimen itse tuottamille tiedostoille: liitteineen
+ * koottu isännöitsijäntodistus voi ylittää käyttäjän latausrajan (20 Mt).
+ */
+export async function storeFile(opts: { organizationId: string; companyId?: string | null; fileName: string; mimeType: string; bytes: Buffer; maxBytes?: number }): Promise<StoredFile> {
+  const max = opts.maxBytes ?? MAX_UPLOAD_BYTES;
+  if (opts.bytes.length > max) throw new Error(`Tiedosto on liian suuri (enintään ${Math.round(max / (1024 * 1024))} Mt).`);
   const mime = detectAllowedType(opts.bytes, opts.mimeType);
   if (!mime) throw new Error("Tiedostotyyppiä ei sallita.");
   const fileName = sanitizeFileName(opts.fileName);

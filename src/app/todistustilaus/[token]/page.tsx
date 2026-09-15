@@ -1,7 +1,8 @@
 import { Brand } from "@/components/Brand";
 import { FormError } from "@/components/FormError";
 import { Button, Field, Input, Notice, Panel, Select } from "@/components/ui";
-import { CERTIFICATE_EXPRESS_PRICE_EUR, CERTIFICATE_KIND, CERTIFICATE_PRICE_EUR } from "@/lib/certificates/pricing";
+import { CERTIFICATE_KIND } from "@/lib/certificates/pricing";
+import { loadPrices } from "@/lib/certificates/orders";
 import { getDb } from "@/lib/db";
 import { formatEur } from "@/lib/format";
 import { resolveAccessLink } from "@/lib/security/access-links";
@@ -33,7 +34,7 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
       "select id, unit_label from er_share_groups where company_id = $1 and removed_on is null order by length(unit_label), unit_label",
       [link.subjectId],
     );
-    return { company, groups };
+    return { company, groups, prices: await loadPrices(tx, link.organizationId) };
   });
 
   return (
@@ -100,9 +101,19 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
               </Field>
               <div className="rounded-xl border border-line bg-cloud/60 p-4 text-sm">
                 <p>
-                  Hinta <span className="font-semibold">{formatEur(CERTIFICATE_PRICE_EUR)}</span>, pikatoimitus{" "}
-                  <span className="font-semibold">{formatEur(CERTIFICATE_EXPRESS_PRICE_EUR)}</span>.
+                  Hinta <span className="font-semibold">{formatEur(data.prices.standard)}</span>, liitteineen{" "}
+                  <span className="font-semibold">{formatEur(data.prices.withAttachments)}</span>, pikatoimitus lisää{" "}
+                  <span className="font-semibold">{formatEur(Math.max(0, data.prices.express - data.prices.standard))}</span>.
                 </p>
+                <div className="mt-3 grid gap-2">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="with_attachments" value="no" defaultChecked /> Ilman liitteitä
+                  </label>
+                  <label className="flex items-start gap-2">
+                    <input type="radio" name="with_attachments" value="yes" className="mt-1" />
+                    <span>Liitteineen (yhtiöjärjestys, tilinpäätös, talousarvio, pohjakuva, energiatodistus ja kunnossapitotarveselvitys, jos saatavilla)</span>
+                  </label>
+                </div>
                 <label className="mt-3 flex items-center gap-2">
                   <input type="checkbox" name="express" /> Pikatoimitus
                 </label>

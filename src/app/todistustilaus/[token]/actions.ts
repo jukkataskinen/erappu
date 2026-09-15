@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { allowRequest } from "@/lib/certificates/rate-limit";
-import { CERTIFICATE_KIND, certificatePrice } from "@/lib/certificates/pricing";
+import { CERTIFICATE_KIND, orderPrice } from "@/lib/certificates/pricing";
+import { loadPrices } from "@/lib/certificates/orders";
 import { getDb } from "@/lib/db";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { formatEur } from "@/lib/format";
@@ -29,6 +30,7 @@ const orderSchema = z.object({
   express: z.preprocess((v) => v === "on", z.boolean()),
   purpose: z.preprocess(emptyToNull, z.enum(["bank", "sale", "rental", "other"]).nullable()),
   purpose_text: z.preprocess(emptyToNull, z.string().max(200).nullable()),
+  with_attachments: z.preprocess((v) => v === "yes", z.boolean()),
   terms: z.literal("on", { message: "Hyväksy tilausehdot." }),
   // Roskapostiansa: ihminen ei täytä piilokenttää.
   website: z.string().max(0).optional().default(""),
@@ -57,13 +59,13 @@ export async function submitCertificateOrder(formData: FormData) {
       [data.share_group_id, link.subjectId, link.organizationId],
     );
     if (!group) return "no_group" as const;
-    const price = certificatePrice(data.express);
+    const price = orderPrice(await loadPrices(tx, link.organizationId), { express: data.express, withAttachments: data.with_attachments });
     const [order] = await tx.query<{ id: string }>(
       `insert into er_certificate_orders (organization_id, company_id, share_group_id, kind, orderer_name, orderer_email, orderer_phone, express, price_eur, source,
-                                          purpose, purpose_text)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'public_form',$10,$11) returning id`,
+                                          purpose, purpose_text, with_attachments)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'public_form',$10,$11,$12) returning id`,
       [link.organizationId, link.subjectId, group.id, data.kind, data.orderer_name, data.orderer_email, data.orderer_phone, data.express, price,
-        data.purpose, data.purpose === "other" ? data.purpose_text : null],
+        data.purpose, data.purpose === "other" ? data.purpose_text : null, data.with_attachments],
     );
     const kindLabel = CERTIFICATE_KIND[data.kind];
     await queueMessage(tx, {
@@ -74,7 +76,7 @@ export async function submitCertificateOrder(formData: FormData) {
         "Hei,",
         "",
         `olemme vastaanottaneet tilauksesi: ${kindLabel.toLowerCase()}, ${group.company_name}, huoneisto ${group.unit_label}.`,
-        `Toimitus: ${data.express ? "pikatoimitus" : "normaali toimitus"}. Hinta ${formatEur(price)}.`,
+        `${data.with_attachments ? "Todistus liitteineen" : "Todistus ilman liitteitä"}, ${data.express ? "pikatoimitus" : "normaali toimitus"}. Hinta ${formatEur(price)}.`,
         "",
         "Ilmoitamme, kun todistus on valmis.",
       ].join("\n"),
