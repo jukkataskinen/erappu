@@ -10,6 +10,7 @@ import { parseShareRanges } from "@/lib/registry/share-ranges";
 import { syncPortalAccessForBoard, syncPortalAccessForGroup } from "@/lib/registry/portal-access";
 import { isValidBusinessId, isValidPostalCode, normalizeBusinessId } from "@/lib/validation/finnish";
 import { REDEMPTION_CLAUSE } from "@/lib/registry/labels";
+import { HEATING_TYPE_LABEL, HEATING_TYPES, type HeatingType } from "@/lib/consumption/heating";
 
 const uuid = z.string().uuid();
 const optText = z.preprocess(emptyToNull, z.string().max(500).nullable());
@@ -322,6 +323,7 @@ const buildingSchema = z.object({
   roof_type: optText,
   roof_material: optText,
   heating: optText,
+  heating_type: z.preprocess(emptyToNull, z.enum(HEATING_TYPES as [HeatingType, ...HeatingType[]]).nullable()),
   ventilation: optText,
   antenna: optText,
   energy_class: optText,
@@ -340,12 +342,33 @@ export async function addBuilding(formData: FormData) {
     const spaces = d.common_spaces.split(",").map((s) => s.trim()).filter(Boolean);
     await tx.query(
       `insert into er_buildings (organization_id, company_id, label, building_type, completed_year, floors, staircases, elevators, floor_area_m2,
-          apartment_area_m2, volume_m3, construction_material, roof_type, roof_material, heating, ventilation, antenna, energy_class, energy_certificate_year, common_spaces)
-       values ($1,$2,$3,$4,$5,$6,$7,coalesce($8,0),$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+          apartment_area_m2, volume_m3, construction_material, roof_type, roof_material, heating, heating_type, ventilation, antenna, energy_class, energy_certificate_year, common_spaces)
+       values ($1,$2,$3,$4,$5,$6,$7,coalesce($8,0),$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
       [company.organization_id, companyId, d.label, d.building_type, d.completed_year, d.floors, d.staircases, d.elevators, d.floor_area_m2,
-        d.apartment_area_m2, d.volume_m3, d.construction_material, d.roof_type, d.roof_material, d.heating, d.ventilation, d.antenna, d.energy_class, d.energy_certificate_year, spaces],
+        d.apartment_area_m2, d.volume_m3, d.construction_material, d.roof_type, d.roof_material,
+        d.heating ?? (d.heating_type ? HEATING_TYPE_LABEL[d.heating_type] : null), d.heating_type, d.ventilation, d.antenna, d.energy_class, d.energy_certificate_year, spaces],
     );
   });
   revalidatePath(back);
+  redirect(back);
+}
+
+export async function updateBuildingHeating(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const buildingId = uuid.parse(formData.get("building_id"));
+  const back = `/taloyhtiot/${companyId}/kiinteisto`;
+  const heatingType = z.preprocess(emptyToNull, z.enum(HEATING_TYPES as [HeatingType, ...HeatingType[]]).nullable()).safeParse(formData.get("heating_type"));
+  if (!heatingType.success) fail(back, "Valitse lämmitysmuoto listasta.");
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>(
+      "update er_buildings set heating_type = $3 where id = $1 and company_id = $2 returning organization_id",
+      [buildingId, companyId, heatingType.data],
+    );
+    if (rows.length === 0) fail(back, "Rakennusta ei löytynyt.");
+    await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "building_heating", entityId: buildingId, details: { heatingType: heatingType.data } });
+  });
+  revalidatePath(back);
+  revalidatePath("/kulutus");
   redirect(back);
 }

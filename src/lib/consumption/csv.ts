@@ -1,6 +1,6 @@
 import { isIsoDate, toIsoDate, type IsoDate } from "@/lib/tasks/dates";
 import { normalizeBusinessId } from "@/lib/validation/finnish";
-import type { ConsumptionUnit, Utility } from "./labels";
+import { unitAllowed, type ConsumptionUnit, type Utility } from "./labels";
 
 /**
  * Kulutuslukemien CSV-tuonti.
@@ -82,7 +82,8 @@ export function parseUtility(value: string): Utility | null {
   const v = value.trim().toLowerCase();
   if (["sähkö", "sahko", "electricity", "kiinteistösähkö"].includes(v)) return "electricity";
   if (["vesi", "water", "käyttövesi"].includes(v)) return "water";
-  if (["lämpö", "lampo", "lämmitys", "kaukolämpö", "heat", "heating"].includes(v)) return "heat";
+  if (["lämpö", "lampo", "lämmitys", "kaukolämpö", "kaukolampo", "heat", "heating", "district heat"].includes(v)) return "heat";
+  if (["öljy", "oljy", "lämmitysöljy", "polttoöljy", "kevyt polttoöljy", "oil", "heating oil"].includes(v)) return "oil";
   return null;
 }
 
@@ -91,6 +92,7 @@ export function parseUnit(value: string): ConsumptionUnit | null {
   if (v === "kwh") return "kWh";
   if (v === "mwh") return "MWh";
   if (v === "m3") return "m3";
+  if (v === "l" || v === "litra" || v === "litraa" || v === "ltr") return "l";
   return null;
 }
 
@@ -129,12 +131,12 @@ export function parseConsumptionCsv(text: string): CsvResult {
 
     const problem =
       !company ? "Yhtiö puuttuu." :
-      !utility ? "Laji on sähkö, vesi tai lämpö." :
+      !utility ? "Laji on sähkö, vesi, kaukolämpö tai öljy." :
       !periodStart || !periodEnd ? "Päivämäärä muodossa p.k.vvvv tai vvvv-kk-pp." :
       periodEnd < periodStart ? "Loppupäivä on ennen alkupäivää." :
       amount === null || amount < 0 ? "Määrä ei ole kelvollinen luku." :
-      !unit ? "Yksikkö on kWh, MWh tai m3." :
-      (utility === "water") !== (unit === "m3") ? "Veden yksikkö on m3, sähkön ja lämmön kWh tai MWh." :
+      !unit ? "Yksikkö on kWh, MWh, m3 tai l." :
+      !unitAllowed(utility, unit) ? "Veden yksikkö on m3, öljyn l, sähkön ja kaukolämmön kWh tai MWh." :
       costRaw.trim() !== "" && (costEur === null || costEur < 0) ? "Kustannus ei ole kelvollinen luku." :
       null;
     if (problem) {

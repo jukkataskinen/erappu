@@ -172,6 +172,7 @@ export interface BuildingRow {
   roof_type: string | null;
   roof_material: string | null;
   heating: string | null;
+  heating_type: string | null;
   ventilation: string | null;
   energy_class: string | null;
   energy_certificate_year: number | null;

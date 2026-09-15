@@ -3,7 +3,8 @@ import { FormError } from "@/components/FormError";
 import { Button, EmptyState, Field, Input, LinkButton, Notice, PageHeader, Panel, SectionTitle, Select, Stat, Table, Tabs, Td, Th, Textarea } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { changePercent, monthlyTotals, sum } from "@/lib/consumption/aggregate";
-import { CANONICAL_UNIT, UNIT_LABEL, UTILITIES, UTILITY_LABEL, type Utility } from "@/lib/consumption/labels";
+import { ALLOWED_UNITS, CANONICAL_UNIT, UNIT_LABEL, UTILITIES, UTILITY_LABEL, type Utility } from "@/lib/consumption/labels";
+import { companyHeatingTypes, heatingProfile, HEATING_TYPE_LABEL } from "@/lib/consumption/heating";
 import { companyArea, listReadings } from "@/lib/consumption/queries";
 import { formatDate, formatEur, formatNumber, isoDateHelsinki } from "@/lib/format";
 import { listCompanies } from "@/lib/registry/queries";
@@ -21,13 +22,12 @@ export default async function ConsumptionPage({ searchParams }: { searchParams: 
   const companies = await ctx.run((tx) => listCompanies(tx, ctx.org.organizationId));
   const thisYear = Number(isoDateHelsinki().slice(0, 4));
   const year = /^\d{4}$/.test(sp.vuosi ?? "") && Number(sp.vuosi) >= 2000 && Number(sp.vuosi) <= thisYear + 1 ? Number(sp.vuosi) : thisYear;
-  const utility: Utility = (UTILITIES as readonly string[]).includes(sp.laji ?? "") ? (sp.laji as Utility) : "electricity";
   const company = companies.find((c) => c.id === sp.yhtio) ?? companies[0];
 
   const header = (
     <PageHeader
       title="Kulutusseuranta"
-      subtitle="Sähkö, vesi ja lämpö yhtiöittäin"
+      subtitle="Sähkö, vesi ja lämmitys (kaukolämpö tai öljy) yhtiöittäin"
       actions={
         <>
           <LinkButton variant="secondary" href="/sopimukset">Sopimukset</LinkButton>
@@ -45,7 +45,17 @@ export default async function ConsumptionPage({ searchParams }: { searchParams: 
     );
   }
 
-  const [readings, area] = await ctx.run((tx) => Promise.all([listReadings(tx, company.id, year - 1, year), companyArea(tx, company.id)]));
+  const [readings, area, heatingTypes, readingUtilities] = await ctx.run((tx) =>
+    Promise.all([
+      listReadings(tx, company.id, year - 1, year),
+      companyArea(tx, company.id),
+      companyHeatingTypes(tx, company.id),
+      tx.query<{ utility: Utility }>("select distinct utility from er_consumption_readings where company_id = $1", [company.id]),
+    ]),
+  );
+  const heating = heatingProfile(heatingTypes, readingUtilities.map((r) => r.utility));
+  const tabs: Utility[] = ["electricity", "water", ...heating.heatingUtilities];
+  const utility: Utility = tabs.includes(sp.laji as Utility) && (UTILITIES as readonly string[]).includes(sp.laji ?? "") ? (sp.laji as Utility) : "electricity";
   const ofUtility = readings.filter((r) => r.utility === utility);
   const current = monthlyTotals(ofUtility, year);
   const previous = monthlyTotals(ofUtility, year - 1);
@@ -100,7 +110,17 @@ export default async function ConsumptionPage({ searchParams }: { searchParams: 
         <Button variant="secondary">Näytä</Button>
       </form>
 
-      <Tabs items={UTILITIES.map((u) => ({ key: u, label: UTILITY_LABEL[u], href: `/kulutus?yhtio=${company.id}&vuosi=${year}&laji=${u}` }))} active={utility} />
+      <Tabs items={tabs.map((u) => ({ key: u, label: UTILITY_LABEL[u], href: `/kulutus?yhtio=${company.id}&vuosi=${year}&laji=${u}` }))} active={utility} />
+      {heating.note ? (
+        <div className="-mt-3 mb-5">
+          <Notice tone="info" title={heating.types.length ? `Lämmitys: ${heating.types.map((t) => HEATING_TYPE_LABEL[t]).join(", ")}` : "Lämmitysmuoto puuttuu"}>
+            {heating.note}{" "}
+            <Link href={`/taloyhtiot/${company.id}/kiinteisto`} className="text-sky">
+              Rakennusten tiedot
+            </Link>
+          </Notice>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat label={`${UTILITY_LABEL[utility]} ${year}`} value={formatNumber(Math.round(totalNow), unit)} />
@@ -160,7 +180,7 @@ export default async function ConsumptionPage({ searchParams }: { searchParams: 
             </tbody>
           </Table>
           <p className="text-xs text-ink/55">
-            Jaksot jaetaan kuukausille päivien suhteessa. MWh muunnetaan kWh:ksi. Huoneistoala {area > 0 ? formatNumber(area, "m²") : "puuttuu (lisää huoneistojen pinta-alat)"}.
+            Jaksot jaetaan kuukausille päivien suhteessa{utility === "oil" ? " (öljyn täyttöerät kannattaa kirjata kulutusjaksolle, ei toimituspäivälle)" : ""}. MWh muunnetaan kWh:ksi. Huoneistoala {area > 0 ? formatNumber(area, "m²") : "puuttuu (lisää huoneistojen pinta-alat)"}.
           </p>
 
           <Panel>
@@ -210,15 +230,12 @@ export default async function ConsumptionPage({ searchParams }: { searchParams: 
                   <Input id="amount" name="amount" inputMode="decimal" required />
                 </Field>
                 <Field label="Yksikkö" htmlFor="unit">
-                  <Select id="unit" name="unit" defaultValue={utility === "water" ? "m3" : utility === "heat" ? "MWh" : "kWh"}>
-                    {utility === "water" ? (
-                      <option value="m3">m³</option>
-                    ) : (
-                      <>
-                        <option value="kWh">kWh</option>
-                        <option value="MWh">MWh</option>
-                      </>
-                    )}
+                  <Select id="unit" name="unit" defaultValue={ALLOWED_UNITS[utility][0]}>
+                    {ALLOWED_UNITS[utility].map((u) => (
+                      <option key={u} value={u}>
+                        {u === "l" ? "litraa" : UNIT_LABEL[u]}
+                      </option>
+                    ))}
                   </Select>
                 </Field>
               </div>
@@ -234,7 +251,7 @@ export default async function ConsumptionPage({ searchParams }: { searchParams: 
           <Panel>
             <SectionTitle>Tuo CSV</SectionTitle>
             <p className="mb-3 text-sm text-ink/65">
-              Sarakkeet: yhtiön Y-tunnus tai nimi; laji (sähkö, vesi, lämpö); alkupvm; loppupvm; määrä; yksikkö (kWh, MWh, m3); kustannus. Otsikkorivi saa olla mukana.
+              Sarakkeet: yhtiön Y-tunnus tai nimi; laji (sähkö, vesi, kaukolämpö, öljy); alkupvm; loppupvm; määrä; yksikkö (kWh, MWh, m3, l); kustannus. Otsikkorivi saa olla mukana.
               Sama yhtiö, laji ja jakso päivitetään.
             </p>
             <form action={importCsvAction} className="grid gap-3">

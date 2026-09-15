@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireStaff } from "@/lib/auth/current-user";
 import { audit } from "@/lib/audit";
 import { MAX_CSV_ROWS, parseConsumptionCsv, parseFinnishNumber, resolveCompany } from "@/lib/consumption/csv";
-import { UTILITIES } from "@/lib/consumption/labels";
+import { UTILITIES, unitAllowed } from "@/lib/consumption/labels";
 import { upsertReading } from "@/lib/consumption/queries";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { listCompanies } from "@/lib/registry/queries";
@@ -37,7 +37,7 @@ const readingSchema = z
       }
       return n;
     }),
-    unit: z.enum(["kWh", "MWh", "m3"]),
+    unit: z.enum(["kWh", "MWh", "m3", "l"]),
     cost_eur: z.preprocess(emptyToNull, z.string().nullable()).transform((v, c) => {
       if (v === null) return null;
       const n = parseFinnishNumber(v);
@@ -49,7 +49,7 @@ const readingSchema = z
     }),
   })
   .refine((d) => d.period_end >= d.period_start, "Loppupäivä on ennen alkupäivää.")
-  .refine((d) => (d.utility === "water") === (d.unit === "m3"), "Veden yksikkö on m³, sähkön ja lämmön kWh tai MWh.");
+  .refine((d) => unitAllowed(d.utility, d.unit), "Veden yksikkö on m³, öljyn litra, sähkön ja kaukolämmön kWh tai MWh.");
 
 export async function addReadingAction(formData: FormData) {
   const ctx = await requireStaff();
