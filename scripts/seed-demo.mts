@@ -5,6 +5,13 @@ import { openLocalDb } from "./lib/local-db.mts";
 import { syncPortalAccessForBoard, syncPortalAccessForGroup } from "../src/lib/registry/portal-access.ts";
 import { makePdf, makePng } from "../tests/helpers/pdf-fixtures.ts";
 import type { Sql } from "../src/lib/db/types.ts";
+import { createElement } from "react";
+import { renderDocumentPdf } from "../src/documents/render.ts";
+import { RescuePlan } from "../src/documents/RescuePlan.tsx";
+import { LEGAL_BASIS, parseContent, RESCUE_PLAN_TEMPLATE_APPROVED } from "../src/lib/rescue-plans/content.ts";
+import { buildPrefill } from "../src/lib/rescue-plans/prefill.ts";
+import { finalizeDraft } from "../src/lib/rescue-plans/queries.ts";
+import { loadRegistrySnapshot } from "../src/lib/rescue-plans/registry.ts";
 
 /**
  * Kuvitteellinen esimerkkidata kehitykseen ja esittelyyn. Kaikki nimet,
@@ -111,12 +118,77 @@ async function seedCertificateDemo(tx: Sql, org: string, rinne: string) {
   return true;
 }
 
+/**
+ * Pelastussuunnitelman demoversio As Oy Esimerkkirinteelle (0092): esitäyttö
+ * rekisteristä, demon omat tiedot, valmis PDF dokumentiksi ja tarkistus
+ * vuosikelloon. Ei tehdä, jos yhtiöllä on jo suunnitelma.
+ */
+async function seedRescuePlanDemo(tx: Sql, org: string, rinne: string) {
+  const [done] = await tx.query("select 1 from er_rescue_plans where company_id = $1", [rinne]);
+  if (done) return false;
+  const snapshot = await loadRegistrySnapshot(tx, rinne, "2026-09-15");
+  if (!snapshot) return false;
+  const [company] = await tx.query<{ manager_user_id: string | null; business_id: string; org_name: string }>(
+    "select c.manager_user_id, c.business_id, o.name as org_name from er_housing_companies c join er_organizations o on o.id = c.organization_id where c.id = $1",
+    [rinne],
+  );
+  if (!company?.manager_user_id) return false;
+  const managerId = company.manager_user_id;
+  const content = {
+    ...buildPrefill(snapshot),
+    storages: "Asuntokohtaiset kylmät varastot rakennuksen päädyissä ja yhteinen ulkoiluvälinevarasto.",
+    keySystem: "Yleisavain on isännöitsijällä ja kiinteistöhuollolla.",
+    safetyPersons: "Hallituksen puheenjohtaja vastaa turvallisuusasioiden käytännön järjestelyistä yhdessä isännöitsijän kanssa.",
+    otherContacts: "Sähkön vikailmoitus: Esimerkkisähkö Oy 0800 000 000\nVesilaitos: Esimerkkikunnan vesihuolto 014 000 000",
+    extinguishers: "Sammutuspeite jokaisen asunnon keittiössä. Käsisammutin saunan pukuhuoneessa.",
+    assemblyPoint: "Pihan leikkipaikan vieressä",
+    assemblyPointAlt: "Kadun toisella puolella olevan pysäköintialueen reuna",
+    shutoffWater: "Tekninen tila A-rakennuksen päädyssä, sulku lattian rajassa (merkitty)",
+    shutoffElectricity: "Pääkeskus teknisessä tilassa A-rakennuksen päädyssä",
+    shutoffVentilation: "Huoneistokohtainen ilmanvaihtokone, katkaisin eteisen kaapissa",
+    shutoffHeating: "Maalämpöpumppu teknisessä tilassa, huoltokytkin laitteen kyljessä",
+    shelter: "none" as const,
+    shelterNotes: "Lähimmän yleisen väestönsuojan osoittaa kunta tarvittaessa.",
+    boardApprovedOn: "2026-09-10",
+  };
+  const [plan] = await tx.query<{ id: string }>(
+    `insert into er_rescue_plans (organization_id, company_id, version, status, content, prepared_on, next_review_on, visibility, created_by, updated_by)
+     values ($1,$2,1,'draft',$3,'2026-09-15','2027-09-15','residents',$4,$4) returning id`,
+    [org, rinne, JSON.stringify(content), managerId],
+  );
+  const pdf = await renderDocumentPdf(
+    createElement(RescuePlan, {
+      data: {
+        approved: RESCUE_PLAN_TEMPLATE_APPROVED, status: "final", organizationName: company.org_name, businessId: company.business_id, version: 1,
+        preparedOn: "2026-09-15", nextReviewOn: "2027-09-15", issuedOn: "2026-09-15", legalBasis: LEGAL_BASIS, content: parseContent(content), attachments: [],
+      },
+    }),
+  );
+  const fileName = "pelastussuunnitelma-v1-2026-09-15.pdf";
+  const storagePath = `${org}/${rinne}/${randomUUID()}/${fileName}`;
+  const full = path.join(process.cwd(), ".data", "files", storagePath);
+  await mkdir(path.dirname(full), { recursive: true });
+  await writeFile(full, pdf.bytes);
+  await finalizeDraft(tx, {
+    planId: plan.id,
+    userId: managerId,
+    document: { title: "Pelastussuunnitelma As Oy Esimerkkirinne (versio 1)", fileName, storagePath, mimeType: "application/pdf", sizeBytes: pdf.sizeBytes, sha256: pdf.sha256 },
+  });
+  return true;
+}
+
 await db.asService(async (tx) => {
   const [existing] = await tx.query<{ id: string }>("select id from er_organizations where business_id = '0000001-9'");
   if (existing) {
     const [rinne] = await tx.query<{ id: string }>("select id from er_housing_companies where organization_id = $1 and business_id = '1000000-9'", [existing.id]);
     const added = rinne ? await seedCertificateDemo(tx, existing.id, rinne.id) : false;
-    console.log(added ? "Demodata oli jo kannassa; lisättiin isännöitsijäntodistuksen tiedot ja liitteet." : "Demodata on jo kannassa.");
+    const rescue = rinne ? await seedRescuePlanDemo(tx, existing.id, rinne.id) : false;
+    console.log(
+      [
+        added ? "Demodata oli jo kannassa; lisättiin isännöitsijäntodistuksen tiedot ja liitteet." : "Demodata on jo kannassa.",
+        rescue ? "Lisättiin pelastussuunnitelman demoversio." : null,
+      ].filter(Boolean).join(" "),
+    );
     return;
   }
 
@@ -253,6 +325,7 @@ await db.asService(async (tx) => {
   for (const id of Object.values(groupIds)) await syncPortalAccessForGroup(tx, id);
   await syncPortalAccessForBoard(tx, rinne);
   await seedCertificateDemo(tx, org.id, rinne);
+  await seedRescuePlanDemo(tx, org.id, rinne);
   console.log("Demodata luotu: Demo Isännöinti Oy, 2 taloyhtiötä, 14 huoneistoa, 6 käyttäjää.");
 });
 

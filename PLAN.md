@@ -118,4 +118,12 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
   - Suostumukset: sähköinen suoramarkkinointi kuluttajille (osakkaat, asukkaat) vaatii ennakkosuostumuksen; taloyhtiön rekisteritietoja ei voi käyttää markkinointiin ilman käyttötarkoituksen mukaista perustetta (GDPR 6 ja 21 art.).
 
 ## Jatkokehitys (Jukan toiveet)
-- [ ] Pelastussuunnitelma-generaattori: taloyhtiön pelastussuunnitelma rekisterin tiedoista (rakennukset, lämmitys, yhteiset tilat, väestönsuoja, vastuuhenkilöt) täytettävänä pohjana ja PDF:nä, vuosipäivitys vuosikelloon (lähtötilanne 15.9.2026)
+- [~] Pelastussuunnitelma-generaattori: taloyhtiön pelastussuunnitelma rekisterin tiedoista (rakennukset, lämmitys, yhteiset tilat, väestönsuoja, vastuuhenkilöt) täytettävänä pohjana ja PDF:nä, vuosipäivitys vuosikelloon (lähtötilanne 15.9.2026)
+  - [x] Lähteet ja pakolliset sisältökohdat (PL 379/2011 14–15 §, VNa 407/2011 1–2 §, SPEKin pohja, Jukan aiemmat suunnitelmat) DECISIONS.md:hen
+  - [x] Migraatio 0092: `er_rescue_plans` (versiot, luonnos/valmis, sisältö jsonb, valmiin version jäädytys), dokumenttiluokka `rescue_plan`, vuosikellon luokka `safety`; RLS- ja versiointitestit
+  - [x] Esitäyttö rekisteristä, lomake osioittain (`/taloyhtiot/[id]/pelastussuunnitelma`), vaaratilanteet valintalistana, esikatselu-PDF, "Tallenna valmiina" dokumentiksi ja tarkistustehtävä vuosikelloon, yhtiön moduulikortti
+  - [x] PDF `src/documents/RescuePlan.tsx` luonnosmerkinnällä, pohjapiirustukset liitteiksi, demodata ja savutestin reitit
+  - [~] Vakiotekstien hyväksyntä (`RESCUE_PLAN_TEMPLATE_APPROVED`) – BLOCKERS 11
+  - [ ] Rekisteriin omat kentät tiedoille, jotka nyt kirjoitetaan suunnitelmaan käsin (väestönsuoja, pääsulkujen sijainnit, kokoontumispaikka), jos niitä tarvitaan muuallakin (esim. isännöitsijäntodistus, huoltopyynnöt)
+  - [ ] Asukkaille tiedottaminen: tiedote portaaliin, kun uusi versio merkitään valmiiksi (nyt vain dokumentti näkyy portaalissa)
+  - [ ] Isännöitsijäntodistukseen tieto pelastussuunnitelman olemassaolosta ja päiväyksestä (SPEKin opas suosittelee)
