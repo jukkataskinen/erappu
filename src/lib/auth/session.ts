@@ -5,8 +5,7 @@ import { verifySignedValue } from "@/lib/security/crypto";
 /**
  * Kirjautumisen tunniste (`sub`). Kaksi tilaa:
  *
- * - `AUTH_MODE=auth0`: portfolion Auth0-tenant, sama kuin eSinetissä ja
- *   Reilusopparissa.
+ * - `AUTH_MODE=auth0`: eRapun oma Auth0-tenant `erappu` (auth0/AJO-OHJE.md).
  * - `AUTH_MODE=dev`: kehityskirjautuminen, jossa käyttäjä valitaan listasta.
  *   Estetty tuotannossa kokonaan, vaikka muuttuja olisi asetettu väärin.
  *   Poikkeus: Vercelin esikatselujulkaisu (VERCEL_ENV=preview), jos

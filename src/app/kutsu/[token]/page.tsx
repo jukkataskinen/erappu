@@ -1,6 +1,7 @@
 import { Brand } from "@/components/Brand";
 import { Button, LinkButton, Notice, Panel } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { auth0LoginHref } from "@/lib/auth/login-params";
 import { authMode, devLoginAllowed } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { isInviteTokenShaped, previewInvitation } from "@/lib/invitations";
@@ -16,6 +17,10 @@ const ERRORS: Record<string, { title: string; text: string }> = {
     title: "Kutsua ei voi hyväksyä tällä tunnuksella",
     text: "Kirjaudu ulos ja kirjaudu sisään sillä sähköpostiosoitteella, johon kutsu lähetettiin.",
   },
+  henkilokunta: {
+    title: "Kirjaudu henkilökuntana",
+    text: "Henkilökunnan kutsu hyväksytään salasanalla ja todennussovelluksella, ei sähköpostikoodilla. Kirjaudu ulos ja kirjaudu uudelleen tämän sivun painikkeesta.",
+  },
 };
 
 export default async function InvitationPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ virhe?: string }> }) {
@@ -26,14 +31,8 @@ export default async function InvitationPage({ params, searchParams }: { params:
   const error = virhe ? ERRORS[virhe] : undefined;
 
   const returnTo = `/kutsu/${token}`;
-  // Auth0-moduuli ladataan vain auth0-tilassa, koska se luo asiakkaan ympäristömuuttujista.
-  let loginHref = "/kirjaudu";
-  if (authMode() === "auth0") {
-    const { PORTAL_LOGIN_PARAMS } = await import("@/lib/auth/auth0");
-    const q = new URLSearchParams(preview?.kind === "portal" ? PORTAL_LOGIN_PARAMS : undefined);
-    q.set("returnTo", returnTo);
-    loginHref = `/auth/login?${q}`;
-  }
+  // Portaalikutsu sähköpostikoodilla, henkilökuntakutsu salasanalla ja MFA:lla.
+  const loginHref = authMode() === "auth0" ? auth0LoginHref(preview?.kind === "portal" ? "portal" : "staff", returnTo) : "/kirjaudu";
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-[var(--container-content)] flex-col justify-center px-5 py-10">
@@ -85,7 +84,7 @@ export default async function InvitationPage({ params, searchParams }: { params:
                 <p className="text-sm text-ink/70">
                   {preview.kind === "portal"
                     ? "Kirjaudu sillä sähköpostiosoitteella, johon kutsu tuli. Saat kertakäyttöisen koodin sähköpostiisi."
-                    : "Kirjaudu sillä sähköpostiosoitteella, johon kutsu tuli."}
+                    : "Kirjaudu sillä sähköpostiosoitteella, johon kutsu tuli. Jos et ole vielä asettanut salasanaa, valitse kirjautumissivulla \"Unohditko salasanan?\"."}
                 </p>
                 <div>
                   {authMode() === "auth0" ? (
