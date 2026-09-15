@@ -9,6 +9,9 @@ import { verifySignedValue } from "@/lib/security/crypto";
  *   Reilusopparissa.
  * - `AUTH_MODE=dev`: kehityskirjautuminen, jossa käyttäjä valitaan listasta.
  *   Estetty tuotannossa kokonaan, vaikka muuttuja olisi asetettu väärin.
+ *   Poikkeus: Vercelin esikatselujulkaisu (VERCEL_ENV=preview), jos
+ *   ALLOW_PREVIEW_DEV_LOGIN=1. Esikatselut ovat Vercel-kirjautumisen takana
+ *   (Deployment Protection), joten sinne pääsee vain tiimin jäsen. Demodataa varten.
  */
 export const DEV_SESSION_COOKIE = "erappu_dev_session";
 
@@ -17,7 +20,9 @@ export function authMode(): "auth0" | "dev" {
 }
 
 export function devLoginAllowed(): boolean {
-  return authMode() === "dev" && process.env.NODE_ENV !== "production";
+  if (authMode() !== "dev") return false;
+  if (process.env.NODE_ENV !== "production") return true;
+  return process.env.VERCEL_ENV === "preview" && process.env.ALLOW_PREVIEW_DEV_LOGIN === "1";
 }
 
 export interface SessionIdentity {
