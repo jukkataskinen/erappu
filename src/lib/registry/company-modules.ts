@@ -3,7 +3,7 @@ import type { Sql } from "@/lib/db";
 import { contractTiming } from "@/lib/contracts/deadlines";
 import { listContracts } from "@/lib/contracts/queries";
 import { formatEur, isoDateHelsinki } from "@/lib/format";
-import { shortFinnishDate } from "@/lib/tasks/dates";
+import { diffDays, shortFinnishDate } from "@/lib/tasks/dates";
 import { OPEN_STATUSES } from "@/lib/service-requests/status";
 import { OPEN_FOR_COMPANY } from "@/lib/maintenance/renovation";
 
@@ -40,6 +40,8 @@ interface Counts {
   pending_diffs: number;
   payment_as_of: string | null;
   overdue_eur: string | null;
+  rescue_review_on: string | null;
+  rescue_draft: boolean;
 }
 
 async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Counts> {
@@ -70,7 +72,9 @@ async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Co
        (select count(*)::int from er_htj_diffs where company_id = $1 and status = 'pending') as pending_diffs,
        (select max(as_of)::text from er_payment_status where company_id = $1) as payment_as_of,
        (select sum(overdue_eur)::text from er_payment_status where company_id = $1
-         and as_of = (select max(as_of) from er_payment_status where company_id = $1)) as overdue_eur`,
+         and as_of = (select max(as_of) from er_payment_status where company_id = $1)) as overdue_eur,
+       (select next_review_on::text from er_rescue_plans where company_id = $1 and status = 'final' and superseded_at is null) as rescue_review_on,
+       exists (select 1 from er_rescue_plans where company_id = $1 and status = 'draft') as rescue_draft`,
     [companyId, today, OPEN_STATUSES, OPEN_FOR_COMPANY],
   );
   return row;
@@ -84,6 +88,14 @@ function shortDate(iso: string, today: string): string {
 
 function isoOf(value: string | Date): string {
   return isoDateHelsinki(value instanceof Date ? value : new Date(value));
+}
+
+/** Pelastussuunnitelman tila: tarkistus myöhässä, lähestyy (60 pv) tai voimassa. */
+export function rescuePlanStatus(reviewOn: string | null, draft: boolean, today: string): { text: string; tone: ModuleTone } {
+  if (!reviewOn) return draft ? { text: "Luonnos kesken", tone: "warn" } : { text: "Ei suunnitelmaa", tone: "warn" };
+  if (reviewOn < today) return { text: `Tarkistus myöhässä (${shortDate(reviewOn, today)})`, tone: "alert" };
+  if (diffDays(today, reviewOn) <= 60) return { text: `Tarkistus ${shortDate(reviewOn, today)}`, tone: "warn" };
+  return { text: `Voimassa, tarkistus ${shortDate(reviewOn, today)}`, tone: "ok" };
 }
 
 export async function loadCompanyModuleStatus(
@@ -123,6 +135,7 @@ export async function loadCompanyModuleStatus(
   if (c.overdue_tasks > 0) s.vuosikello = { text: plural(c.overdue_tasks, "tehtävä myöhässä", "tehtävää myöhässä"), tone: "alert" };
   else if (c.next_task_on) s.vuosikello = { text: `Seuraava määräaika ${shortDate(c.next_task_on, today)}` };
   if (c.latest_reading_on) s.kulutus = { text: `Lukemat ${shortDate(c.latest_reading_on, today)} asti` };
+  s.pelastussuunnitelma = rescuePlanStatus(c.rescue_review_on, c.rescue_draft, today);
 
   if (c.payment_as_of) {
     s.talous =

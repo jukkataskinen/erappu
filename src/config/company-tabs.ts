@@ -38,6 +38,7 @@ export const COMPANY_MODULES = [
   { key: "varaukset", label: "Varaukset", path: "/varaukset", icon: "key", group: "arki", description: "Saunat, pesutuvat ja kerhohuoneet" },
   { key: "vuosikello", label: "Vuosikello", path: "/vuosikello", icon: "list", group: "arki", description: "Määräajat ja toistuvat tehtävät" },
   { key: "kulutus", label: "Kulutus", path: "/kulutus", icon: "bolt", group: "arki", description: "Sähkö, vesi ja lämmitys" },
+  { key: "pelastussuunnitelma", label: "Pelastussuunnitelma", path: "/pelastussuunnitelma", icon: "shield", group: "arki", description: "Turvallisuus, toimintaohjeet ja vuosittainen tarkistus" },
   { key: "talous", label: "Talous", path: "/talous", icon: "coins", group: "hallinto", description: "Vastikkeet, laskutus ja lainat" },
   { key: "kokoukset", label: "Kokoukset", path: "/kokoukset", icon: "calendar", group: "hallinto", description: "Yhtiökokoukset ja hallituksen kokoukset" },
   { key: "dokumentit", label: "Dokumentit", path: "/dokumentit", icon: "folder", group: "hallinto", description: "Yhtiön asiakirjat" },
