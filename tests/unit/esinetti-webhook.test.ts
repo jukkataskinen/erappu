@@ -55,4 +55,11 @@ describe("eSinetti-webhookin allekirjoitus", () => {
     expect(parseExternalRef(null)).toBeNull();
     expect(buildExternalRef("meeting", "abc")).toBe("erappu:meeting:abc");
   });
+
+  it("sopimuksen kohdetunniste", () => {
+    expect(parseExternalRef("erappu:contract:11111111-2222-4333-8444-555555555555")).toEqual({ kind: "contract", id: "11111111-2222-4333-8444-555555555555" });
+    expect(buildExternalRef("contract", "abc")).toBe("erappu:contract:abc");
+    expect(parseExternalRef("erappu:invoice:11111111-2222-4333-8444-555555555555")).toBeNull();
+    expect(parseExternalRef("erappu:contract:ei-uuid")).toBeNull();
+  });
 });

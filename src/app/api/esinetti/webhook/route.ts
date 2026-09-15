@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getEsinettiClient, parseWebhookPayload, verifyWebhookSignature } from "@/lib/esinetti";
-import { processSigningEvent } from "@/lib/meetings/signing";
+import { processSigningEvent } from "@/lib/signing/process";
 
 export const dynamic = "force-dynamic";
 

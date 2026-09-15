@@ -101,3 +101,13 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Tuotantokäännös (next build) ja savutesti 48 sivulle (scripts/smoke-routes.mts)
 - [ ] Demodata myös M1–M6-moduuleille (huoltopyynnöt, tiedotteet, kokoukset, varauskohteet)
 - [ ] Tuonti tuotantokantaan Postgres-tilassa (scripts/access/import-access.mts käyttää nyt PGliteä)
+
+## Sopimuspohjat ja massaluonti
+- [x] Sopimuspohjat koodissa (`src/lib/contract-templates`): kenttämäärittelyt, paikkamerkit, zod-tarkistus, esitäyttö rekisteristä
+- [x] Ensimmäinen pohja: Lumityö- ja hiekoitussopimus (Jukan pohja, korjaukset tarkistettavina DECISIONS.md:ssä)
+- [x] Yleinen sopimus-PDF (`src/documents/ContractDocument.tsx`) ja pohjan esikatselu `/sopimukset/pohjat`
+- [x] Migraatio 0080: erät ja erän rivit, RLS ja testit
+- [x] Massaluonti `/sopimukset/erat`: erä, yhtiöt ja yhtiökohtaiset arvot, muodostus (PDF + sopimusrekisteri), lähetys eSinettiin, seuranta
+- [x] Webhookin reititys kohteen mukaan (`src/lib/signing/process.ts`): pöytäkirjat ja sopimukset, sinetöity versio korvaa luonnoksen
+- [x] Seuraavan kauden erä (voimassaolo +1 vuosi, edustajat rekisteristä uudelleen)
+- [x] Työpöydän nosto: allekirjoitusta odottavat sopimukset

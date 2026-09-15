@@ -134,7 +134,7 @@ export interface WebhookEvent {
   event: string;
   createdAt: string;
   roundId: string;
-  /** `erappu:meeting:<uuid>` — tämä kertoo mihin kohteeseen tapahtuma kuuluu. */
+  /** `erappu:meeting:<uuid>` tai `erappu:contract:<uuid>` — tämä kertoo mihin kohteeseen tapahtuma kuuluu. */
   externalRef: string | null;
   status: string;
   signers: Array<{
@@ -203,18 +203,18 @@ export function parseWebhookPayload(rawBody: string): WebhookEvent | null {
   };
 }
 
-/** Kohteet, joita eRappu allekirjoituttaa. Laajenee sopimuksiin ja muutostyölupiin. */
-export type ExternalRefKind = "meeting";
+/** Kohteet, joita eRappu allekirjoituttaa: pöytäkirjat ja massaluonnin sopimukset. Laajenee muutostyölupiin. */
+export type ExternalRefKind = "meeting" | "contract";
 
 /**
  * `externalRef` → kohteen tyyppi ja id.
  *
- * Muoto on eRapun oma (`erappu:meeting:<uuid>`). Tuntematon muoto palauttaa
+ * Muoto on eRapun oma (`erappu:meeting:<uuid>`, `erappu:contract:<erän rivin uuid>`). Tuntematon muoto palauttaa
  * `null` — silloin tapahtuma ohitetaan sen sijaan, että arvattaisiin.
  */
 export function parseExternalRef(externalRef: string | null): { kind: ExternalRefKind; id: string } | null {
   if (!externalRef) return null;
-  const match = /^erappu:(meeting):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(externalRef);
+  const match = /^erappu:(meeting|contract):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(externalRef);
   if (!match) return null;
   return { kind: match[1] as ExternalRefKind, id: match[2] };
 }

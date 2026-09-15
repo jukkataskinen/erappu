@@ -42,6 +42,8 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
         actions={
           <>
             <LinkButton variant="secondary" href="/kulutus">Kulutusseuranta</LinkButton>
+            <LinkButton variant="secondary" href="/sopimukset/pohjat">Pohjat</LinkButton>
+            <LinkButton variant="secondary" href="/sopimukset/erat">Massaluonti</LinkButton>
             {canWrite ? <LinkButton href={`/sopimukset/uusi${companyId ? `?yhtio=${companyId}` : ""}`}>Lisää sopimus</LinkButton> : null}
           </>
         }

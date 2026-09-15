@@ -5,6 +5,7 @@ import { listMyUpcomingBookings } from "@/lib/bookings/queries";
 import { utcToHelsinki } from "@/lib/bookings/slots";
 import { contractTiming } from "@/lib/contracts/deadlines";
 import { listContracts } from "@/lib/contracts/queries";
+import { countAwaitingSignature } from "@/lib/contract-templates/queries";
 import { formatDate, isoDateHelsinki } from "@/lib/format";
 import { addDays, diffDays, finnishWeekdayShort, shortFinnishDate, startOfWeek } from "@/lib/tasks/dates";
 import { listTasks, type TaskRow } from "@/lib/tasks/queries";
@@ -37,10 +38,11 @@ function TaskLines({ tasks, today }: { tasks: TaskRow[]; today: string }) {
 export async function StaffDashboardWidget({ ctx }: { ctx: StaffContext }) {
   const today = isoDateHelsinki();
   const nextWeekEnd = addDays(startOfWeek(today), 13);
-  const [tasks, contracts] = await ctx.run((tx) =>
+  const [tasks, contracts, awaitingSignature] = await ctx.run((tx) =>
     Promise.all([
       listTasks(tx, { organizationId: ctx.org.organizationId, today, until: nextWeekEnd, limit: 50 }),
       listContracts(tx, { organizationId: ctx.org.organizationId }),
+      countAwaitingSignature(tx, ctx.org.organizationId),
     ]),
   );
   const overdue = tasks.filter((t) => t.due_on < today);
@@ -82,6 +84,13 @@ export async function StaffDashboardWidget({ ctx }: { ctx: StaffContext }) {
               </li>
             ))}
           </ul>
+        </div>
+      ) : null}
+      {awaitingSignature > 0 ? (
+        <div className="mt-2 border-t border-line pt-3 text-sm">
+          <Link href="/sopimukset/erat" className="hover:text-sky">
+            Allekirjoitusta odottavat sopimukset: <span className="font-semibold">{awaitingSignature}</span>
+          </Link>
         </div>
       ) : null}
     </Panel>
