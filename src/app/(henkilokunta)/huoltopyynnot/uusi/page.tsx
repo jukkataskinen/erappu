@@ -4,6 +4,7 @@ import { requireStaff } from "@/lib/auth/current-user";
 import { listStaff } from "@/lib/registry/queries";
 import { PhotoForm } from "@/lib/service-requests/components/PhotoForm";
 import { PhotoInput } from "@/lib/service-requests/components/PhotoInput";
+import { CompanyUnitSelect } from "@/lib/service-requests/components/CompanyUnitSelect";
 import { CATEGORIES, CATEGORY_LABEL, URGENCIES, URGENCY_LABEL } from "@/lib/service-requests/labels";
 import { listCompanyOptions, listShareGroupOptions } from "@/lib/service-requests/queries";
 import { createStaffRequest } from "../actions";
@@ -31,35 +32,10 @@ export default async function NewServiceRequestPage({ searchParams }: { searchPa
         <PhotoForm action={createStaffRequest} className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <Panel className="grid content-start gap-4">
             <SectionTitle>Vika</SectionTitle>
-            <Field label="Yhtiö" htmlFor="company_id">
-              <Select id="company_id" name="company_id" required defaultValue={selectedCompany ?? ""}>
-                <option value="" disabled>
-                  Valitse yhtiö
-                </option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Huoneisto" htmlFor="share_group_id" hint="Valitse saman yhtiön huoneisto tai jätä tyhjäksi">
-                <Select id="share_group_id" name="share_group_id" defaultValue="">
-                  <option value="">Yhteiset tilat / ei huoneistoa</option>
-                  {companies.map((c) => (
-                    <optgroup key={c.id} label={c.name}>
-                      {groups
-                        .filter((g) => g.company_id === c.id)
-                        .map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.unit_label}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
-                </Select>
-              </Field>
+              <CompanyUnitSelect companies={companies} groups={groups} defaultCompanyId={selectedCompany} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Tila tai paikka" htmlFor="unit_text" hint="Esim. sauna, pesutupa, piha">
                 <Input id="unit_text" name="unit_text" maxLength={60} />
               </Field>
