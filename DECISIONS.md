@@ -254,3 +254,13 @@
 **Lainat-rivi on saldo, laina ei-jaettava.** Lomakkeessa kenttä on "Yhtiön lainat" ja "Lainan pvm", joten määrä on `balance_eur`/`balance_date`; pääomaksi merkitään sama, kunnes käyttäjä korjaa sen. Yhdelläkään lainalliselle yhtiölle ei ole rahoitusvastiketta, joten `allocated = false`.
 
 **Uudelleenajettava tuonti.** Vain `source = 'migration'` -rivejä päivitetään (vastikkeet alkupäivän mukaan). Käsin syötetty vastikeperuste katkaisee Accessin perusteet alkupäivästään, käsin syötetty laina estää lainan tuonnin, ja laskutukseen tai lainaosuuksiin sidottua riviä ei poisteta. Ensimmäisen tuonnin virhe (voimassa oleva hoitovastike päättyi alkupäivänään) korjautuu ajossa. Kuivaharjoitus ajaa muutokset transaktiossa ja peruu ne, jolloin kannan rajoitteet tarkistuvat.
+
+## 2026-09-15 Adepta Oy:n datan siirto tuotantoon (migrate-org-to-production.mts)
+
+**Taulut katalogista, ei käsin.** Siirrettävät taulut ovat ne, joissa on organisaatiosarake tai FK-ketju sellaiseen tauluun; järjestys lasketaan FK:ista. Poissulkulista on koodissa perusteluineen (`src/lib/deploy/migrate-org.ts`): käyttäjät, jäsenyydet, kutsut, portaalioikeudet, loki, viestijono, tokenilliset linkit ja lomakkeet, rajoitin, webhook- ja HTJ-jäljitelmän lokit sekä `er_party_identifiers` (henkilötunnukset; pepper ja avain ovat ympäristökohtaisia). Uusi migraatio tulee siirtoon mukaan automaattisesti.
+
+**Arvot tekstinä, triggerit ohi, FK:t ja RLS tarkistetaan erikseen.** Rivit luetaan `::text` ja kirjoitetaan `::text::<kohteen tyyppi>`, jotta numeric, jsonb ja taulukot säilyvät. Triggerit ohitetaan `session_replication_role = replica` -tilalla (toimii Supabasen postgres-roolilla; varalla `disable trigger user`), koska esim. huoltopyynnön luontitrigger kahdentaisi tapahtumat. Koska replica-tila ohittaa myös FK-tarkistukset, kaikki kannan FK:t tarkistetaan kyselyllä ennen commitia, samoin rivimäärät ja pääkäyttäjän RLS-näkyvyys. Virhe perii koko transaktion.
+
+**Käyttäjäviittaukset:** paikallinen Jukka → tuotannon ainoa pääkäyttäjä, muut → tyhjä tai (pakollinen sarake) pääkäyttäjä ja varoitus. `er_parties.user_id` tyhjennetään aina. Organisaation id vaihdetaan kaikista tekstiarvoista (myös `storage_path`), käyttäjien UUIDt muualla raportoidaan.
+
+**Tiedostot ensin (upsert), sitten kanta.** Jos kanta kaatuu latauksen jälkeen, uudelleenajo korvaa samat polut. Tuotannossa olevaa organisaatiodataa ei ylikirjoiteta ilman lippua `--korvaa-org-data`, joka poistaa sen samassa transaktiossa ja jättää organisaation, käyttäjän, jäsenyyden ja kutsun. `.env.production.local`-tiedostosta otetaan jokaisesta muuttujasta viimeinen kelvollisen muotoinen arvo, koska Vercelin paikkamerkit ovat samoilla nimillä.
