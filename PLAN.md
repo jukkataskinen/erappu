@@ -111,3 +111,6 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Webhookin reititys kohteen mukaan (`src/lib/signing/process.ts`): pöytäkirjat ja sopimukset, sinetöity versio korvaa luonnoksen
 - [x] Seuraavan kauden erä (voimassaolo +1 vuosi, edustajat rekisteristä uudelleen)
 - [x] Työpöydän nosto: allekirjoitusta odottavat sopimukset
+
+## Jatkokehitys (Jukan toiveet)
+- [ ] Pelastussuunnitelma-generaattori: taloyhtiön pelastussuunnitelma rekisterin tiedoista (rakennukset, lämmitys, yhteiset tilat, väestönsuoja, vastuuhenkilöt) täytettävänä pohjana ja PDF:nä, vuosipäivitys vuosikelloon (lähtötilanne 15.9.2026)
