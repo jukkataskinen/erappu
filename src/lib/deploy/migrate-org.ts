@@ -354,6 +354,7 @@ export async function buildMigrationPlan(source: RawSql, target: RawSql, opts: P
           otherUserIdsInText.set(w, (otherUserIdsInText.get(w) ?? 0) + 1);
         } else if (v !== null) {
           if (v.includes(sourceOrgId)) v = v.split(sourceOrgId).join(targetOrgId);
+          if (col.name === "storage_path") v = asciiStoragePath(v);
           if (sourceUserId && v.includes(sourceUserId)) v = v.split(sourceUserId).join(targetOwner.id);
           if (v.length >= 36 && /[0-9a-f]{8}-/.test(v)) {
             for (const uid of allSourceUserIds) {
@@ -395,7 +396,7 @@ export async function buildMigrationPlan(source: RawSql, target: RawSql, opts: P
           id: idIdx === -1 ? "" : (r[idIdx] ?? ""),
           companyId: at(r, "company_id"),
           sourcePath: sp,
-          targetPath: sp.split(sourceOrgId).join(targetOrgId),
+          targetPath: asciiStoragePath(sp.split(sourceOrgId).join(targetOrgId)),
           mimeType: at(r, "mime_type") ?? "application/octet-stream",
           sizeBytes: size === null ? null : Number(size),
           sha256: at(r, "sha256"),
@@ -649,6 +650,19 @@ export interface FileCheck {
   pathMismatch: PlannedFile[];
   /** Organisaation kansiossa levyllä, mutta ei yhdelläkään siirrettävällä rivillä. */
   unreferenced: { count: number; bytes: number };
+}
+
+/**
+ * Supabase Storage hylkää avaimet, joissa on muita kuin ASCII-merkkejä
+ * ("InvalidKey"). Vanhoissa paikallisissa riveissä tiedostonimi voi olla
+ * esim. `Yhtiöjärjestys.pdf`. Sama muunnos kuin `storeFile`in avaimessa;
+ * näyttönimi (`file_name`) säilyy ennallaan.
+ */
+export function asciiStoragePath(storagePath: string): string {
+  return storagePath
+    .split("/")
+    .map((part) => part.normalize("NFKD").replace(/[^\w.-]+/g, "").replace(/\.{2,}/g, ".") || "tiedosto")
+    .join("/");
 }
 
 function pathMatches(f: PlannedFile, sourceOrgId: string): boolean {
