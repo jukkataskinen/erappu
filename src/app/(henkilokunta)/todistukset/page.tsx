@@ -9,6 +9,8 @@ import { formatDate, formatDateTime, formatEur } from "@/lib/format";
 import { listCompanies } from "@/lib/registry/queries";
 import { createStaffCertificateAction, generateCertificateAction, markDeliveredAction, setOrderStatusAction } from "./actions";
 import { OrderLinkControls } from "./OrderLinkPanel";
+import { latestKeyDocuments } from "@/lib/documents/key-documents";
+import { KeyDocumentLinks } from "@/components/KeyDocuments";
 
 export const metadata = { title: "Isännöitsijäntodistukset" };
 
@@ -29,7 +31,9 @@ export default async function CertificatesPage({ searchParams }: { searchParams:
       ),
     ]),
   );
-  const links = await ctx.run((tx) => activeOrderLinks(tx, companies.map((c) => c.id)));
+  const [links, keyDocs] = await ctx.run((tx) =>
+    Promise.all([activeOrderLinks(tx, companies.map((c) => c.id)), latestKeyDocuments(tx, companies.map((c) => c.id))]),
+  );
   const flash = await readOrderLinkFlash();
   const canWrite = ctx.can("owner", "manager", "assistant");
   const open = orders.filter((o) => o.status === "new" || o.status === "in_progress");
@@ -70,6 +74,10 @@ export default async function CertificatesPage({ searchParams }: { searchParams:
               </Link>
               <div className="text-ink/65">
                 {o.unit_label} · {CERTIFICATE_KIND[o.kind]}
+              </div>
+              <div className="mt-1.5">
+                <span className="mr-2 text-xs text-ink/55">Liitteet:</span>
+                <KeyDocumentLinks companyId={o.company_id} docs={keyDocs.get(o.company_id) ?? {}} compact />
               </div>
             </Td>
             <Td>

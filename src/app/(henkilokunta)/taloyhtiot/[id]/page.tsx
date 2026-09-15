@@ -6,6 +6,8 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { listBoard, listBuildings, listShareGroups } from "@/lib/registry/queries";
 import { BOARD_ROLE, COMPANY_FORM, REDEMPTION_CLAUSE } from "@/lib/registry/labels";
 import { checkCoverage } from "@/lib/registry/share-ranges";
+import { latestKeyDocuments } from "@/lib/documents/key-documents";
+import { KeyDocumentLinks } from "@/components/KeyDocuments";
 import * as huolto from "@/widgets/huolto";
 import * as htj from "@/widgets/htj";
 import * as talous from "@/widgets/talous";
@@ -17,11 +19,12 @@ export default async function CompanyOverviewPage({ params }: { params: Promise<
   const ctx = await requireStaff();
   const { id } = await params;
   const company = await loadCompany(ctx, id);
-  const [groups, board, buildings, manager] = await ctx.run(async (tx) =>
+  const [groups, board, buildings, keyDocs, manager] = await ctx.run(async (tx) =>
     Promise.all([
       listShareGroups(tx, id),
       listBoard(tx, id),
       listBuildings(tx, id),
+      latestKeyDocuments(tx, [id]).then((m) => m.get(id) ?? {}),
       company.manager_user_id
         ? tx.query<{ name: string }>("select coalesce(full_name, email) as name from er_users where id = $1", [company.manager_user_id])
         : Promise.resolve([]),
@@ -80,6 +83,10 @@ export default async function CompanyOverviewPage({ params }: { params: Promise<
         </Panel>
 
         <div className="grid content-start gap-6">
+        <Panel>
+          <SectionTitle actions={<Link href={`/taloyhtiot/${id}/dokumentit`} className="text-sm text-sky">Kaikki</Link>}>Perusdokumentit</SectionTitle>
+          <KeyDocumentLinks companyId={id} docs={keyDocs} />
+        </Panel>
         <Panel>
           <SectionTitle actions={<Link href={`/taloyhtiot/${id}/hallitus`} className="text-sm text-sky">Kaikki</Link>}>Hallitus</SectionTitle>
           {board.length === 0 ? (
