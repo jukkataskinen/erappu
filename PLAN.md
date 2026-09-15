@@ -113,11 +113,9 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Työpöydän nosto: allekirjoitusta odottavat sopimukset
 
 ## Pitkän aikavälin suunta (Jukka 15.9.2026)
-- [ ] Palveluntuottajille omat myynnin järjestelmät samaan tai rinnakkaiseen järjestelmään, jotta ristiinmyynti onnistuu (taloyhtiö, osakas, asukas ↔ huolto, siivous, remontit, sähkö- ja laajakaistasopimukset ym.). Huomioitavat ennen suunnittelua:
-  - Tietomalli: palveluntuottaja omana organisaatio- tai tenanttityyppinään (nyt er_service_providers on isännöintiorganisaation alla). Asiakkuus ja tarjoukset palveluntuottajan omissa tauluissa, jaettu vain se, mihin taloyhtiö tai asukas on antanut luvan.
+- [ ] Palveluntuottajille omat myynnin järjestelmät samaan tai rinnakkaiseen järjestelmään, jotta ristiinmyynti onnistuu. Periaate sama kuin Kasamasterissa: sama tieto kahdelle toimijalle (isännöitsijä ja palveluntuottaja näkevät saman kohteen, tilauksen ja historian kumpikin omasta näkymästään), ei esteellisyys- tai ohjausmekanismeja. Huomioitavat ennen suunnittelua:
+  - Tietomalli: palveluntuottaja omana organisaationaan (nyt er_service_providers on isännöintiorganisaation alla). Yhteinen tieto (kohde, tilaus, työ, kuvat) jaetaan kahden organisaation kesken, omat myyntitiedot (asiakkuudet, tarjoukset, hinnastot) pysyvät kummankin omina.
   - Suostumukset: sähköinen suoramarkkinointi kuluttajille (osakkaat, asukkaat) vaatii ennakkosuostumuksen; taloyhtiön rekisteritietoja ei voi käyttää markkinointiin ilman käyttötarkoituksen mukaista perustetta (GDPR 6 ja 21 art.).
-  - Isännöitsijän esteellisyys: isännöitsijä toimii taloyhtiön edun mukaan; oman konsernin tai kumppanin palveluiden ohjaaminen yhtiölle vaatii läpinäkyvyyden (kilpailutus, sidonnaisuuksien ilmoittaminen hallitukselle).
-  - Laskutus ja provisiot erilleen vastikkeista ja isännöintipalkkiosta.
 
 ## Jatkokehitys (Jukan toiveet)
 - [ ] Pelastussuunnitelma-generaattori: taloyhtiön pelastussuunnitelma rekisterin tiedoista (rakennukset, lämmitys, yhteiset tilat, väestönsuoja, vastuuhenkilöt) täytettävänä pohjana ja PDF:nä, vuosipäivitys vuosikelloon (lähtötilanne 15.9.2026)
