@@ -113,7 +113,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Työpöydän nosto: allekirjoitusta odottavat sopimukset
 
 ## Pitkän aikavälin suunta (Jukka 15.9.2026)
-- [ ] Palveluntuottajille omat myynnin järjestelmät samaan tai rinnakkaiseen järjestelmään, jotta ristiinmyynti onnistuu. Periaate sama kuin Kasamasterissa: sama tieto kahdelle toimijalle (isännöitsijä ja palveluntuottaja näkevät saman kohteen, tilauksen ja historian kumpikin omasta näkymästään), ei esteellisyys- tai ohjausmekanismeja. Huomioitavat ennen suunnittelua:
+- [ ] Palveluntuottajapuolen oma järjestelmä eRapun pariksi (kiinteistöhuolto, sähkö- ja putkiurakoitsijat). Sama rakenne kuin Kasamaster (toimittaja) ja suunnitteilla oleva KuokkaMaster (urakoitsija) omassa tuotantoketjussaan: kummallekin ketjun puolelle oma järjestelmä, ja yhteinen tieto (kohde, huoltopyyntö tai tilaus, toteuma, kuvat, lasku) kulkee molempiin, jotta ristiinmyynti onnistuu. eRappu ja Kasamaster/KuokkaMaster ovat eri ketjuja eivätkä liity toisiinsa. Ei esteellisyys- tai ohjausmekanismeja. Huomioitavat ennen suunnittelua:
   - Tietomalli: palveluntuottaja omana organisaationaan (nyt er_service_providers on isännöintiorganisaation alla). Yhteinen tieto (kohde, tilaus, työ, kuvat) jaetaan kahden organisaation kesken, omat myyntitiedot (asiakkuudet, tarjoukset, hinnastot) pysyvät kummankin omina.
   - Suostumukset: sähköinen suoramarkkinointi kuluttajille (osakkaat, asukkaat) vaatii ennakkosuostumuksen; taloyhtiön rekisteritietoja ei voi käyttää markkinointiin ilman käyttötarkoituksen mukaista perustetta (GDPR 6 ja 21 art.).
 
