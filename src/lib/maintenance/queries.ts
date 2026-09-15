@@ -40,14 +40,27 @@ export interface NeedRow {
   status: string;
   maintenance_work_id: string | null;
   htj_submitted_at: string | null;
+  decided_on: string | null;
 }
+
+const NEED_COLUMNS = "id, planned_year, target, action, work_type, estimate_eur::text, affects_residents, status, maintenance_work_id, htj_submitted_at::text, decided_on::text";
 
 export function listNeeds(tx: Sql, companyId: string, fromYear: number, toYear: number) {
   return tx.query<NeedRow>(
-    `select id, planned_year, target, action, work_type, estimate_eur::text, affects_residents, status, maintenance_work_id, htj_submitted_at::text
+    `select ${NEED_COLUMNS}
        from er_maintenance_needs where company_id = $1 and planned_year between $2 and $3
       order by planned_year, target`,
     [companyId, fromYear, toYear],
+  );
+}
+
+/** Päätetyt ja käynnissä olevat korjaukset vuodesta riippumatta (isännöitsijäntodistus, VNa 365/2010 5 § 12 kohta). */
+export function listDecidedNeeds(tx: Sql, companyId: string) {
+  return tx.query<NeedRow>(
+    `select ${NEED_COLUMNS}
+       from er_maintenance_needs where company_id = $1 and status in ('decided', 'in_progress')
+      order by case status when 'in_progress' then 0 else 1 end, planned_year, target`,
+    [companyId],
   );
 }
 

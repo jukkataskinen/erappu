@@ -61,6 +61,12 @@ export interface Company {
   htj_id: string | null;
   htj_synced_at: string | null;
   extra: Record<string, unknown>;
+  registered_on: string | Date | null;
+  certificate_notes: string | null;
+  mortgages_total_eur: string | null;
+  maintenance_needs_report_on: string | Date | null;
+  maintenance_plan_on: string | Date | null;
+  maintenance_plan_summary: string | null;
 }
 
 /** Kevyt nimilista sivupalkille (myös päättyneet, jotta vanhan yhtiön sivulla näkyy nimi). */

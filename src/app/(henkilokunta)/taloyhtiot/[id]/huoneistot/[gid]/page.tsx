@@ -10,6 +10,7 @@ import { CATEGORY_LABEL, VISIBILITY_LABEL, VISIBILITY_TONE, type DocumentCategor
 import type { ShareRange } from "@/lib/registry/share-ranges";
 import { InvitePartyButton } from "@/components/invitations/InvitePartyButton";
 import { ShareGroupForm } from "../ShareGroupForm";
+import { UnitCertificateForm, type UnitCertificateValues } from "../UnitCertificateForm";
 import { addPartyToShareGroup, endRelation } from "../../../actions";
 
 export const metadata = { title: "Huoneisto" };
@@ -41,7 +42,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
     const [group] = await tx.query<{
       id: string; unit_label: string; kind: string; layout: string | null; floor: string | null; area_m2: string | null;
       intended_use: string | null; building_id: string | null; is_rented: boolean; share_count: number; source: string; ranges: ShareRange[];
-    }>(
+    } & UnitCertificateValues>(
       `select g.*, coalesce((select json_agg(json_build_object('first', r.first_share, 'last', r.last_share) order by r.first_share)
                                from er_share_ranges r where r.share_group_id = g.id), '[]'::json) as ranges
          from er_share_groups g where g.id = $1 and g.company_id = $2`,
@@ -91,7 +92,10 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <ShareGroupForm companyId={id} values={group} buildings={buildings} readOnly={!canWrite || group.source === "htj"} />
+        <div className="grid content-start gap-6">
+          <ShareGroupForm companyId={id} values={group} buildings={buildings} readOnly={!canWrite || group.source === "htj"} />
+          <UnitCertificateForm companyId={id} groupId={gid} values={group} readOnly={!canWrite} />
+        </div>
 
         <div className="grid content-start gap-6">
           <Panel>

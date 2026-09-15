@@ -1,4 +1,4 @@
-import { Button, Field, Input, Panel, Select, SectionTitle } from "@/components/ui";
+import { Button, Field, Input, Panel, Select, SectionTitle, Textarea } from "@/components/ui";
 import type { Company } from "@/lib/registry/queries";
 import { REDEMPTION_CLAUSE } from "@/lib/registry/labels";
 import { toIsoDate } from "@/lib/format";
@@ -57,7 +57,21 @@ export function CompanyForm({
           <Field label="Kaupparekisterimerkintä" htmlFor="commercial_register_note">
             <Input id="commercial_register_note" name="commercial_register_note" defaultValue={c?.commercial_register_note ?? ""} />
           </Field>
+          <Field label="Rekisteröintipäivä" htmlFor="registered_on" hint="Kaupparekisteriin merkitsemisen päivä (isännöitsijäntodistus)">
+            <Input id="registered_on" name="registered_on" type="date" defaultValue={toIsoDate(c?.registered_on)} />
+          </Field>
         </div>
+      </Panel>
+
+      <Panel>
+        <SectionTitle>Isännöitsijäntodistuksen lisätiedot</SectionTitle>
+        <Field
+          label="Yhtiön lisätiedot"
+          htmlFor="certificate_notes"
+          hint="Tulostuu jokaiseen yhtiön todistukseen, esim. vireillä oleva yhtiöjärjestyksen muutos tai muu yhtiön taloudelliseen tilaan olennaisesti vaikuttava seikka."
+        >
+          <Textarea id="certificate_notes" name="certificate_notes" rows={4} maxLength={4000} defaultValue={c?.certificate_notes ?? ""} />
+        </Field>
       </Panel>
 
       <Panel>

@@ -41,6 +41,8 @@ const companySchema = z.object({
   insurance_type: optText,
   property_maintenance: optText,
   commercial_register_note: optText,
+  registered_on: optDate,
+  certificate_notes: z.preprocess(emptyToNull, z.string().max(4000).nullable()),
 });
 
 function redemptionFrom(formData: FormData) {
@@ -56,12 +58,12 @@ export async function createCompany(formData: FormData) {
       const [row] = await tx.query<{ id: string }>(
         `insert into er_housing_companies (organization_id, name, business_id, company_form, street_address, postal_code, city,
             articles_date, fiscal_year_start, total_shares, manager_user_id, management_started_on, same_charge_basis,
-            insurance_company, insurance_type, property_maintenance, commercial_register_note, redemption_clause)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) returning id`,
+            insurance_company, insurance_type, property_maintenance, commercial_register_note, redemption_clause, registered_on, certificate_notes)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) returning id`,
         [ctx.org.organizationId, data.name, data.business_id, data.company_form, data.street_address, data.postal_code, data.city,
           data.articles_date, data.fiscal_year_start, data.total_shares, data.manager_user_id ?? ctx.user.id, data.management_started_on,
           data.same_charge_basis, data.insurance_company, data.insurance_type, data.property_maintenance, data.commercial_register_note,
-          JSON.stringify(redemptionFrom(formData))],
+          JSON.stringify(redemptionFrom(formData)), data.registered_on, data.certificate_notes],
       );
       await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "create", entity: "housing_company", entityId: row.id });
       return row.id;
@@ -85,11 +87,12 @@ export async function updateCompany(formData: FormData) {
         `update er_housing_companies set name=$2, business_id=$3, company_form=$4, street_address=$5, postal_code=$6, city=$7,
             articles_date=$8, fiscal_year_start=$9, total_shares=$10, manager_user_id=$11, management_started_on=$12,
             same_charge_basis=$13, insurance_company=$14, insurance_type=$15, property_maintenance=$16,
-            commercial_register_note=$17, redemption_clause=$18
+            commercial_register_note=$17, redemption_clause=$18, registered_on=$19, certificate_notes=$20
           where id=$1 returning id`,
         [id, data.name, data.business_id, data.company_form, data.street_address, data.postal_code, data.city, data.articles_date,
           data.fiscal_year_start, data.total_shares, data.manager_user_id, data.management_started_on, data.same_charge_basis,
-          data.insurance_company, data.insurance_type, data.property_maintenance, data.commercial_register_note, JSON.stringify(redemptionFrom(formData))],
+          data.insurance_company, data.insurance_type, data.property_maintenance, data.commercial_register_note, JSON.stringify(redemptionFrom(formData)),
+          data.registered_on, data.certificate_notes],
       );
       if (r.length) await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "update", entity: "housing_company", entityId: id });
       return r;
@@ -163,6 +166,48 @@ export async function saveShareGroup(formData: FormData) {
   }
   revalidatePath(`/taloyhtiot/${companyId}/huoneistot`);
   redirect(`/taloyhtiot/${companyId}/huoneistot/${id}`);
+}
+
+const triState = z.preprocess((v) => (v === "yes" ? true : v === "no" ? false : null), z.boolean().nullable());
+
+const unitCertificateSchema = z.object({
+  certificate_notes: z.preprocess(emptyToNull, z.string().max(4000).nullable()),
+  company_possession: z.preprocess((v) => v === "on", z.boolean()),
+  company_possession_decided_on: optDate,
+  company_possession_ends_on: optDate,
+  company_rented: z.preprocess((v) => v === "on", z.boolean()),
+  widow_right: triState,
+  spouses_common_home: z.preprocess(emptyToNull, z.enum(["yes", "no", "unknown"]).nullable()),
+  other_restrictions: z.preprocess(emptyToNull, z.string().max(2000).nullable()),
+});
+
+/**
+ * Huoneiston isännöitsijäntodistuksen tiedot. Nämä ovat yhtiön omia tietoja
+ * (hallintaan otto, lisätiedot), joten ne tallennetaan myös HTJ-peräiselle
+ * osakeryhmälle, jonka perustietoja ei muuten muokata käsin.
+ */
+export async function saveUnitCertificateInfo(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const groupId = uuid.parse(formData.get("share_group_id"));
+  const back = `/taloyhtiot/${companyId}/huoneistot/${groupId}`;
+  const d = parseForm(unitCertificateSchema, formData, back);
+  if (!d.company_possession && (d.company_possession_decided_on || d.company_possession_ends_on)) fail(back, "Merkitse huoneisto yhtiön hallintaan, jos annat hallinnan päivät.");
+  if (d.company_possession && !d.company_possession_decided_on) fail(back, "Anna yhtiökokouksen päätöksen päivä.");
+  if (d.company_possession_decided_on && d.company_possession_ends_on && d.company_possession_ends_on < d.company_possession_decided_on) fail(back, "Hallinta ei voi päättyä ennen päätöstä.");
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>(
+      `update er_share_groups set certificate_notes=$3, company_possession=$4, company_possession_decided_on=$5, company_possession_ends_on=$6,
+          company_rented=$7, widow_right=$8, spouses_common_home=$9, other_restrictions=$10
+        where id=$1 and company_id=$2 returning organization_id`,
+      [groupId, companyId, d.certificate_notes, d.company_possession, d.company_possession_decided_on, d.company_possession_ends_on,
+        d.company_possession && d.company_rented, d.widow_right, d.spouses_common_home, d.other_restrictions],
+    );
+    if (rows.length === 0) fail(back, "Huoneistoa ei löytynyt.");
+    await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "share_group_certificate_info", entityId: groupId });
+  });
+  revalidatePath(back);
+  redirect(back);
 }
 
 const partySchema = z.object({

@@ -179,7 +179,7 @@ export async function addNeed(tx: Sql, opts: { companyId: string; userId: string
  * kunnossapitotyö historiaan (yhtiön tekemä) ja rivit linkitetään, jotta
  * samaa työtä ei kirjata kahdesti.
  */
-export async function setNeedStatus(tx: Sql, opts: { id: string; companyId: string; userId: string; status: NeedStatus; plannedYear?: number | null; completedYear?: number | null }): Promise<void> {
+export async function setNeedStatus(tx: Sql, opts: { id: string; companyId: string; userId: string; status: NeedStatus; plannedYear?: number | null; completedYear?: number | null; decidedOn?: string | null }): Promise<void> {
   const [need] = await tx.query<{ id: string; organization_id: string; target: string; action: string; work_type: string | null; planned_year: number; maintenance_work_id: string | null; estimate_eur: string | null }>(
     "select id, organization_id, target, action, work_type, planned_year, maintenance_work_id, estimate_eur::text from er_maintenance_needs where id = $1 and company_id = $2",
     [opts.id, opts.companyId],
@@ -197,9 +197,10 @@ export async function setNeedStatus(tx: Sql, opts: { id: string; companyId: stri
   }
   const rows = await tx.query(
     `update er_maintenance_needs set status = $2, planned_year = coalesce($3, planned_year), maintenance_work_id = $4,
-            htj_submitted_at = case when $3::smallint is not null and $3::smallint <> planned_year then null else htj_submitted_at end
+            htj_submitted_at = case when $3::smallint is not null and $3::smallint <> planned_year then null else htj_submitted_at end,
+            decided_on = case when $5::boolean then $6::date else decided_on end
       where id = $1 returning id`,
-    [opts.id, opts.status, opts.plannedYear ?? null, workId],
+    [opts.id, opts.status, opts.plannedYear ?? null, workId, opts.decidedOn !== undefined, opts.decidedOn ?? null],
   );
   if (rows.length === 0) throw new MaintenanceError("Roolillasi ei voi muokata riviä.");
   await audit(tx, { organizationId: need.organization_id, userId: opts.userId, action: "update", entity: "maintenance_need", entityId: opts.id, details: { status: opts.status } });

@@ -10,7 +10,8 @@ export const KEY_DOCUMENT_CATEGORIES = [
   { category: "financial_statement", label: "Tilinpäätös" },
   { category: "budget", label: "Talousarvio" },
   { category: "energy_certificate", label: "Energiatodistus" },
-  { category: "maintenance_plan", label: "Kunnossapitotarveselvitys" },
+  { category: "maintenance_needs_report", label: "Kunnossapitotarveselvitys" },
+  { category: "maintenance_plan", label: "Kunnossapitosuunnitelma" },
 ] as const;
 
 export type KeyCategory = (typeof KEY_DOCUMENT_CATEGORIES)[number]["category"];

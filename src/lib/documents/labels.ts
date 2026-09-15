@@ -2,7 +2,7 @@
 
 export const DOCUMENT_CATEGORIES = [
   "articles", "financial_statement", "budget", "energy_certificate", "floor_plan", "minutes", "meeting_notice",
-  "contract", "condition_assessment", "maintenance_plan", "manager_certificate", "photo", "insurance", "other",
+  "contract", "condition_assessment", "maintenance_plan", "maintenance_needs_report", "manager_certificate", "photo", "insurance", "other",
 ] as const;
 export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
 
@@ -17,6 +17,7 @@ export const CATEGORY_LABEL: Record<DocumentCategory, string> = {
   contract: "Sopimus",
   condition_assessment: "Kuntoarvio",
   maintenance_plan: "Kunnossapitosuunnitelma",
+  maintenance_needs_report: "Kunnossapitotarveselvitys",
   manager_certificate: "Isännöitsijäntodistus",
   photo: "Kuva",
   insurance: "Vakuutus",

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth/current-user";
+import { audit } from "@/lib/audit";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { isoDateHelsinki } from "@/lib/format";
 import { addNeed, MaintenanceError, processNotice, saveWork, setNeedStatus } from "@/lib/maintenance/mutations";
@@ -93,6 +94,7 @@ const needStatusSchema = z.object({
   id: uuid,
   status: z.enum(["planned", "decided", "in_progress", "done", "postponed", "cancelled"]),
   planned_year: z.preprocess(emptyToNull, z.coerce.number().int().min(2000).max(2100).nullable()),
+  decided_on: optDate,
 });
 
 export async function updateMaintenanceNeed(formData: FormData) {
@@ -100,11 +102,40 @@ export async function updateMaintenanceNeed(formData: FormData) {
   const ctx = await writer(companyId);
   const back = page(companyId);
   const d = parseForm(needStatusSchema, formData, back);
+  // Päätöspäivä päivitetään vain lomakkeelta, jossa kenttä on; muuten aiempi arvo säilyy.
+  const decidedOn = formData.has("decided_on") ? d.decided_on : undefined;
   await guarded(back, () =>
-    ctx.run((tx) => setNeedStatus(tx, { id: d.id, companyId, userId: ctx.user.id, status: d.status, plannedYear: d.planned_year, completedYear: d.status === "done" ? Number(isoDateHelsinki().slice(0, 4)) : null })),
+    ctx.run((tx) =>
+      setNeedStatus(tx, { id: d.id, companyId, userId: ctx.user.id, status: d.status, plannedYear: d.planned_year, completedYear: d.status === "done" ? Number(isoDateHelsinki().slice(0, 4)) : null, decidedOn }),
+    ),
   );
   revalidatePath(back);
   redirect(`${back}?tila=${d.status === "done" ? "kpts-valmis" : "kpts"}`);
+}
+
+const surveySchema = z.object({
+  maintenance_needs_report_on: optDate,
+  maintenance_plan_on: optDate,
+  maintenance_plan_summary: optText(2000),
+});
+
+/** Kunnossapitotarveselvityksen ja -suunnitelman päivät (VNa 365/2010 5 § 9–10 kohta). Yhtiörivi: rekisterin kirjoittajat. */
+export async function saveMaintenanceSurveys(formData: FormData) {
+  const companyId = uuid.parse(formData.get("company_id"));
+  const back = page(companyId);
+  const ctx = await requireStaff();
+  if (!ctx.can("owner", "manager", "assistant")) fail(back, "Selvitysten tiedot päivittää isännöitsijä.");
+  const d = parseForm(surveySchema, formData, back);
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>(
+      "update er_housing_companies set maintenance_needs_report_on = $2, maintenance_plan_on = $3, maintenance_plan_summary = $4 where id = $1 returning organization_id",
+      [companyId, d.maintenance_needs_report_on, d.maintenance_plan_on, d.maintenance_plan_summary],
+    );
+    if (rows.length === 0) fail(back, "Yhtiötä ei löytynyt.");
+    await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "maintenance_surveys", entityId: companyId });
+  });
+  revalidatePath(back);
+  redirect(`${back}?tila=selvitykset`);
 }
 
 const noticeSchema = z.object({

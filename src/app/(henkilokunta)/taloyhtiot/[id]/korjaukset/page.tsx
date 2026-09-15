@@ -3,12 +3,12 @@ import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
 import { Badge, Button, EmptyState, Field, Input, LinkButton, Notice, Panel, SectionTitle, Select, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
-import { formatDate, formatEur, isoDateHelsinki } from "@/lib/format";
+import { formatDate, formatEur, isoDateHelsinki, toIsoDate } from "@/lib/format";
 import { NEED_STATUS_LABEL, PERFORMED_BY_LABEL, WORK_SOURCE_LABEL, type NeedStatus } from "@/lib/maintenance/labels";
-import { listNeeds, listNotices, listWorks } from "@/lib/maintenance/queries";
+import { listDecidedNeeds, listNeeds, listNotices, listWorks } from "@/lib/maintenance/queries";
 import { OPEN_FOR_OWNER, RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
 import { isKnownWorkType, WORK_TYPE_LABELS } from "@/lib/maintenance/work-types";
-import { addMaintenanceNeed, saveMaintenanceWork, updateMaintenanceNeed } from "./actions";
+import { addMaintenanceNeed, saveMaintenanceSurveys, saveMaintenanceWork, updateMaintenanceNeed } from "./actions";
 
 export const metadata = { title: "Korjaukset" };
 
@@ -16,6 +16,7 @@ const STATE_MESSAGE: Record<string, string> = {
   tyo: "Työ tallennettiin korjaushistoriaan.",
   kpts: "Kunnossapitotarveselvitys päivitettiin.",
   "kpts-valmis": "Rivi merkittiin valmiiksi ja työ siirrettiin korjaushistoriaan.",
+  selvitykset: "Selvitysten tiedot tallennettiin.",
 };
 
 export default async function RepairsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; tila?: string; muokkaa?: string }> }) {
@@ -24,12 +25,20 @@ export default async function RepairsPage({ params, searchParams }: { params: Pr
   const { virhe, tila, muokkaa } = await searchParams;
   const company = await loadCompany(ctx, id);
   const year = Number(isoDateHelsinki().slice(0, 4));
-  const [works, needs, notices, groups] = await ctx.run(async (tx) => [
+  const [works, needs, notices, groups, decided, surveyDocs] = await ctx.run(async (tx) => [
     await listWorks(tx, id),
     await listNeeds(tx, id, year, year + 5),
     await listNotices(tx, id),
     await tx.query<{ id: string; unit_label: string }>("select id, unit_label from er_share_groups where company_id = $1 and removed_on is null order by length(unit_label), unit_label", [id]),
+    await listDecidedNeeds(tx, id),
+    await tx.query<{ category: string; id: string; title: string; created_at: string; year: number | null }>(
+      `select distinct on (category) category, id, title, created_at::text, year from er_documents
+        where company_id = $1 and share_group_id is null and category in ('maintenance_needs_report', 'maintenance_plan')
+        order by category, year desc nulls last, created_at desc`,
+      [id],
+    ),
   ] as const);
+  const surveyDoc = (category: string) => surveyDocs.find((d) => d.category === category);
   const canWrite = ctx.can("owner", "manager", "assistant", "accountant");
   const editing = muokkaa ? works.find((w) => w.id === muokkaa) ?? null : null;
   const openNotices = notices.filter((n) => OPEN_FOR_OWNER.includes(n.status));
@@ -227,6 +236,73 @@ export default async function RepairsPage({ params, searchParams }: { params: Pr
         ) : null}
       </div>
 
+      <section className="mt-8 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <div className="min-w-0">
+          <SectionTitle>Päätetyt ja käynnissä olevat korjaukset</SectionTitle>
+          {decided.length === 0 ? (
+            <p className="text-sm text-ink/65">Ei päätettyjä tai käynnissä olevia korjauksia. Merkitse selvityksen riville tila Päätetty tai Käynnissä ja päätöspäivä.</p>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Vaihe</Th>
+                  <Th>Kohde ja toimenpide</Th>
+                  <Th>Päätetty</Th>
+                  <Th>Ajoitus</Th>
+                  <Th numeric>Arvio</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {decided.map((n) => (
+                  <tr key={n.id}>
+                    <Td>
+                      <Badge tone={n.status === "in_progress" ? "warn" : "info"}>{NEED_STATUS_LABEL[n.status as NeedStatus] ?? n.status}</Badge>
+                    </Td>
+                    <Td>
+                      <span className="font-semibold">{n.target}</span>
+                      <p className="text-xs text-ink/65">{n.action}</p>
+                    </Td>
+                    <Td>{n.decided_on ? formatDate(n.decided_on) : <span className="text-xs text-amber">päivä puuttuu</span>}</Td>
+                    <Td className="tabular">{n.planned_year}</Td>
+                    <Td numeric>{formatEur(n.estimate_eur)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </div>
+        <Panel>
+          <SectionTitle>Selvitysten tila</SectionTitle>
+          <form action={saveMaintenanceSurveys} className="grid gap-3">
+            <input type="hidden" name="company_id" value={id} />
+            <fieldset disabled={!ctx.can("owner", "manager", "assistant")} className="grid gap-3">
+              <Field
+                label="Kunnossapitotarveselvitys annettu"
+                htmlFor="maintenance_needs_report_on"
+                hint={surveyDoc("maintenance_needs_report") ? `Dokumenteissa: ${surveyDoc("maintenance_needs_report")!.title}` : "Hallituksen selvitys varsinaiselle yhtiökokoukselle"}
+              >
+                <Input id="maintenance_needs_report_on" name="maintenance_needs_report_on" type="date" defaultValue={toIsoDate(company.maintenance_needs_report_on)} />
+              </Field>
+              <Field
+                label="Kunnossapitosuunnitelma (PTS) hyväksytty"
+                htmlFor="maintenance_plan_on"
+                hint={surveyDoc("maintenance_plan") ? `Dokumenteissa: ${surveyDoc("maintenance_plan")!.title}` : "Tyhjä = yhtiöllä ei ole hyväksyttyä suunnitelmaa"}
+              >
+                <Input id="maintenance_plan_on" name="maintenance_plan_on" type="date" defaultValue={toIsoDate(company.maintenance_plan_on)} />
+              </Field>
+              <Field label="Suunnitelman pääasiallinen sisältö" htmlFor="maintenance_plan_summary">
+                <Textarea id="maintenance_plan_summary" name="maintenance_plan_summary" rows={3} maxLength={2000} defaultValue={company.maintenance_plan_summary ?? ""} />
+              </Field>
+              {ctx.can("owner", "manager", "assistant") ? (
+                <div>
+                  <Button variant="secondary">Tallenna</Button>
+                </div>
+              ) : null}
+            </fieldset>
+          </form>
+        </Panel>
+      </section>
+
       <section className="mt-8">
         <SectionTitle>
           Kunnossapitotarveselvitys {year}–{year + 5}
@@ -279,6 +355,7 @@ export default async function RepairsPage({ params, searchParams }: { params: Pr
                               ))}
                             </select>
                             <input name="planned_year" defaultValue={n.planned_year} aria-label="Vuosi" inputMode="numeric" className="w-16 rounded-lg border border-line bg-paper px-2 py-1 text-sm" />
+                            <input name="decided_on" type="date" defaultValue={n.decided_on ?? ""} aria-label="Päätöspäivä" title="Päätöspäivä (päätetyt ja käynnissä olevat)" className="rounded-lg border border-line bg-paper px-2 py-1 text-sm" />
                             <button className="text-xs font-semibold text-sky">Tallenna</button>
                           </form>
                         ) : (

@@ -115,6 +115,11 @@ export interface LoanRow {
   allocated: boolean;
   purpose: string | null;
   source: string;
+  loan_type: string | null;
+  reference_rate: string | null;
+  margin_percent: string | null;
+  interest_percent: string | null;
+  undrawn_estimated_on: string | null;
   share_count: number;
   shares_original: string;
   shares_remaining: string;
@@ -125,12 +130,32 @@ export async function listLoans(tx: Sql, companyId: string): Promise<LoanRow[]> 
   return tx.query<LoanRow>(
     `select l.id, l.name, l.lender, l.principal_eur::text, l.balance_eur::text, l.balance_date::text, l.drawn_on::text, l.due_on::text,
             l.interest_terms, l.undrawn_eur::text, l.allocated, l.purpose, l.source,
+            l.loan_type, l.reference_rate, l.margin_percent::text, l.interest_percent::text, l.undrawn_estimated_on::text,
             (select count(*)::int from er_loan_shares s where s.loan_id = l.id) as share_count,
             (select coalesce(sum(s.original_eur), 0)::text from er_loan_shares s where s.loan_id = l.id) as shares_original,
             (select coalesce(sum(s.remaining_eur), 0)::text from er_loan_shares s where s.loan_id = l.id) as shares_remaining,
             (select count(*)::int from er_loan_shares s where s.loan_id = l.id and s.paid_off_on is not null) as paid_off_count
        from er_loans l where l.company_id = $1
       order by l.drawn_on desc nulls last, l.name`,
+    [companyId],
+  );
+}
+
+export interface MortgageRow {
+  id: string;
+  property_id: string | null;
+  property_code: string | null;
+  amount_eur: string;
+  holder: string | null;
+  registered_on: string | null;
+  notes: string | null;
+}
+
+export async function listMortgages(tx: Sql, companyId: string): Promise<MortgageRow[]> {
+  return tx.query<MortgageRow>(
+    `select m.id, m.property_id, p.property_code, m.amount_eur::text, m.holder, m.registered_on::text, m.notes
+       from er_property_mortgages m left join er_properties p on p.id = m.property_id
+      where m.company_id = $1 order by m.registered_on nulls last, m.created_at`,
     [companyId],
   );
 }

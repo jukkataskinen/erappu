@@ -7,6 +7,7 @@ import { formatDate, formatEur, formatNumber } from "@/lib/format";
 import { decimalInput } from "@/lib/finance/labels";
 import { listLoans, listLoanShares, sumEur } from "@/lib/finance/queries";
 import { recalcLoanShares, saveLoan, updateLoanShare } from "../../actions";
+import { LoanTermsFields } from "../../LoanTermsFields";
 
 export const metadata = { title: "Laina" };
 
@@ -76,7 +77,8 @@ export default async function LoanPage({ params, searchParams }: { params: Promi
                 <Input id="due_on" name="due_on" type="date" defaultValue={loan.due_on ?? ""} disabled={!editable} />
               </Field>
             </div>
-            <Field label="Korkoehdot" htmlFor="interest_terms">
+            <LoanTermsFields values={loan} disabled={!editable} />
+            <Field label="Korkoehdot (lisätieto)" htmlFor="interest_terms">
               <Input id="interest_terms" name="interest_terms" defaultValue={loan.interest_terms ?? ""} disabled={!editable} />
             </Field>
             <Field label="Käyttötarkoitus" htmlFor="purpose">

@@ -22,6 +22,16 @@ export const CHARGE_TYPE_TO_HTJ: Record<string, string | null> = {
   other: null,
 };
 
+/** Lainan laji isännöitsijäntodistukseen. Luottolimiitti näytetään omana taulukkonaan. */
+export const LOAN_TYPE: Record<string, string> = {
+  capital_charge: "Pääomavastikelaina",
+  financing_charge: "Rahoitusvastikelaina",
+  renovation: "Peruskorjauslaina",
+  construction: "Rakennuslaina",
+  credit_limit: "Luottolimiitti",
+  other: "Muu laina",
+};
+
 export const BASIS: Record<string, { label: string; unit: string }> = {
   area_m2: { label: "Pinta-ala", unit: "m²" },
   share: { label: "Osakkeet", unit: "osake" },

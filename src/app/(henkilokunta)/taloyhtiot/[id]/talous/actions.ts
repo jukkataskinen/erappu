@@ -157,6 +157,11 @@ const loanSchema = z.object({
   interest_terms: optText,
   purpose: optText,
   allocated: checkbox,
+  loan_type: z.preprocess(emptyToNull, z.enum(["capital_charge", "financing_charge", "renovation", "construction", "credit_limit", "other"]).nullable()),
+  reference_rate: z.preprocess(emptyToNull, z.string().max(100).nullable()),
+  margin_percent: z.preprocess(emptyToNull, z.string().transform((v) => v.replace(",", ".").replace(/[\s%]/g, "")).refine((v) => /^-?\d{1,3}(\.\d{1,3})?$/.test(v), "Marginaali on prosenttiluku, esim. 0,85.").nullable()),
+  interest_percent: z.preprocess(emptyToNull, z.string().transform((v) => v.replace(",", ".").replace(/[\s%]/g, "")).refine((v) => /^-?\d{1,3}(\.\d{1,3})?$/.test(v), "Korko on prosenttiluku, esim. 3,25.").nullable()),
+  undrawn_estimated_on: optDate,
 });
 
 export async function saveLoan(formData: FormData) {
@@ -168,12 +173,13 @@ export async function saveLoan(formData: FormData) {
   if (d.balance_eur !== null && !d.balance_date) fail(back, "Anna saldon päivämäärä.");
   const org = await orgOf(ctx, companyId);
   const id = await ctx.run(async (tx) => {
-    const values = [d.name, d.lender, d.principal_eur, d.undrawn_eur, d.balance_eur, d.balance_date, d.drawn_on, d.due_on, d.interest_terms, d.purpose, d.allocated];
+    const values = [d.name, d.lender, d.principal_eur, d.undrawn_eur, d.balance_eur, d.balance_date, d.drawn_on, d.due_on, d.interest_terms, d.purpose, d.allocated,
+      d.loan_type, d.reference_rate, d.margin_percent, d.interest_percent, d.undrawn_estimated_on];
     let rowId = loanId;
     if (rowId) {
       const r = await tx.query(
         `update er_loans set name=$3, lender=$4, principal_eur=$5, undrawn_eur=$6, balance_eur=$7, balance_date=$8, drawn_on=$9, due_on=$10,
-            interest_terms=$11, purpose=$12, allocated=$13
+            interest_terms=$11, purpose=$12, allocated=$13, loan_type=$14, reference_rate=$15, margin_percent=$16, interest_percent=$17, undrawn_estimated_on=$18
           where id = $1 and company_id = $2 and source <> 'htj' returning id`,
         [rowId, companyId, ...values],
       );
@@ -181,8 +187,8 @@ export async function saveLoan(formData: FormData) {
     } else {
       const [row] = await tx.query<{ id: string }>(
         `insert into er_loans (organization_id, company_id, name, lender, principal_eur, undrawn_eur, balance_eur, balance_date, drawn_on, due_on,
-            interest_terms, purpose, allocated)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning id`,
+            interest_terms, purpose, allocated, loan_type, reference_rate, margin_percent, interest_percent, undrawn_estimated_on)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) returning id`,
         [org, companyId, ...values],
       );
       rowId = row.id;
@@ -237,6 +243,70 @@ export async function updateLoanShare(formData: FormData) {
     );
     if (rows.length === 0) fail(back, "Lainaosuutta ei löytynyt.");
     await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: d.paid_off_on ? "paid_off" : "update", entity: "loan_share", entityId: shareId });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+// ---------------------------------------------------------------------------
+// Kiinnitykset (isännöitsijäntodistus: kohteen vakuudet)
+// ---------------------------------------------------------------------------
+const mortgageSchema = z.object({
+  amount_eur: decimal(2, "Kiinnityksen määrä on euroina, enintään kaksi desimaalia."),
+  holder: optText,
+  registered_on: optDate,
+  property_id: z.preprocess(emptyToNull, uuid.nullable()),
+  notes: optText,
+});
+
+export async function addMortgage(formData: FormData) {
+  const companyId = uuid.parse(formData.get("company_id"));
+  const back = base(companyId);
+  const ctx = await financeWriter(companyId);
+  const d = parseForm(mortgageSchema, formData, back);
+  const org = await orgOf(ctx, companyId);
+  await ctx.run(async (tx) => {
+    if (d.property_id) {
+      const [p] = await tx.query("select 1 from er_properties where id = $1 and company_id = $2", [d.property_id, companyId]);
+      if (!p) fail(back, "Kiinteistöä ei löytynyt.");
+    }
+    const [row] = await tx.query<{ id: string }>(
+      `insert into er_property_mortgages (organization_id, company_id, property_id, amount_eur, holder, registered_on, notes)
+       values ($1,$2,$3,$4,$5,$6,$7) returning id`,
+      [org, companyId, d.property_id, d.amount_eur, d.holder, d.registered_on, d.notes],
+    );
+    await audit(tx, { organizationId: org, userId: ctx.user.id, action: "create", entity: "property_mortgage", entityId: row.id });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+export async function deleteMortgage(formData: FormData) {
+  const companyId = uuid.parse(formData.get("company_id"));
+  const id = uuid.parse(formData.get("id"));
+  const back = base(companyId);
+  const ctx = await financeWriter(companyId);
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>("delete from er_property_mortgages where id = $1 and company_id = $2 returning organization_id", [id, companyId]);
+    if (rows[0]) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "delete", entity: "property_mortgage", entityId: id });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
+
+/**
+ * Kiinnitykset yhteensä, kun panttikirjoja ei eritellä. Yhtiörivin päivitys
+ * vaatii rekisterin kirjoitusoikeuden (0002), joten kirjanpitäjä ei muuta tätä.
+ */
+export async function saveMortgageTotal(formData: FormData) {
+  const companyId = uuid.parse(formData.get("company_id"));
+  const back = base(companyId);
+  const ctx = await financeWriter(companyId);
+  if (!ctx.can("owner", "manager", "assistant")) fail(back, "Kiinnitysten yhteismäärän muuttaa isännöitsijä.");
+  const d = parseForm(z.object({ mortgages_total_eur: optDecimal(2, "Kiinnitysten määrä on euroina.") }), formData, back);
+  await ctx.run(async (tx) => {
+    const rows = await tx.query<{ organization_id: string }>("update er_housing_companies set mortgages_total_eur = $2 where id = $1 returning organization_id", [companyId, d.mortgages_total_eur]);
+    if (rows[0]) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "mortgages_total", entityId: companyId });
   });
   revalidatePath(back);
   redirect(back);

@@ -7,11 +7,13 @@ import { formatDate, formatDateTime, formatEur, isoDateHelsinki } from "@/lib/fo
 import { formatReference } from "@/lib/validation/finnish";
 import { isEffectiveOn } from "@/lib/finance/charges";
 import { BASIS, CHARGE_TYPE, RUN_STATUS, formatPrice, trimDecimal, UNIT_KIND } from "@/lib/finance/labels";
-import { accrualCents, getBillingSettings, listImports, listLoans, listRuns, listUnitFinance, loadChargeBases, maintenanceRate, sumEur } from "@/lib/finance/queries";
+import { accrualCents, getBillingSettings, listImports, listLoans, listMortgages, listRuns, listUnitFinance, loadChargeBases, maintenanceRate, sumEur } from "@/lib/finance/queries";
 import { loadBillableGroups } from "@/lib/finance/billing";
 import { monthPeriod } from "@/lib/finance/dates";
 import { centsToDecimal } from "@/lib/finance/money";
-import { addBasis, createRun, importPayments, saveBillingSettings, saveLoan } from "./actions";
+import { listProperties } from "@/lib/registry/queries";
+import { addBasis, addMortgage, createRun, deleteMortgage, importPayments, saveBillingSettings, saveLoan, saveMortgageTotal } from "./actions";
+import { LoanTermsFields } from "./LoanTermsFields";
 
 export const metadata = { title: "Talous" };
 
@@ -25,16 +27,19 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
   const data = await ctx.run(async (tx) => {
     const settings = await getBillingSettings(tx, id);
     const bases = await loadChargeBases(tx, id);
-    const [loans, runs, imports, units, groups] = await Promise.all([
+    const [loans, runs, imports, units, groups, mortgages, properties] = await Promise.all([
       listLoans(tx, id),
       listRuns(tx, id, 12),
       listImports(tx, id, 5),
       listUnitFinance(tx, id, today, settings, bases),
       loadBillableGroups(tx, id, today),
+      listMortgages(tx, id),
+      listProperties(tx, id),
     ]);
-    return { settings, bases, loans, runs, imports, units, groups };
+    return { settings, bases, loans, runs, imports, units, groups, mortgages, properties };
   });
-  const { settings, bases, loans, runs, imports, units, groups } = data;
+  const { settings, bases, loans, runs, imports, units, groups, mortgages, properties } = data;
+  const mortgagesSum = sumEur(mortgages.map((m) => m.amount_eur));
   const canWrite = ctx.can("owner", "manager", "assistant", "accountant");
 
   const rate = maintenanceRate(bases, today);
@@ -342,8 +347,9 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
                       <Input id="due_on" name="due_on" type="date" />
                     </Field>
                   </div>
-                  <Field label="Korkoehdot" htmlFor="interest_terms">
-                    <Input id="interest_terms" name="interest_terms" placeholder="12 kk euribor + 0,85 %" />
+                  <LoanTermsFields />
+                  <Field label="Korkoehdot (lisätieto)" htmlFor="interest_terms">
+                    <Input id="interest_terms" name="interest_terms" placeholder="esim. korkokatto 4 %" />
                   </Field>
                   <Field label="Käyttötarkoitus" htmlFor="purpose">
                     <Input id="purpose" name="purpose" />
@@ -356,6 +362,87 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
                   </div>
                 </form>
               </details>
+            ) : null}
+          </Panel>
+
+          <Panel>
+            <SectionTitle>Kiinnitykset</SectionTitle>
+            <p className="mb-3 text-sm text-ink/65">Yhtiön kiinteistöihin vahvistetut kiinnitykset (panttikirjat) ja niiden haltijat. Tulostuvat isännöitsijäntodistukseen.</p>
+            {mortgages.length === 0 ? (
+              <p className="text-sm text-ink/65">Kiinnityksiä ei ole eritelty.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {mortgages.map((m) => (
+                  <li key={m.id} className="flex items-start justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="tabular font-semibold">{formatEur(m.amount_eur)}</p>
+                      <p className="text-sm text-ink/60">{[m.holder, m.property_code, m.registered_on ? formatDate(m.registered_on) : null].filter(Boolean).join(" · ") || "–"}</p>
+                      {m.notes ? <p className="text-xs text-ink/55">{m.notes}</p> : null}
+                    </div>
+                    {canWrite ? (
+                      <form action={deleteMortgage}>
+                        <input type="hidden" name="company_id" value={id} />
+                        <input type="hidden" name="id" value={m.id} />
+                        <button className="text-xs text-coral">Poista</button>
+                      </form>
+                    ) : null}
+                  </li>
+                ))}
+                <li className="flex justify-between py-2.5 text-sm font-semibold">
+                  <span>Yhteensä</span>
+                  <span className="tabular">{formatEur(mortgagesSum)}</span>
+                </li>
+              </ul>
+            )}
+            {canWrite ? (
+              <details className="mt-4 border-t border-line pt-4">
+                <summary className="cursor-pointer text-sm font-semibold">Lisää kiinnitys</summary>
+                <form action={addMortgage} className="mt-3 grid gap-3">
+                  <input type="hidden" name="company_id" value={id} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Määrä (€)" htmlFor="amount_eur">
+                      <Input id="amount_eur" name="amount_eur" inputMode="decimal" required />
+                    </Field>
+                    <Field label="Vahvistettu" htmlFor="registered_on">
+                      <Input id="registered_on" name="registered_on" type="date" />
+                    </Field>
+                  </div>
+                  <Field label="Haltija tai vakuus" htmlFor="holder" hint="esim. Esimerkkipankki, laina 2023 tai yhtiön hallussa">
+                    <Input id="holder" name="holder" />
+                  </Field>
+                  {properties.length > 0 ? (
+                    <Field label="Kiinteistö" htmlFor="property_id">
+                      <Select id="property_id" name="property_id" defaultValue="">
+                        <option value="">Ei eritelty</option>
+                        {properties.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.property_code}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  ) : null}
+                  <Field label="Lisätieto" htmlFor="mortgage_notes">
+                    <Input id="mortgage_notes" name="notes" />
+                  </Field>
+                  <div>
+                    <Button variant="secondary">Lisää kiinnitys</Button>
+                  </div>
+                </form>
+              </details>
+            ) : null}
+            {mortgages.length === 0 ? (
+              <form action={saveMortgageTotal} className="mt-4 grid gap-3 border-t border-line pt-4">
+                <input type="hidden" name="company_id" value={id} />
+                <Field label="Kiinnitykset yhteensä (€)" htmlFor="mortgages_total_eur" hint="Jos panttikirjoja ei eritellä">
+                  <Input id="mortgages_total_eur" name="mortgages_total_eur" inputMode="decimal" defaultValue={company.mortgages_total_eur?.replace(".", ",") ?? ""} disabled={!ctx.can("owner", "manager", "assistant")} />
+                </Field>
+                {ctx.can("owner", "manager", "assistant") ? (
+                  <div>
+                    <Button variant="secondary">Tallenna</Button>
+                  </div>
+                ) : null}
+              </form>
             ) : null}
           </Panel>
 
