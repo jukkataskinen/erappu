@@ -190,3 +190,13 @@
 **RLS: erän organisaatio security definer -funktiolla** (`er_contract_batch_org`), koska `er_contract_batches`-politiikka ei voi kysyä omaa tauluaan (rekursio). Rivin tarkistus varmistaa, että yhtiö, erä, sopimus ja dokumentit ovat samasta organisaatiosta. Hallitus lukee oman yhtiönsä erän rivit (allekirjoitustila), ei eriä.
 
 **Seuraavan kauden erä** kopioi pohjan, urakoitsijan, yhteiset arvot (päivämääräkentät +1 vuosi, karkauspäivä → 28.2.) ja aktiivisten yhtiöiden yhtiökohtaiset arvot. Tilaajan edustaja haetaan rekisteristä uudelleen, ja muutos näytetään taulukossa edelliseen erään verrattuna. Otsikon vuosiluvut kasvavat yhdellä.
+
+## 2026-09-15 Navigaatio: ensin yhtiö, sitten moduuli
+
+**Sivupalkissa vain Työpöytä, Taloyhtiöt ja organisaatiotason kohdat** (Palveluntuottajat, Asetukset). Jukan palaute: lähes kaikki työ kohdistuu yhteen yhtiöön, joten moduulilinkit organisaatiotasolla olivat epäloogisia. Globaalit reitit (/huoltopyynnot, /talous, /vuosikello jne.) jäävät toimimaan työpöydän ja muiden linkkien käyttöön. Yhtiön sisällä sivupalkissa näkyy valittu yhtiö ja "Vaihda yhtiö"; yhtiö päätellään osoitteesta client-komponentissa, koska kehys ei renderöidy uudelleen sivujen välillä, ja nimet haetaan kehykselle kevyellä `listCompanyNames`-kyselyllä.
+
+**Yhtiön etusivu on moduulikorttien ruudukko** (3/2/1 saraketta) ryhmissä Rekisteri, Arki, Talous ja hallinto. Moduulit ja roolirajaukset ovat `src/config/company-tabs.ts`:ssä (entinen välilehtilista). Tilarivit tulevat yhdestä skalaarialikyselystä ja sopimuslistasta (`src/lib/registry/company-modules.ts`) käyttäjän transaktiossa, joten RLS rajaa luvut kuten moduulisivuilla. HTJ on Rekisteri-ryhmässä, koska osakeluettelo on HTJ:ssä. Entinen Yleiset-sivu siirtyi sellaisenaan polkuun /taloyhtiot/[id]/perustiedot (nostot mukana); muokkauksen jälkeen palataan sinne, uuden yhtiön luonnin jälkeen korttinäkymään.
+
+**Moduulisivuilla välilehtirivin tilalla murupolku** "Taloyhtiöt / Yhtiö / Moduuli", otsikkona moduulin nimi. Alasivut (huoneisto, laina, kokous) antavat murupolkuun viimeisen osan `sub`-propilla ja pitävät oman väliotsikkonsa.
+
+**Yhtiökohtaiset tiedotteet, vuosikello, varaukset, sopimukset, kulutus ja todistukset** käyttävät samaa näkymäkomponenttia kuin globaali sivu (`*View.tsx` moduulin kansiossa) yhtiöön lukittuna: yhtiösuodatin ja -sarake piilotetaan, "uusi"-linkit esitäyttävät yhtiön `?yhtio=`-parametrilla. Otsikko annetaan näkymälle propina, koska alaotsikko tai toiminnot voivat riippua haetuista riveistä. Huoltopyynnöt olivat jo yhtiön Huolto-sivulla. Lomakkeiden paluuosoite kulkee piilokenttänä `back`, ja actionit hyväksyvät vain oman moduulinsa globaalin polun tai `/taloyhtiot/<uuid>/<moduuli>`-polun, jottei lomakkeella voi ohjata muualle.

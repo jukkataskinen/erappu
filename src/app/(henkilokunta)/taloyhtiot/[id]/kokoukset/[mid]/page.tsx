@@ -82,7 +82,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <CompanyHeader company={company} active="kokoukset" />
+      <CompanyHeader company={company} active="kokoukset" sub="Kokous" />
       <FormError message={virhe} />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">

@@ -1,30 +1,27 @@
+import type { IconName } from "@/components/NavIcon";
 import type { OrgRole } from "@/lib/auth/current-user";
 
 /**
- * Henkilökunnan päänavigaatio. Jokainen moduuli omistaa oman polkunsa;
- * tämä lista on ainoa paikka, jossa ne luetellaan yhdessä.
+ * Henkilökunnan päänavigaatio. Lähes kaikki työ kohdistuu yhteen taloyhtiöön,
+ * joten moduulit avataan yhtiön korttinäkymästä (`company-tabs.ts`), eikä
+ * sivupalkissa ole niille omia linkkejä. Globaalit reitit (/huoltopyynnot,
+ * /talous jne.) ovat edelleen olemassa työpöydän ja muiden linkkien käyttöön.
  */
 export interface NavItem {
   href: string;
   label: string;
-  icon: "home" | "building" | "wrench" | "registry" | "coins" | "calendar" | "megaphone" | "folder" | "list" | "gear" | "users";
+  icon: IconName;
   roles?: OrgRole[];
 }
 
+/** Yläosa: työpöytä ja yhtiön valinta. */
 export const STAFF_NAV: NavItem[] = [
   { href: "/tyopoyta", label: "Työpöytä", icon: "home" },
   { href: "/taloyhtiot", label: "Taloyhtiöt", icon: "building" },
-  { href: "/huoltopyynnot", label: "Huoltopyynnöt", icon: "wrench" },
-  { href: "/htj", label: "HTJ", icon: "registry", roles: ["owner", "manager", "accountant", "assistant"] },
-  { href: "/talous", label: "Talous", icon: "coins" },
-  { href: "/kokoukset", label: "Kokoukset", icon: "calendar" },
-  { href: "/tiedotteet", label: "Tiedotteet", icon: "megaphone" },
-  { href: "/dokumentit", label: "Dokumentit", icon: "folder" },
-  { href: "/vuosikello", label: "Vuosikello", icon: "list" },
-  { href: "/varaukset", label: "Varaukset", icon: "calendar" },
-  { href: "/sopimukset", label: "Sopimukset", icon: "registry" },
-  { href: "/kulutus", label: "Kulutus", icon: "coins" },
-  { href: "/todistukset", label: "Todistukset", icon: "folder", roles: ["owner", "manager", "assistant"] },
+];
+
+/** Alaosa: organisaatiotason asiat, jotka eivät kuulu yhteen yhtiöön. */
+export const STAFF_NAV_ORG: NavItem[] = [
   { href: "/palveluntuottajat", label: "Palveluntuottajat", icon: "users" },
   { href: "/asetukset", label: "Asetukset", icon: "gear", roles: ["owner", "manager"] },
 ];

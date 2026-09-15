@@ -63,6 +63,11 @@ export interface Company {
   extra: Record<string, unknown>;
 }
 
+/** Kevyt nimilista sivupalkille (myös päättyneet, jotta vanhan yhtiön sivulla näkyy nimi). */
+export async function listCompanyNames(tx: Sql, organizationId: string): Promise<{ id: string; name: string }[]> {
+  return tx.query<{ id: string; name: string }>("select id, name from er_housing_companies where organization_id = $1 order by name", [organizationId]);
+}
+
 export async function getCompany(tx: Sql, id: string): Promise<Company | null> {
   const [row] = await tx.query<Company>("select * from er_housing_companies where id = $1", [id]);
   return row ?? null;

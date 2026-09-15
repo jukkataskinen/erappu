@@ -15,12 +15,19 @@ import { isIsoDate } from "@/lib/tasks/dates";
 const uuid = z.string().uuid();
 const MAX_CSV_BYTES = 1_000_000;
 
-function back(companyId: string | null, utility?: string | null, extra = "") {
+/** Lomake voi tulla myös yhtiön kulutussivulta; muut osoitteet ohjataan /kulutus-sivulle. */
+function baseFrom(formData: FormData): string {
+  const v = String(formData.get("back") ?? "");
+  return /^\/taloyhtiot\/[0-9a-f-]{36}\/kulutus$/i.test(v) ? v : "/kulutus";
+}
+
+function back(base: string, companyId: string | null, utility?: string | null, extra = "") {
   const p = new URLSearchParams();
-  if (companyId) p.set("yhtio", companyId);
+  // Yhtiön omalla sivulla yhtiö on jo polussa.
+  if (companyId && base === "/kulutus") p.set("yhtio", companyId);
   if (utility && (UTILITIES as readonly string[]).includes(utility)) p.set("laji", utility);
   const q = p.toString();
-  return `/kulutus${q ? `?${q}` : ""}${extra ? `${q ? "&" : "?"}${extra}` : ""}`;
+  return `${base}${q ? `?${q}` : ""}${extra ? `${q ? "&" : "?"}${extra}` : ""}`;
 }
 
 const readingSchema = z
@@ -54,11 +61,12 @@ const readingSchema = z
 export async function addReadingAction(formData: FormData) {
   const ctx = await requireStaff();
   const companyId = uuid.safeParse(formData.get("company_id"));
-  const to = back(companyId.success ? companyId.data : null, String(formData.get("utility") ?? ""));
+  const base = baseFrom(formData);
+  const to = back(base, companyId.success ? companyId.data : null, String(formData.get("utility") ?? ""));
   const data = parseForm(readingSchema, formData, to);
   await ctx.run(async (tx) => {
     const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [data.company_id]);
-    if (!company) fail("/kulutus", "Yhtiötä ei löytynyt.");
+    if (!company) fail(to, "Yhtiötä ei löytynyt.");
     await upsertReading(tx, {
       organizationId: company.organization_id, companyId: data.company_id, utility: data.utility, periodStart: data.period_start, periodEnd: data.period_end,
       amount: data.amount, unit: data.unit, costEur: data.cost_eur, source: "manual", createdBy: ctx.user.id,
@@ -66,13 +74,14 @@ export async function addReadingAction(formData: FormData) {
     await audit(tx, { organizationId: company.organization_id, userId: ctx.user.id, action: "upsert", entity: "consumption_reading", entityId: data.company_id });
   });
   revalidatePath("/kulutus");
-  redirect(back(data.company_id, data.utility, `vuosi=${data.period_start.slice(0, 4)}&tallennettu=1`));
+  redirect(back(base, data.company_id, data.utility, `vuosi=${data.period_start.slice(0, 4)}&tallennettu=1`));
 }
 
 export async function importCsvAction(formData: FormData) {
   const ctx = await requireStaff();
   const selected = uuid.safeParse(formData.get("company_id"));
-  const to = back(selected.success ? selected.data : null);
+  const base = baseFrom(formData);
+  const to = back(base, selected.success ? selected.data : null);
 
   let text = String(formData.get("csv_text") ?? "");
   const file = formData.get("file");
@@ -115,7 +124,7 @@ export async function importCsvAction(formData: FormData) {
     return { inserted, updated, companyId: resolved[0].company!.id };
   });
   revalidatePath("/kulutus");
-  redirect(back(selected.success ? selected.data : result.companyId, null, `tuotu=${result.inserted}&paivitetty=${result.updated}`));
+  redirect(back(base, selected.success ? selected.data : result.companyId, null, `tuotu=${result.inserted}&paivitetty=${result.updated}`));
 }
 
 export async function deleteReadingAction(formData: FormData) {
@@ -130,5 +139,6 @@ export async function deleteReadingAction(formData: FormData) {
     return r;
   });
   revalidatePath("/kulutus");
-  redirect(rows[0] ? back(rows[0].company_id, rows[0].utility, `vuosi=${rows[0].year}`) : "/kulutus");
+  const base = baseFrom(formData);
+  redirect(rows[0] ? back(base, rows[0].company_id, rows[0].utility, `vuosi=${rows[0].year}`) : base);
 }

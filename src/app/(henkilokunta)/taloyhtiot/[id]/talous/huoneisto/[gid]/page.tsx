@@ -67,7 +67,7 @@ export default async function UnitFinancePage({ params }: { params: Promise<{ id
 
   return (
     <>
-      <CompanyHeader company={company} active="talous" />
+      <CompanyHeader company={company} active="talous" sub={`Huoneisto ${group.unit_label}`} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl">Huoneisto {group.unit_label}</h2>

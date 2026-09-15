@@ -47,7 +47,9 @@ async function writer(back: string) {
 
 export async function saveResourceAction(formData: FormData) {
   const id = z.preprocess(emptyToNull, uuid.nullable()).parse(formData.get("id"));
-  const back = id ? `/varaukset/${id}` : "/varaukset";
+  // Uusi kohde voidaan lisätä myös yhtiön varaussivulta; virhe palaa sinne.
+  const from = String(formData.get("back") ?? "");
+  const back = id ? `/varaukset/${id}` : /^\/taloyhtiot\/[0-9a-f-]{36}\/varaukset$/i.test(from) ? from : "/varaukset";
   const ctx = await writer(back);
   const data = parseForm(resourceSchema, formData, back);
   const hours = openHoursFrom(formData, back);

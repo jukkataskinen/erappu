@@ -3,11 +3,24 @@ import type { ResourceRow } from "@/lib/bookings/queries";
 import { WEEKDAY_LABEL, WEEKDAYS } from "@/lib/bookings/slots";
 import { saveResourceAction } from "./actions";
 
-export function ResourceForm({ resource, companies, defaultCompanyId, readOnly }: { resource?: ResourceRow | null; companies?: { id: string; name: string }[]; defaultCompanyId?: string; readOnly?: boolean }) {
+export function ResourceForm({
+  resource,
+  companies,
+  defaultCompanyId,
+  readOnly,
+  back,
+}: {
+  resource?: ResourceRow | null;
+  companies?: { id: string; name: string }[];
+  defaultCompanyId?: string;
+  readOnly?: boolean;
+  back?: string;
+}) {
   const r = resource;
   return (
     <form action={saveResourceAction}>
       {r ? <input type="hidden" name="id" value={r.id} /> : null}
+      {back ? <input type="hidden" name="back" value={back} /> : null}
       <fieldset disabled={readOnly} className="grid gap-4">
         {!r && companies ? (
           <Field label="Taloyhtiö" htmlFor="company_id">

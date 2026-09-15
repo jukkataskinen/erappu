@@ -14,7 +14,7 @@ export default async function NewShareGroupPage({ params, searchParams }: { para
   const { virhe } = await searchParams;
   return (
     <>
-      <CompanyHeader company={company} active="huoneistot" />
+      <CompanyHeader company={company} active="huoneistot" sub="Uusi huoneisto" />
       <h2 className="mb-4 text-xl">Uusi huoneisto</h2>
       <FormError message={virhe} />
       <ShareGroupForm companyId={id} buildings={buildings} />

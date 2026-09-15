@@ -76,7 +76,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
 
   return (
     <>
-      <CompanyHeader company={company} active="huoneistot" />
+      <CompanyHeader company={company} active="huoneistot" sub={`Huoneisto ${group.unit_label}`} />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h2 className="text-xl">Huoneisto {group.unit_label}</h2>
         <Badge tone={group.source === "htj" ? "ok" : "neutral"}>{SOURCE[group.source]}</Badge>

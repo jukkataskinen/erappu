@@ -23,7 +23,7 @@ async function writer(back: string) {
 
 function safeBack(value: FormDataEntryValue | null): string {
   const v = typeof value === "string" ? value : "";
-  return /^\/(todistukset|taloyhtiot\/[0-9a-f-]{36}\/kokoukset)$/.test(v) ? v : "/todistukset";
+  return /^\/(todistukset|taloyhtiot\/[0-9a-f-]{36}\/(kokoukset|todistukset))$/.test(v) ? v : "/todistukset";
 }
 
 export async function createOrderLinkAction(formData: FormData) {
@@ -70,7 +70,7 @@ const staffOrderSchema = z.object({
 
 /** "Uusi todistus" suoraan huoneistosta: tilausrivi ja PDF heti. */
 export async function createStaffCertificateAction(formData: FormData) {
-  const back = "/todistukset";
+  const back = safeBack(formData.get("back"));
   const ctx = await writer(back);
   const d = parseForm(staffOrderSchema, formData, back);
   const orderId = await ctx.run(async (tx) => {
@@ -92,7 +92,7 @@ export async function createStaffCertificateAction(formData: FormData) {
 }
 
 export async function generateCertificateAction(formData: FormData) {
-  const back = "/todistukset";
+  const back = safeBack(formData.get("back"));
   const ctx = await writer(back);
   const orderId = uuid.parse(formData.get("order_id"));
   const docId = await generateCertificateForOrder(ctx.run, ctx.user.id, orderId);
@@ -102,7 +102,7 @@ export async function generateCertificateAction(formData: FormData) {
 }
 
 export async function markDeliveredAction(formData: FormData) {
-  const back = "/todistukset";
+  const back = safeBack(formData.get("back"));
   const ctx = await writer(back);
   const orderId = uuid.parse(formData.get("order_id"));
   const ok = await ctx.run(async (tx) => {
@@ -117,7 +117,7 @@ export async function markDeliveredAction(formData: FormData) {
 }
 
 export async function setOrderStatusAction(formData: FormData) {
-  const back = "/todistukset";
+  const back = safeBack(formData.get("back"));
   const ctx = await writer(back);
   const orderId = uuid.parse(formData.get("order_id"));
   const status = z.enum(["invoiced", "cancelled"]).parse(formData.get("status"));

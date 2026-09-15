@@ -100,7 +100,7 @@ export async function updateCompany(formData: FormData) {
     throw err;
   }
   revalidatePath(`/taloyhtiot/${id}`);
-  redirect(`/taloyhtiot/${id}`);
+  redirect(`/taloyhtiot/${id}/perustiedot`);
 }
 
 const shareGroupSchema = z.object({

@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { Brand } from "./Brand";
 import { NavIcon } from "./NavIcon";
 import { NavLink } from "./NavLink";
-import { STAFF_NAV } from "@/config/nav";
+import { CurrentCompanyNav } from "./CurrentCompanyNav";
+import { STAFF_NAV, STAFF_NAV_ORG, type NavItem } from "@/config/nav";
 import type { StaffContext } from "@/lib/auth/current-user";
 import { switchOrganization } from "@/app/actions/session";
 
@@ -13,8 +14,10 @@ const ROLE_LABEL = { owner: "Pääkäyttäjä", manager: "Isännöitsijä", acco
  * Henkilökunnan kehys: sivupalkki työpöydällä, vaakasuuntainen valikko
  * kapealla näytöllä. Taulukot tarvitsevat tilaa, joten sisältöalue on leveä.
  */
-export function StaffShell({ ctx, children }: { ctx: StaffContext; children: ReactNode }) {
-  const items = STAFF_NAV.filter((i) => !i.roles || i.roles.includes(ctx.org.role));
+export function StaffShell({ ctx, companies, children }: { ctx: StaffContext; companies: { id: string; name: string }[]; children: ReactNode }) {
+  const allowed = (i: NavItem) => !i.roles || i.roles.includes(ctx.org.role);
+  const items = STAFF_NAV.filter(allowed);
+  const orgItems = STAFF_NAV_ORG.filter(allowed);
   const hasPortal = ctx.user.portal.length > 0;
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -45,6 +48,18 @@ export function StaffShell({ ctx, children }: { ctx: StaffContext; children: Rea
               <span>{item.label}</span>
             </NavLink>
           ))}
+          <CurrentCompanyNav companies={companies} />
+          {orgItems.length > 0 ? (
+            <>
+              <span aria-hidden className="mx-1 w-px shrink-0 self-stretch bg-line lg:mx-0 lg:my-3 lg:h-px lg:w-auto" />
+              {orgItems.map((item) => (
+                <NavLink key={item.href} href={item.href}>
+                  <NavIcon name={item.icon} />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </>
+          ) : null}
         </nav>
         <div className="hidden shrink-0 border-t border-line px-5 py-4 text-sm lg:block">
           <p className="truncate font-semibold">{ctx.user.fullName ?? ctx.user.email}</p>

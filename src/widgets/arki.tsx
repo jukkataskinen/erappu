@@ -110,16 +110,16 @@ export async function CompanyOverviewWidget({ ctx, companyId }: { ctx: StaffCont
 
   return (
     <Panel>
-      <SectionTitle actions={<Link href={`/vuosikello?yhtio=${companyId}`} className="text-sm text-sky">Vuosikello</Link>}>Seuraavat tehtävät</SectionTitle>
+      <SectionTitle actions={<Link href={`/taloyhtiot/${companyId}/vuosikello`} className="text-sm text-sky">Vuosikello</Link>}>Seuraavat tehtävät</SectionTitle>
       {tasks.length === 0 ? (
         <p className="text-sm text-ink/65">
-          Ei avoimia tehtäviä. <Link href={`/vuosikello?yhtio=${companyId}`} className="text-sky">Luo vakiovuosikello</Link>
+          Ei avoimia tehtäviä. <Link href={`/taloyhtiot/${companyId}/vuosikello`} className="text-sky">Luo vakiovuosikello</Link>
         </p>
       ) : (
         <TaskLines tasks={tasks} today={today} />
       )}
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3 text-sm">
-        <Link href={`/sopimukset?yhtio=${companyId}`} className="hover:text-sky">
+        <Link href={`/taloyhtiot/${companyId}/sopimukset`} className="hover:text-sky">
           Voimassa olevat sopimukset: <span className="font-semibold">{active.length}</span>
         </Link>
         {endingSoon > 0 ? <Badge tone="warn">{endingSoon} päättymässä</Badge> : null}

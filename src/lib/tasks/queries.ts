@@ -85,10 +85,12 @@ export async function getTask(tx: Sql, id: string): Promise<TaskRow | null> {
   return row ? mapTask(row) : null;
 }
 
-export async function listRecentlyDone(tx: Sql, organizationId: string, limit = 20): Promise<TaskRow[]> {
+export async function listRecentlyDone(tx: Sql, organizationId: string, limit = 20, companyId: string | null = null): Promise<TaskRow[]> {
   const rows = await tx.query<TaskRow>(
-    `select ${TASK_COLUMNS} ${TASK_FROM} where t.organization_id = $1 and t.done_at is not null order by t.done_at desc limit $2`,
-    [organizationId, limit],
+    `select ${TASK_COLUMNS} ${TASK_FROM}
+      where t.organization_id = $1 and t.done_at is not null and ($3::uuid is null or t.company_id = $3::uuid)
+      order by t.done_at desc limit $2`,
+    [organizationId, limit, companyId],
   );
   return rows.map(mapTask);
 }

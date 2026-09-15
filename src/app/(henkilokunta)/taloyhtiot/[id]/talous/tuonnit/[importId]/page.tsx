@@ -26,7 +26,7 @@ export default async function PaymentImportPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <CompanyHeader company={company} active="talous" />
+      <CompanyHeader company={company} active="talous" sub="Maksutilanteen tuonti" />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl">Maksutilanne {formatDate(imp.as_of)}</h2>
         <LinkButton variant="ghost" href={`/taloyhtiot/${id}/talous`}>

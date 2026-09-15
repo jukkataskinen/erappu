@@ -45,7 +45,10 @@ for (const p of [
 ]) await check(p, staffSub);
 
 if (cid) {
-  for (const tab of ["", "/muokkaa", "/osakkaat", "/hallitus", "/kiinteisto", "/huolto", "/talous", "/korjaukset", "/kokoukset", "/dokumentit", "/htj", "/htj/yhteenveto"]) {
+  for (const tab of [
+    "", "/perustiedot", "/muokkaa", "/osakkaat", "/hallitus", "/kiinteisto", "/huolto", "/talous", "/korjaukset", "/kokoukset", "/dokumentit", "/htj", "/htj/yhteenveto",
+    "/tiedotteet", "/vuosikello", "/varaukset", "/sopimukset", "/kulutus", "/todistukset",
+  ]) {
     await check(`/taloyhtiot/${cid}${tab}`, staffSub);
   }
   if (gid) {

@@ -23,7 +23,7 @@ export default async function NoticePage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <CompanyHeader company={company} active="korjaukset" />
+      <CompanyHeader company={company} active="korjaukset" sub="Muutostyöilmoitus" />
       <FormError message={virhe} />
       {tila === "tallennettu" ? (
         <div className="mb-5" role="status">

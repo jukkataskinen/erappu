@@ -32,7 +32,7 @@ export default async function LoanPage({ params, searchParams }: { params: Promi
 
   return (
     <>
-      <CompanyHeader company={company} active="talous" />
+      <CompanyHeader company={company} active="talous" sub={loan.name} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl">{loan.name}</h2>

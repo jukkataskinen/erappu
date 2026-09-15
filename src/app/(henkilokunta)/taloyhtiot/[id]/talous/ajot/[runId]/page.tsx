@@ -39,7 +39,7 @@ export default async function BillingRunPage({ params, searchParams }: { params:
 
   return (
     <>
-      <CompanyHeader company={company} active="talous" />
+      <CompanyHeader company={company} active="talous" sub="Laskutusajo" />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl">

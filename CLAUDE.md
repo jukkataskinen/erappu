@@ -62,7 +62,7 @@ src/app/<julkinen>/          kirjautumattomat reitit (tehtävälinkki, lomakkeet
 src/lib/<alue>/              logiikka ja kyselyt
 src/widgets/<moduuli>.tsx    moduulin nostot työpöydälle, yhtiösivulle ja portaalin etusivulle
 src/config/nav.ts            päävalikko (yhteinen)
-src/config/company-tabs.ts   taloyhtiösivun välilehdet (yhteinen)
+src/config/company-tabs.ts   taloyhtiön moduulikortit ja murupolun nimet (yhteinen)
 supabase/migrations/         migraatiot
 tests/db/                    RLS- ja kantatestit (tests/helpers/db.ts: freshDb, seedTwoOrgs)
 tests/unit/                  puhdas logiikka

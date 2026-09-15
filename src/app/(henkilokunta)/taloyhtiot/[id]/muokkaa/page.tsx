@@ -15,7 +15,7 @@ export default async function EditCompanyPage({ params, searchParams }: { params
   const { virhe } = await searchParams;
   return (
     <>
-      <CompanyHeader company={company} active="yleiset" />
+      <CompanyHeader company={company} active="perustiedot" title="Muokkaa perustietoja" />
       <FormError message={virhe} />
       <CompanyForm action={updateCompany} company={company} staff={staff} submitLabel="Tallenna muutokset" />
     </>

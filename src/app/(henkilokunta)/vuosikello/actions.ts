@@ -15,10 +15,14 @@ import { normalizeRecurrence, type Recurrence } from "@/lib/tasks/recurrence";
 const uuid = z.string().uuid();
 const optUuid = z.preprocess(emptyToNull, uuid.nullable());
 
-/** Paluuosoite vain vuosikellon sisällä, jottei lomakkeella voi ohjata muualle. */
+/**
+ * Paluuosoite vain vuosikellon sisällä (globaali tai yhtiön vuosikello),
+ * jottei lomakkeella voi ohjata muualle.
+ */
 function safeBack(value: FormDataEntryValue | null): string {
   const v = typeof value === "string" ? value : "";
-  return v.startsWith("/vuosikello") && !v.includes("//") && !v.includes("\\") ? v : "/vuosikello";
+  if (v.includes("//") || v.includes("\\")) return "/vuosikello";
+  return /^\/vuosikello(?:[/?]|$)/.test(v) || /^\/taloyhtiot\/[0-9a-f-]{36}\/vuosikello(?:\?|$)/i.test(v) ? v : "/vuosikello";
 }
 
 const taskSchema = z.object({
@@ -128,7 +132,8 @@ const cycleSchema = z.object({ company_id: z.string().uuid("Valitse yhtiö."), a
 
 export async function createAnnualCycleAction(formData: FormData) {
   const ctx = await requireStaff();
-  const data = parseForm(cycleSchema, formData, "/vuosikello");
+  const base = safeBack(formData.get("back")).split("?")[0];
+  const data = parseForm(cycleSchema, formData, base);
   let result: Awaited<ReturnType<typeof createAnnualCycleForCompany>> = null;
   try {
     result = await ctx.run(async (tx) => {
@@ -137,9 +142,9 @@ export async function createAnnualCycleAction(formData: FormData) {
       return r;
     });
   } catch (err) {
-    writeError("/vuosikello", err);
+    writeError(base, err);
   }
-  if (!result) fail("/vuosikello", "Yhtiötä ei löytynyt.");
+  if (!result) fail(base, "Yhtiötä ei löytynyt.");
   revalidatePath("/vuosikello");
-  redirect(`/vuosikello?yhtio=${data.company_id}&luotu=${result.created}`);
+  redirect(base === "/vuosikello" ? `/vuosikello?yhtio=${data.company_id}&luotu=${result.created}` : `${base}?luotu=${result.created}`);
 }

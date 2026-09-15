@@ -32,7 +32,7 @@ export default async function CompanyMeetingsPage({ params, searchParams }: { pa
 
   return (
     <>
-      <CompanyHeader company={company} active="kokoukset" actions={<LinkButton variant="secondary" href="/todistukset">Todistukset</LinkButton>} />
+      <CompanyHeader company={company} active="kokoukset" actions={<LinkButton variant="secondary" href={`/taloyhtiot/${id}/todistukset`}>Todistukset</LinkButton>} />
       <FormError message={virhe} />
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <div className="grid content-start gap-6">
@@ -48,7 +48,7 @@ export default async function CompanyMeetingsPage({ params, searchParams }: { pa
         <div className="grid content-start gap-6">
           {canWrite ? <NewMeetingForm companyId={id} /> : null}
           <Panel>
-            <SectionTitle actions={<Link href="/todistukset" className="text-sm text-sky">Kaikki</Link>}>Isännöitsijäntodistukset</SectionTitle>
+            <SectionTitle actions={<Link href={`/taloyhtiot/${id}/todistukset`} className="text-sm text-sky">Kaikki</Link>}>Isännöitsijäntodistukset</SectionTitle>
             {orders.length === 0 ? (
               <p className="mb-4 text-sm text-ink/65">Ei tilauksia.</p>
             ) : (
