@@ -68,6 +68,11 @@ export default async function ShareGroupsPage({ params }: { params: Promise<{ id
                 <Td>
                   {SHARE_GROUP_KIND[g.kind]}
                   {g.layout ? <span className="block text-xs text-ink/55">{g.layout}</span> : null}
+                  {g.floor_plan_id ? (
+                    <a href={`/api/dokumentit/${g.floor_plan_id}`} target="_blank" rel="noopener" className="block text-xs text-sky hover:underline">
+                      Pohjapiirustus
+                    </a>
+                  ) : null}
                 </Td>
                 <Td numeric>{formatNumber(g.area_m2)}</Td>
                 <Td className={problemUnits.has(g.unit_label) ? "text-coral" : undefined}>{g.ranges.length ? formatRanges(g.ranges) : <span className="text-coral">puuttuu</span>}</Td>

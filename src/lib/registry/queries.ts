@@ -83,6 +83,8 @@ export interface ShareGroupRow {
   ranges: ShareRange[];
   owners: string | null;
   residents: string | null;
+  /** Uusin huoneistolle tallennettu pohjapiirustus. */
+  floor_plan_id: string | null;
 }
 
 export async function listShareGroups(tx: Sql, companyId: string): Promise<ShareGroupRow[]> {
@@ -96,7 +98,10 @@ export async function listShareGroups(tx: Sql, companyId: string): Promise<Share
               where o.share_group_id = g.id and (o.ends_on is null or o.ends_on >= current_date)) as owners,
             (select string_agg(p.display_name, ', ' order by p.display_name)
                from er_residencies r join er_parties p on p.id = r.party_id
-              where r.share_group_id = g.id and (r.ends_on is null or r.ends_on >= current_date)) as residents
+              where r.share_group_id = g.id and (r.ends_on is null or r.ends_on >= current_date)) as residents,
+            (select d.id from er_documents d
+              where d.share_group_id = g.id and d.category = 'floor_plan'
+              order by d.created_at desc limit 1) as floor_plan_id
        from er_share_groups g
        left join er_buildings b on b.id = g.building_id
       where g.company_id = $1 and g.removed_on is null

@@ -182,7 +182,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                   {d.mime_type.startsWith("image/") ? (
                     <a href={`/api/dokumentit/${d.id}`} target="_blank" rel="noopener" className="block overflow-hidden rounded-xl border border-line bg-white">
                       {/* eslint-disable-next-line @next/next/no-img-element -- suojattu reitti, ei next/image-optimointia */}
-                      <img src={`/api/dokumentit/${d.id}`} alt={d.title} className="h-auto w-full" loading="lazy" />
+                      <img src={`/api/dokumentit/${d.id}`} alt={d.title} width={1200} height={900} className="h-auto w-full" />
                     </a>
                   ) : null}
                 </li>
