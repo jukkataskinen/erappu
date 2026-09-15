@@ -12,13 +12,15 @@ export function CompanyUnitSelect({
   companies,
   groups,
   defaultCompanyId,
+  defaultGroupId,
 }: {
   companies: { id: string; name: string }[];
   groups: { id: string; company_id: string; unit_label: string }[];
   defaultCompanyId?: string;
+  defaultGroupId?: string;
 }) {
   const [companyId, setCompanyId] = useState(defaultCompanyId ?? "");
-  const [groupId, setGroupId] = useState("");
+  const [groupId, setGroupId] = useState(groups.some((g) => g.id === defaultGroupId && g.company_id === defaultCompanyId) ? (defaultGroupId as string) : "");
   const units = groups.filter((g) => g.company_id === companyId);
 
   return (

@@ -11,14 +11,36 @@ import { createStaffRequest } from "../actions";
 
 export const metadata = { title: "Uusi huoltopyyntö" };
 
-export default async function NewServiceRequestPage({ searchParams }: { searchParams: Promise<{ virhe?: string; yhtio?: string }> }) {
+const UUID = /^[0-9a-f-]{36}$/i;
+
+/**
+ * Esitäyttö puhelinpalvelua varten: `?yhtio=&huoneisto=&osapuoli=`.
+ * Soittaja haetaan RLS-transaktiossa, joten toisen organisaation henkilöä ei
+ * voi esitäyttää. Arvot ovat vain lomakkeen oletuksia; palvelin tarkistaa ne
+ * tallennettaessa kuten ennenkin.
+ */
+export default async function NewServiceRequestPage({ searchParams }: { searchParams: Promise<{ virhe?: string; yhtio?: string; huoneisto?: string; osapuoli?: string }> }) {
   const ctx = await requireStaff();
-  const { virhe, yhtio } = await searchParams;
+  const { virhe, yhtio, huoneisto, osapuoli } = await searchParams;
   const canWrite = ctx.can("owner", "manager", "assistant");
-  const [companies, groups, staff] = await ctx.run((tx) =>
-    Promise.all([listCompanyOptions(tx, ctx.org.organizationId), listShareGroupOptions(tx, ctx.org.organizationId), listStaff(tx, ctx.org.organizationId)]),
+  const [companies, groups, staff, caller] = await ctx.run((tx) =>
+    Promise.all([
+      listCompanyOptions(tx, ctx.org.organizationId),
+      listShareGroupOptions(tx, ctx.org.organizationId),
+      listStaff(tx, ctx.org.organizationId),
+      osapuoli && UUID.test(osapuoli)
+        ? tx
+            .query<{ display_name: string; phone: string | null; email: string | null }>(
+              "select display_name, phone, email from er_parties where id = $1 and organization_id = $2",
+              [osapuoli, ctx.org.organizationId],
+            )
+            .then((rows) => rows[0] ?? null)
+        : Promise.resolve(null),
+    ]),
   );
-  const selectedCompany = companies.some((c) => c.id === yhtio) ? yhtio : undefined;
+  const selectedGroup = huoneisto && UUID.test(huoneisto) ? groups.find((g) => g.id === huoneisto) : undefined;
+  const companyParam = yhtio ?? selectedGroup?.company_id;
+  const selectedCompany = companies.some((c) => c.id === companyParam) ? companyParam : undefined;
 
   return (
     <>
@@ -33,7 +55,7 @@ export default async function NewServiceRequestPage({ searchParams }: { searchPa
           <Panel className="grid content-start gap-4">
             <SectionTitle>Vika</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
-              <CompanyUnitSelect companies={companies} groups={groups} defaultCompanyId={selectedCompany} />
+              <CompanyUnitSelect companies={companies} groups={groups} defaultCompanyId={selectedCompany} defaultGroupId={selectedGroup?.id} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Tila tai paikka" htmlFor="unit_text" hint="Esim. sauna, pesutupa, piha">
@@ -85,13 +107,13 @@ export default async function NewServiceRequestPage({ searchParams }: { searchPa
             <Panel className="grid gap-4">
               <SectionTitle>Ilmoittaja</SectionTitle>
               <Field label="Nimi" htmlFor="reporter_name">
-                <Input id="reporter_name" name="reporter_name" maxLength={200} />
+                <Input id="reporter_name" name="reporter_name" maxLength={200} defaultValue={caller?.display_name ?? ""} />
               </Field>
               <Field label="Puhelin" htmlFor="reporter_phone" hint="Näytetään palveluntuottajalle tehtävälinkissä">
-                <Input id="reporter_phone" name="reporter_phone" type="tel" maxLength={40} />
+                <Input id="reporter_phone" name="reporter_phone" type="tel" maxLength={40} defaultValue={caller?.phone ?? ""} />
               </Field>
               <Field label="Sähköposti" htmlFor="reporter_email" hint="Ilmoittaja saa tiedon tilamuutoksista">
-                <Input id="reporter_email" name="reporter_email" type="email" maxLength={254} />
+                <Input id="reporter_email" name="reporter_email" type="email" maxLength={254} defaultValue={caller?.email ?? ""} />
               </Field>
             </Panel>
             <Panel className="grid gap-4">

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, Field, Input, Notice, Panel, SectionTitle, Select } from "@/components/ui";
+import { Badge, Button, Field, Input, LinkButton, Notice, Panel, SectionTitle, Select } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatFraction } from "@/lib/format";
 import { listBuildings } from "@/lib/registry/queries";
@@ -73,6 +73,9 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
   const { group, owners, residents, buildings, documents } = data;
   const canWrite = ctx.can("owner", "manager", "assistant");
   const canInvite = ctx.can("owner", "manager");
+  // Puhelinpalvelu: soittajan tiedot esitäytetään huoltopyyntöön.
+  const serviceRequestHref = (partyId?: string) =>
+    `/huoltopyynnot/uusi?${new URLSearchParams({ yhtio: id, huoneisto: gid, ...(partyId ? { osapuoli: partyId } : {}) })}`;
   const shareSum = owners.reduce((s, o) => s + (o.share_numerator ?? 1) / (o.share_denominator ?? 1), 0);
 
   return (
@@ -81,6 +84,11 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h2 className="text-xl">Huoneisto {group.unit_label}</h2>
         <Badge tone={group.source === "htj" ? "ok" : "neutral"}>{SOURCE[group.source]}</Badge>
+        {canWrite ? (
+          <span className="ml-auto">
+            <LinkButton href={serviceRequestHref()}>Uusi huoltopyyntö</LinkButton>
+          </span>
+        ) : null}
       </div>
       <FormError message={virhe} />
       {group.source === "htj" ? (
@@ -118,6 +126,11 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {o.has_portal ? <Badge tone="info">Portaalissa</Badge> : null}
+                    {canWrite ? (
+                      <a href={serviceRequestHref(o.party_id)} className="text-xs font-semibold text-sky hover:underline">
+                        Tee huoltopyyntö
+                      </a>
+                    ) : null}
                     {canInvite ? <InvitePartyButton partyId={o.party_id} companyId={id} role="owner" hasEmail={!!o.email} hasPortal={o.has_portal} /> : null}
                     {canWrite && o.source !== "htj" ? (
                       <form action={endRelation}>
@@ -149,6 +162,11 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {r.has_portal ? <Badge tone="info">Portaalissa</Badge> : null}
+                    {canWrite ? (
+                      <a href={serviceRequestHref(r.party_id)} className="text-xs font-semibold text-sky hover:underline">
+                        Tee huoltopyyntö
+                      </a>
+                    ) : null}
                     {canInvite ? <InvitePartyButton partyId={r.party_id} companyId={id} role="resident" hasEmail={!!r.email} hasPortal={r.has_portal} /> : null}
                     {canWrite ? (
                       <form action={endRelation}>
