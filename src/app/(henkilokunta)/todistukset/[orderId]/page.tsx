@@ -10,7 +10,8 @@ import { MAX_MERGED_BYTES } from "@/lib/certificates/pdf-merge";
 import { CERTIFICATE_KIND, CERTIFICATE_TEMPLATE_APPROVED, ORDER_STATUS, ORDER_STATUS_TONE } from "@/lib/certificates/pricing";
 import { formatBytes } from "@/lib/documents/labels";
 import { formatDate, formatDateTime, formatEur } from "@/lib/format";
-import { markDeliveredAction, saveOrderOptionsAction, setOrderStatusAction } from "../actions";
+import { isUsingMockEsinetti } from "@/lib/esinetti";
+import { markDeliveredAction, saveOrderOptionsAction, sealCertificateAction, setOrderStatusAction } from "../actions";
 
 export const metadata = { title: "Isännöitsijäntodistus" };
 // Liitteineen-todistuksen kokoaminen (lataus, tarkistus, yhdistäminen) voi kestää pidempään kuin oletus.
@@ -19,6 +20,7 @@ export const maxDuration = 60;
 const STATE_MESSAGE: Record<string, string> = {
   tallennettu: "Valinnat tallennettiin.",
   muodostettu: "Todistus muodostettiin.",
+  sinetoity: "Todistus sinetöitiin.",
 };
 
 const ENTRY_TONE: Record<AttachmentEntry["status"], "ok" | "alert" | "warn" | "neutral"> = {
@@ -206,6 +208,37 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
         </div>
 
         <div className="grid content-start gap-6">
+          {order.document_id ? (
+            <Panel>
+              <SectionTitle>Sähköinen sinetti</SectionTitle>
+              {order.sealed_at ? (
+                <Notice tone="ok" title={`Sinetöity ${formatDateTime(order.sealed_at)}`}>
+                  Todistus on varmennettu eSinetin sähköisellä sinetillä. Aitouden voi tarkistaa lataamalla PDF:n osoitteessa app.esinetti.fi/verify.
+                </Notice>
+              ) : (
+                <>
+                  <p className="mb-3 text-sm text-ink/65">
+                    Sinetöinti varmentaa valmiin todistuksen. Sinetöity PDF korvaa nykyisen version, eikä todistusta voi sen jälkeen muodostaa uudelleen.
+                  </p>
+                  {isUsingMockEsinetti() ? (
+                    <div className="mb-3">
+                      <Notice tone="warn" title="eSinetti on jäljitelmätilassa">
+                        Sinetöinti tehdään kehityksen jäljitelmällä, eikä sinetillä ole todistusvoimaa.
+                      </Notice>
+                    </div>
+                  ) : null}
+                  {ctx.can("owner", "manager") && order.status !== "cancelled" ? (
+                    <form action={sealCertificateAction}>
+                      <input type="hidden" name="order_id" value={order.id} />
+                      <Button>{isUsingMockEsinetti() ? "Sinetöi (jäljitelmä)" : "Sinetöi eSinetillä"}</Button>
+                    </form>
+                  ) : (
+                    <p className="text-sm text-ink/60">Todistuksen sinetöi pääkäyttäjä tai isännöitsijä.</p>
+                  )}
+                </>
+              )}
+            </Panel>
+          ) : null}
           <Panel>
             <SectionTitle>Tilaus</SectionTitle>
             <DefinitionList

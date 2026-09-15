@@ -10,6 +10,8 @@ import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { orderPrice } from "@/lib/certificates/pricing";
 import { generateCertificateForOrder, loadPrices, markOrderDelivered, saveOrderOptions } from "@/lib/certificates/orders";
 import { CertificateError } from "@/lib/certificates/assemble";
+import { sealCertificateOrder } from "@/lib/certificates/sealing";
+import { assertRealEsinetti, getEsinettiClient, isEsinettiError } from "@/lib/esinetti";
 import { createAccessLink, revokeAccessLinks } from "@/lib/security/access-links";
 import { signValue } from "@/lib/security/crypto";
 import { ORDER_LINK_FLASH_COOKIE } from "@/lib/certificates/order-link";
@@ -169,6 +171,30 @@ export async function saveOrderOptionsAction(formData: FormData) {
   }
   revalidatePath(back);
   redirect(`${back}?tila=${d.intent === "generate" ? "muodostettu" : "tallennettu"}`);
+}
+
+/**
+ * Sinetöinti eSinetillä. Vain pääkäyttäjä ja isännöitsijä: sinetti varmentaa
+ * isännöitsijän antaman todistuksen, ja sinetöimätön versio poistetaan.
+ * Jäljitelmätilassa (kehitys) sinetöinti tehdään mockilla heti; tuotannossa
+ * mock estetään (`assertRealEsinetti`).
+ */
+export async function sealCertificateAction(formData: FormData) {
+  const orderId = uuid.parse(formData.get("order_id"));
+  const back = `/todistukset/${orderId}`;
+  const ctx = await requireStaff();
+  if (!ctx.can("owner", "manager")) fail(back, "Todistuksen sinetöi pääkäyttäjä tai isännöitsijä.");
+  let message: string | null = null;
+  try {
+    assertRealEsinetti();
+    await sealCertificateOrder(ctx.run, ctx.user.id, orderId, { client: getEsinettiClient() });
+  } catch (err) {
+    if (err instanceof CertificateError || isEsinettiError(err)) message = err.message;
+    else throw err;
+  }
+  if (message) fail(back, message);
+  revalidatePath(back);
+  redirect(`${back}?tila=sinetoity`);
 }
 
 export async function markDeliveredAction(formData: FormData) {

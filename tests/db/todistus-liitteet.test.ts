@@ -6,6 +6,11 @@ import type { Database, Sql } from "@/lib/db/types";
 import type { StoredFile } from "@/lib/storage";
 import { generateCertificateForOrder, saveOrderOptions, type CertificateStorageDeps } from "@/lib/certificates/orders";
 import { parseStoredEntries } from "@/lib/certificates/attachments";
+import { CertificateError } from "@/lib/certificates/assemble";
+import { sealCertificateOrder } from "@/lib/certificates/sealing";
+import { EsinettiMockClient, resetMockEsinetti } from "@/lib/esinetti/mock";
+import { buildExternalRef, parseExternalRef } from "@/lib/esinetti";
+import { createHash } from "node:crypto";
 
 let db: Database;
 let f: Fixture;
@@ -106,6 +111,40 @@ describe("isännöitsijäntodistus liitteineen (kanta)", () => {
     const entries = parseStoredEntries(after.attachments);
     expect(entries[0]).toMatchObject({ number: 1, key: "financial_statement" });
     expect(entries.some((e) => e.key === "articles")).toBe(false);
+  });
+
+  it("sinetöinti eSinetin mockilla korvaa sinetöimättömän version ja estää uudelleenmuodostuksen", async () => {
+    resetMockEsinetti();
+    const client = new EsinettiMockClient();
+    const orderId = await newOrder(true);
+    const generated = await generateCertificateForOrder(runAs(f.managerA.sub), f.managerA.id, orderId, deps);
+    const [before] = await db.asService((tx) => tx.query<{ storage_path: string }>("select storage_path from er_documents where id = $1", [generated!.documentId]));
+
+    // Kirjanpitäjä ei voi sinetöidä: sinetöimättömän version poisto vaatii isännöitsijän (RLS), ja koko muutos perutaan.
+    await expect(sealCertificateOrder(runAs(f.accountantA.sub), f.accountantA.id, orderId, { client, ...deps })).rejects.toThrow();
+    const [stillOpen] = await db.asService((tx) => tx.query<{ sealed_at: string | null }>("select sealed_at from er_certificate_orders where id = $1", [orderId]));
+    expect(stillOpen.sealed_at).toBeNull();
+
+    const sealed = await sealCertificateOrder(runAs(f.managerA.sub), f.managerA.id, orderId, { client, ...deps });
+    const [order] = await db.asService((tx) => tx.query<{ document_id: string; sealed_at: string | null }>("select document_id, sealed_at from er_certificate_orders where id = $1", [orderId]));
+    expect(order.document_id).toBe(sealed.documentId);
+    expect(order.sealed_at).not.toBeNull();
+    const [doc] = await db.asService((tx) => tx.query<{ sealed: boolean; storage_path: string; title: string }>("select sealed, storage_path, title from er_documents where id = $1", [sealed.documentId]));
+    expect(doc.sealed).toBe(true);
+    expect(doc.title).toContain("sinetöity");
+    // Sinetöimätön versio poistettiin kannasta ja varastosta.
+    expect(await db.asService((tx) => tx.query("select id from er_documents where id = $1", [generated!.documentId]))).toHaveLength(0);
+    expect(files.has(before.storage_path)).toBe(false);
+    const [round] = await db.asService((tx) =>
+      tx.query<{ status: string; sealed_document_id: string }>("select status, sealed_document_id from er_signing_rounds where subject_table = 'er_certificate_orders' and subject_id = $1", [orderId]),
+    );
+    expect(round).toMatchObject({ status: "completed", sealed_document_id: sealed.documentId });
+    // Aitoustarkistus: eSinetti löytää sinetöidyn tiedoston tiivisteellä.
+    const verify = await client.verifyDocument(createHash("sha256").update(files.get(doc.storage_path)!).digest("hex"));
+    expect(verify.found).toBe(true);
+    await expect(generateCertificateForOrder(runAs(f.managerA.sub), f.managerA.id, orderId, deps)).rejects.toBeInstanceOf(CertificateError);
+    await expect(sealCertificateOrder(runAs(f.managerA.sub), f.managerA.id, orderId, { client, ...deps })).rejects.toThrow("jo sinetöity");
+    expect(parseExternalRef(buildExternalRef("certificate", orderId))).toEqual({ kind: "certificate", id: orderId });
   });
 
   it("ilman liitteitä -todistus ei lue liitetiedostoja", async () => {

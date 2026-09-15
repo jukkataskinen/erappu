@@ -32,6 +32,8 @@ export interface SubjectHandler {
 export const SUBJECT_REF_KIND: Record<string, ExternalRefKind> = {
   er_meetings: "meeting",
   er_contract_batch_items: "contract",
+  // Todistus sinetöidään synkronisesti ilman kierrosta; rivi er_signing_rounds-tauluun kirjataan jäljitettävyyden vuoksi.
+  er_certificate_orders: "certificate",
 };
 
 export function mergeSigners(stored: RoundRow["signers"], event: WebhookEvent) {

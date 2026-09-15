@@ -203,8 +203,12 @@ export function parseWebhookPayload(rawBody: string): WebhookEvent | null {
   };
 }
 
-/** Kohteet, joita eRappu allekirjoituttaa: pöytäkirjat ja massaluonnin sopimukset. Laajenee muutostyölupiin. */
-export type ExternalRefKind = "meeting" | "contract";
+/**
+ * Kohteet, joita eRappu allekirjoituttaa tai sinetöi: pöytäkirjat, massaluonnin
+ * sopimukset ja isännöitsijäntodistukset (sinetöinnin metatiedoissa, ei
+ * webhook-kierrosta). Laajenee muutostyölupiin.
+ */
+export type ExternalRefKind = "meeting" | "contract" | "certificate";
 
 /**
  * `externalRef` → kohteen tyyppi ja id.
@@ -214,7 +218,7 @@ export type ExternalRefKind = "meeting" | "contract";
  */
 export function parseExternalRef(externalRef: string | null): { kind: ExternalRefKind; id: string } | null {
   if (!externalRef) return null;
-  const match = /^erappu:(meeting|contract):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(externalRef);
+  const match = /^erappu:(meeting|contract|certificate):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(externalRef);
   if (!match) return null;
   return { kind: match[1] as ExternalRefKind, id: match[2] };
 }
