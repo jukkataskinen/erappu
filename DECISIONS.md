@@ -286,3 +286,22 @@
 **Liitteet ja PDF.** Liitteiksi voi valita yhtiön tason pohjapiirustuksia (luokka `floor_plan`, ei huoneistoon liitetyt), ja ne yhdistetään PDF:n perään isännöitsijäntodistuksen kokoajalla (`mergeCertificatePdf`, ilman erotinsivuja; liiteluettelo osiossa 10). Huoneistojen pohjakuvia ei liitetä, koska asukkaille jaettavaan suunnitelmaan ei kuulu muiden huoneistojen pohjia. Luonnoksen esikatselussa lukee "LUONNOS – ei vielä voimassa", valmiissa "LUONNOS – vakiotekstit tarkistettava", kunnes pohja on hyväksytty. Osion otsikko ja ensimmäinen lohko ovat jakamattomia, koska `minPresenceAhead` ei estänyt otsikon jäämistä sivun alalaitaan.
 
 **Yhteiset tiedostot muutettiin:** `company-tabs.ts` (moduulikortti Arki-ryhmään), `NavIcon.tsx` (kilpikuvake), `company-modules.ts` (tilarivi: ei suunnitelmaa / luonnos kesken / tarkistus myöhässä / tarkistus 60 päivän sisällä / voimassa), dokumentti- ja tehtäväluokkien nimet.
+
+## Huoneistotunnukset yhtiöjärjestyksen mukaisiksi (2026-09-16, Jukan päätös)
+
+Tunnukset kohdistettiin osakevälien perusteella kymmenen yhtiön yhtiöjärjestyksiin
+(KOY Toivakan Säästövakka jätettiin pois, se toimii omien sääntöjensä mukaan).
+
+- Kahdeksassa yhtiössä tunnukset olivat jo yhtiöjärjestyksen mukaiset.
+- **Toivakan Asunto Oy**: 1–7 → A–G, AT1–AT4 → H–K, 8 → L (12 muutosta, myös
+  pohjapiirustusten otsikot). Tehty tuotantoon, kirjattu tapahtumalokiin.
+- **Paikkalan Torpat**: yhtiöjärjestyksessä on erilliset sarakkeet "Talo"
+  (A, B, C, D, AK1, AK2) ja "Huon. nro" (1–26). Jukan päätös: rekisterin
+  nykyiset yhdistelmätunnukset (A1, B5, AK17) säilyvät, koska yhtiössä on neljä
+  rakennusta ja kaksi autokatosta eikä talotiedolle ole omaa kenttää.
+
+Seuraus: osakeryhmälle tarvitaan erillinen talo-, porras- ja kerroskenttä, jotta
+tunnus voi olla yhtiöjärjestyksen mukainen ilman, että talotieto katoaa. Sama
+puute havaittiin Jäkälätiellä, Jussilantie 6:lla, Vanhansillanpuistossa ja Matissa.
+
+Kartoitus ja poikkeamat: data/private/unit-labels-2026-09-16.md (ei gitissä).
