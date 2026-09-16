@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Badge, Table, Td, Th } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import type { DocumentRow } from "@/lib/documents/queries";
@@ -21,9 +20,11 @@ export function DocumentTable({ rows, showCompany = true }: { rows: DocumentRow[
         {rows.map((d) => (
           <tr key={d.id} className="hover:bg-cloud/50">
             <Td>
-              <Link href={`/dokumentit/${d.id}`} className="font-semibold hover:text-sky">
+              {/* Tavallinen sivunvaihto eikä Next-linkki: tuotannossa osa dokumenttisivuista ei avautunut
+                  asiakaspuolen siirtymällä (Jäkälätie 3, 16.9.2026), vaikka suora osoite toimi. */}
+              <a href={`/dokumentit/${d.id}`} className="font-semibold hover:text-sky">
                 {d.title}
-              </Link>
+              </a>
               <p className="text-xs text-ink/55">
                 <a href={`/api/dokumentit/${d.id}`} target="_blank" rel="noopener" className="hover:text-sky">
                   {d.file_name}
