@@ -73,7 +73,12 @@ export async function createMeetingAction(formData: FormData) {
       companyId: data.company_id, kind: data.kind, startsAt, location: data.location, remoteParticipation: data.remote_participation,
       remoteUrl: data.remote_url, fiscalYear: data.fiscal_year, createdBy: ctx.user.id,
     });
-    if (m) await audit(tx, { organizationId: m.organizationId, userId: ctx.user.id, action: "create", entity: "meeting", entityId: m.id });
+    if (m) {
+      // Osallistujat esitäytetään heti (osakasluettelo tai hallitus), jotta osakas- ja
+      // ääniluettelo eivät jää tyhjiksi. Esitäytön voi päivittää ennen kokousta.
+      const count = await prefillAttendees(tx, m.id);
+      await audit(tx, { organizationId: m.organizationId, userId: ctx.user.id, action: "create", entity: "meeting", entityId: m.id, details: { attendees: count } });
+    }
     return m;
   });
   if (!created) fail(back, "Yhtiötä ei löytynyt.");
@@ -250,6 +255,13 @@ export async function generateDocumentAction(formData: FormData) {
   const { companyId, meetingId, back } = ids(formData);
   const ctx = await writer(back);
   const kind = z.enum(["notice", "agenda", "shareholders", "votes", "minutes"]).parse(formData.get("kind")) as MeetingDocumentKind;
+  if (kind === "shareholders" || kind === "votes" || kind === "minutes") {
+    // Tyhjä osallistujalista (esim. ennen tätä muutosta luotu kokous) esitäytetään ennen luetteloa.
+    await ctx.run(async (tx) => {
+      const [row] = await tx.query<{ n: number }>("select count(*)::int as n from er_meeting_attendees where meeting_id = $1", [meetingId]);
+      if (row && row.n === 0) await prefillAttendees(tx, meetingId);
+    });
+  }
   const result = await generateMeetingDocument(ctx.run, ctx.user.id, meetingId, kind);
   if (!result) fail(back, "Asiakirjaa ei voitu muodostaa tälle kokoukselle.");
   // Luotu asiakirja avataan esikatseluun kokoussivulle.
