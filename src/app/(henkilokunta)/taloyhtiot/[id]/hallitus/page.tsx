@@ -106,9 +106,14 @@ export default async function BoardPage({ params, searchParams }: { params: Prom
                   <Input id="last_name" name="last_name" />
                 </Field>
               </div>
-              <Field label="Sähköposti" htmlFor="email">
-                <Input id="email" name="email" type="email" />
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Sähköposti" htmlFor="email" hint="Tallennetaan osakkaalle, jos rekisterissä ei vielä ole osoitetta">
+                  <Input id="email" name="email" type="email" />
+                </Field>
+                <Field label="Puhelin" htmlFor="phone">
+                  <Input id="phone" name="phone" type="tel" />
+                </Field>
+              </div>
               <Field label="Rooli" htmlFor="role">
                 <Select id="role" name="role" defaultValue="member">
                   {Object.entries(BOARD_ROLE).map(([k, v]) => (

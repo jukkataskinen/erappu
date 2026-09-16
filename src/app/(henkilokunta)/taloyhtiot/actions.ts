@@ -474,6 +474,10 @@ export async function addBoardMember(formData: FormData) {
         [company.organization_id, data.first_names, data.last_name, data.email, data.phone],
       );
       partyId = p.id;
+    } else if (data.email || data.phone) {
+      // Valmiiksi rekisterissä olevalle osakkaalle täydennetään puuttuvat
+      // yhteystiedot; olemassa olevaa arvoa ei korvata hiljaa.
+      await tx.query("update er_parties set email = coalesce(email, $2), phone = coalesce(phone, $3) where id = $1", [partyId, data.email, data.phone]);
     }
     await tx.query(
       "insert into er_board_memberships (organization_id, company_id, party_id, role, starts_on, ends_on) values ($1,$2,$3,$4,$5,$6)",
