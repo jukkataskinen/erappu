@@ -30,8 +30,14 @@ export function fail(backTo: string, message: string): never {
   redirect(`${backTo}${sep}virhe=${encodeURIComponent(message)}`);
 }
 
-/** Tyhjä merkkijono → null. Käytetään zodin preprocessissa. */
-export const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
+/**
+ * Tyhjä merkkijono → null. Käytetään zodin preprocessissa.
+ *
+ * Myös puuttuva kenttä (undefined) on null: sama skeema palvelee useaa
+ * lomaketta, joissa kaikkia kenttiä ei ole. Ilman tätä hallituksen jäsenen
+ * lisäys kaatui, koska lomakkeella ei ole puhelin- ja osoitekenttiä.
+ */
+export const emptyToNull = (v: unknown) => (v === undefined || (typeof v === "string" && v.trim() === "") ? null : v);
 
 export function isUniqueViolation(err: unknown): boolean {
   return typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "23505";
