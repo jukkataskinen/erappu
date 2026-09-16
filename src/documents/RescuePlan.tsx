@@ -48,6 +48,9 @@ export interface RescuePlanData {
   attachments: RescuePlanAttachment[];
 }
 
+/** Toimintaohjeliite on aina liite 1; dokumenttiliitteet numeroidaan sen jälkeen. */
+export const EMERGENCY_SHEET_NUMBER = 1;
+
 const has = (v: string | null | undefined) => Boolean(v && v.trim());
 
 /** Tyhjät valinnaiset rivit jätetään pois, pakolliset näytetään viivalla. */
@@ -351,6 +354,95 @@ export function RescuePlan({ data }: { data: RescuePlanData }) {
 
         <DocumentFooter left={`${data.organizationName} · ${c.companyName} · pelastussuunnitelma v${data.version}`} />
       </Page>
+      {/* Liite 1 on aina mukana: ilmoitustaululle tulostettava toimintaohje. */}
+      <EmergencySheet data={data} number={EMERGENCY_SHEET_NUMBER} />
     </DocumentRoot>
+  );
+}
+
+/**
+ * Liite: Toimintaohjeet hälytystilanteissa. Yksi sivu, joka tulostetaan myös
+ * porrashuoneen ilmoitustaululle. Sisältö on sama kuin osiossa 6, mutta
+ * tiivistettynä ja yhtiön omilla tiedoilla (osoite, kokoontumispaikka, numerot).
+ */
+const SHEET_ORDER = ["fire", "fire_blocked", "water", "power", "first_aid", "shelter_in", "evacuation"];
+
+function SheetCard({ title, steps }: { title: string; steps: string[] }) {
+  return (
+    // Kortti saa jakautua sivuvaihdossa: muuten pitkä kortti jättäisi puolen sivun tyhjäksi.
+    <View style={{ width: "50%", paddingRight: 12, marginTop: 8 }}>
+      <Text style={{ fontSize: typeScale.body, fontWeight: weight.bold }} minPresenceAhead={26}>{title}</Text>
+      {steps.map((s, i) => (
+        <View key={i} style={{ flexDirection: "row", marginTop: 1.5 }}>
+          <Text style={{ width: 10, color: colors.sky }}>·</Text>
+          <Text style={{ flex: 1, fontSize: typeScale.small }}>{s}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function EmergencySheet({ data, number }: { data: RescuePlanData; number: number }) {
+  const c = data.content;
+  const cards = SHEET_ORDER.map((key) => EMERGENCY_INSTRUCTIONS.find((i) => i.key === key)).filter((i): i is (typeof EMERGENCY_INSTRUCTIONS)[number] => Boolean(i));
+  const call = EMERGENCY_INSTRUCTIONS.find((i) => i.key === "emergency_call");
+  const numbers: KeyValue[] = kv([
+    { label: "Hätänumero", value: "112" },
+    { label: "Myrkytystietokeskus", value: "0800 147 111" },
+    { label: has(c.maintenanceName) ? c.maintenanceName : "Kiinteistöhuolto", value: c.maintenanceEmergencyPhone || c.maintenancePhone },
+    { label: has(c.managerName) ? `Isännöitsijä ${c.managerName}` : "Isännöitsijä", value: c.managerPhone },
+    { label: "Vesisulku", value: c.shutoffWater, optional: true },
+    { label: "Sähköpääkeskus", value: c.shutoffElectricity, optional: true },
+  ]);
+
+  return (
+    <Page size="A4" style={pageStyle}>
+      <PageDecoration />
+      <DocumentHeader right={`Liite ${number} · pelastussuunnitelma`} />
+      {data.approved ? null : <DraftBanner text="LUONNOS – vakiotekstit tarkistettava" />}
+      <Text style={{ fontSize: typeScale.title, fontWeight: weight.bold, lineHeight: 1.25 }}>Toimintaohjeet hälytystilanteissa</Text>
+      <Muted style={{ marginTop: 2 }}>
+        {c.companyName}
+        {has(c.address) ? ` · ${c.address}` : ""}
+      </Muted>
+
+      <Panel style={{ marginTop: 8, paddingVertical: 8, flexDirection: "row", alignItems: "center" }} wrap={false}>
+        <Text style={{ fontSize: 30, fontWeight: weight.bold, color: colors.sky, width: 70 }}>112</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: weight.bold }}>Hätäilmoitus</Text>
+          {(call?.steps ?? []).map((s, i) => (
+            <Text key={i} style={{ fontSize: typeScale.small, marginTop: 1 }}>
+              {s}
+            </Text>
+          ))}
+          <Text style={{ fontSize: typeScale.small, marginTop: 3, fontWeight: weight.bold }}>
+            Osoite hätäpuheluun: {orDash(c.address)}
+          </Text>
+          <Text style={{ fontSize: typeScale.small, fontWeight: weight.bold }}>
+            Kokoontumispaikka: {orDash(c.assemblyPoint)}
+            {has(c.assemblyPointAlt) ? ` (vara: ${c.assemblyPointAlt})` : ""}
+          </Text>
+        </View>
+      </Panel>
+
+      <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+        {cards.map((i) => (
+          <SheetCard key={i.key} title={i.title} steps={i.steps} />
+        ))}
+      </View>
+
+      <Text style={{ fontSize: typeScale.heading, fontWeight: weight.bold, marginTop: 10 }} minPresenceAhead={60}>Tärkeät numerot ja sulkujen sijainnit</Text>
+      <KeyValues columns={2} items={numbers} />
+      {has(c.extraInstructions) ? (
+        <>
+          <Text style={{ fontSize: typeScale.heading, fontWeight: weight.bold, marginTop: 12 }}>Yhtiön omat ohjeet</Text>
+          <TextBlock value={c.extraInstructions} />
+        </>
+      ) : null}
+      <Muted style={{ marginTop: 8 }}>
+        Tämä sivu on tarkoitettu tulostettavaksi porrashuoneen ilmoitustaululle. Koko pelastussuunnitelma on saatavilla isännöitsijältä ja asukasportaalista.
+      </Muted>
+      <DocumentFooter left={`${c.companyName} · toimintaohjeet hälytystilanteissa · liite ${number}`} />
+    </Page>
   );
 }

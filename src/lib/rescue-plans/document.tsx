@@ -5,7 +5,7 @@ import type { Sql } from "@/lib/db";
 import { isoDateHelsinki } from "@/lib/format";
 import { deleteStoredFile, readStoredFile, storeFile } from "@/lib/storage";
 import { renderDocumentPdf, sha256Hex } from "@/documents/render";
-import { RescuePlan, type RescuePlanAttachment, type RescuePlanData } from "@/documents/RescuePlan";
+import { EMERGENCY_SHEET_NUMBER, RescuePlan, type RescuePlanAttachment, type RescuePlanData } from "@/documents/RescuePlan";
 import { inspectAttachment, MAX_MERGED_BYTES, mergeCertificatePdf, type MergeAttachment } from "@/lib/certificates/pdf-merge";
 import { LEGAL_BASIS, RESCUE_PLAN_TEMPLATE_APPROVED } from "./content";
 import { finalizeDraft, getPlan, listAttachmentCandidates, RescuePlanError, type PlanRow } from "./queries";
@@ -44,11 +44,14 @@ async function load(tx: Sql, planId: string): Promise<Loaded | null> {
 
 export async function renderPlanPdf(loaded: Loaded, opts: { issuedOn: string; read: (path: string) => Promise<Uint8Array> }): Promise<{ bytes: Uint8Array; sha256: string; warnings: string[] }> {
   const { plan } = loaded;
-  const entries: RescuePlanAttachment[] = [];
+  // Liite 1 syntyy aina PDF:n mukana (toimintaohjeet hälytystilanteissa).
+  const entries: RescuePlanAttachment[] = [
+    { number: EMERGENCY_SHEET_NUMBER, title: "Toimintaohjeet hälytystilanteissa", pages: 1, status: "attached" },
+  ];
   const merge: MergeAttachment[] = [];
   const warnings: string[] = [];
   for (const [index, a] of loaded.attachments.entries()) {
-    const base = { number: index + 1, title: a.title, pages: null };
+    const base = { number: index + 1 + EMERGENCY_SHEET_NUMBER, title: a.title, pages: null };
     if (Number(a.size_bytes) > MAX_ATTACHMENT_BYTES) {
       entries.push({ ...base, status: "failed", reason: "tiedosto on liian suuri" });
       warnings.push(`${a.title}: tiedosto on liian suuri liitettäväksi.`);

@@ -343,7 +343,7 @@ export const EMERGENCY_INSTRUCTIONS: Instruction[] = [
     key: "shelter_in",
     title: "Yleinen vaaramerkki ja sisälle suojautuminen",
     steps: [
-      "Yleinen vaaramerkki on minuutin pituinen nouseva ja laskeva äänimerkki tai viranomaisen kuulutus. Vaara ohi -merkki on tasainen minuutin äänimerkki. Lyhyt tasainen koeääni kuuluu kuukauden ensimmäisenä arkimaanantaina klo 12.",
+      "Yleinen vaaramerkki on minuutin nouseva ja laskeva äänimerkki tai viranomaisen kuulutus. Vaara ohi -merkki on tasainen minuutin äänimerkki. Koeääni kuukauden ensimmäisenä arkimaanantaina klo 12.",
       "Mene sisälle ja pysy sisällä. Sulje ovet, ikkunat, tuuletusventtiilit ja ilmanvaihto.",
       "Kuuntele radiota (Yle) ja seuraa viranomaisten tiedotteita. Vältä puhelimen käyttöä, ettei verkko ruuhkaudu.",
       "Poistu alueelta vain viranomaisen kehotuksesta.",
