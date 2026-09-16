@@ -8,6 +8,7 @@ import * as talous from "@/widgets/talous";
 import * as viestinta from "@/widgets/viestinta";
 import * as kokoukset from "@/widgets/kokoukset";
 import * as arki from "@/widgets/arki";
+import { GovernancePanel } from "./GovernancePanel";
 
 export const metadata = { title: "Työpöytä" };
 
@@ -34,6 +35,10 @@ export default async function DashboardPage() {
         <Stat label="Taloyhtiöt" value={companies.length} href="/taloyhtiot" />
         <Stat label="Asuinhuoneistot" value={units} href="/taloyhtiot" />
         <Stat label="Osakkeissa korjattavaa" value={withIssues.length} tone={withIssues.length ? "alert" : "ok"} href="/taloyhtiot" />
+      </div>
+
+      <div className="mt-6">
+        <GovernancePanel ctx={ctx} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
