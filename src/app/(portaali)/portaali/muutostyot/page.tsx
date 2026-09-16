@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ProgressSteps } from "@/components/ProgressSteps";
 import { Badge, EmptyState, LinkButton, Notice, Panel } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
 import { formatDate } from "@/lib/format";
 import { CONTRACTOR_KIND_LABEL, workSummary, type ContractorKind } from "@/lib/maintenance/notice-form";
 import { listNoticeWorksFor, listPortalNotices, type NoticeRow, type NoticeWorkRow } from "@/lib/maintenance/queries";
 import { RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
+import { renovationProgress } from "@/lib/progress";
 
 export const metadata = { title: "Muutostyöt" };
 
@@ -23,6 +25,7 @@ function NoticeCard({ n, works, showCompany }: { n: NoticeRow; works: NoticeWork
         </div>
         <Badge tone={RENOVATION_STATUS_TONE[n.status]}>{RENOVATION_STATUS_LABEL[n.status]}</Badge>
       </div>
+      <ProgressSteps progress={renovationProgress(n.status)} className="mt-3 max-w-xl" />
       <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm">{n.description}</p>
       <p className="mt-2 text-xs text-ink/60">
         {n.work_count === 1 ? "1 muutostyö" : `${n.work_count} muutostyötä`}

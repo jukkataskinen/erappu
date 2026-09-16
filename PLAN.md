@@ -118,7 +118,7 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [x] Migraatio 0093: `er_renovation_notice_works`, vanhat ilmoitukset työriveiksi, dokumenttiluokka `renovation_guide`, kuittaus ja ilmoitustapa ilmoitukselle, liitteiden RLS; RLS- ja yhteensopivuustestit
   - [x] Portaalin lomake (4 työlohkoa, tekijä, liitteet, kuittaus, ilmoitustapa, infolaatikko), lista työrivien määrällä, henkilökunnan käsittelysivu, korjaushistoria työriveittäin ja isännöitsijäntodistus
   - [~] Tekstiviesti-ilmoitus tilamuutoksista: valinta tallennetaan, lähetys odottaa kanavaa – BLOCKERS 7
-- [ ] 2. Etenemisjana portaaliin: vastaanotettu, hyväksytty, työn alla, valmis - sekä muutostöille että huoltopyynnöille
+- [x] 2. Etenemisjana portaaliin: vastaanotettu, hyväksytty, työn alla, valmis - sekä muutostöille että huoltopyynnöille (`src/lib/progress.ts`, `ProgressSteps`; muutostyökortit ja huoltopyynnön sivu)
 - [ ] 3. Hyväksyntään valvoja ja valvonnan arvioitu kustannus (osakkaan kustannus; kytkeytyy valvontakone-suunnitelmaan)
 - [ ] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
 - [ ] 5. Muutostyöohjeen generaattori yhtiökohtaisesti (kuten pelastussuunnitelma): vastuunjako, ohjeet työlajeittain, valvontahinnasto

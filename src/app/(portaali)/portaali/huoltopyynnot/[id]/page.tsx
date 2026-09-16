@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormError } from "@/components/FormError";
+import { ProgressSteps } from "@/components/ProgressSteps";
 import { Button, DefinitionList, Notice, Panel, SectionTitle, Textarea } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
 import { formatDateTime } from "@/lib/format";
+import { requestProgress } from "@/lib/progress";
 import { PhotoForm } from "@/lib/service-requests/components/PhotoForm";
 import { PhotoInput } from "@/lib/service-requests/components/PhotoInput";
 import { StatusBadge, Timeline, UrgencyBadge, YesNo } from "@/lib/service-requests/components/parts";
@@ -45,6 +47,7 @@ export default async function PortalRequestPage({ params, searchParams }: { para
         <UrgencyBadge urgency={request.urgency} />
         <span>#{request.number}</span>
       </div>
+      <ProgressSteps progress={requestProgress(request.status)} className="mt-4 max-w-xl" />
 
       <div className="mt-4">
         <FormError message={virhe} />
