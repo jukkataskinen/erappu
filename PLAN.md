@@ -144,5 +144,5 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [x] PDF `src/documents/RescuePlan.tsx` luonnosmerkinnällä, pohjapiirustukset liitteiksi, demodata ja savutestin reitit
   - [~] Vakiotekstien hyväksyntä (`RESCUE_PLAN_TEMPLATE_APPROVED`) – BLOCKERS 11
   - [ ] Rekisteriin omat kentät tiedoille, jotka nyt kirjoitetaan suunnitelmaan käsin (väestönsuoja, pääsulkujen sijainnit, kokoontumispaikka), jos niitä tarvitaan muuallakin (esim. isännöitsijäntodistus, huoltopyynnöt)
-  - [ ] Asukkaille tiedottaminen: tiedote portaaliin, kun uusi versio merkitään valmiiksi (nyt vain dokumentti näkyy portaalissa)
+  - [x] Asukkaille tiedottaminen: valmiiksi merkitseminen luo tiedoteluonnoksen (osakkaat ja asukkaat suunnitelman näkyvyyden mukaan), jonka isännöitsijä tarkistaa ja julkaisee
   - [x] Isännöitsijäntodistukseen tieto pelastussuunnitelman olemassaolosta ja päiväyksestä (SPEKin opas suosittelee): voimassa oleva versio tai yhtiön asiakirja, myöhästynyt tarkistus mainitaan

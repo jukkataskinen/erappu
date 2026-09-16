@@ -98,11 +98,15 @@ export async function saveRescuePlanDraft(formData: FormData) {
 
   if (intent === "finalize") {
     let warnings: string[] = [];
+    let announcementId: string | null = null;
     await guarded(back, async () => {
-      warnings = (await finalizePlan(ctx.run, { planId, userId: ctx.user.id })).warnings;
+      const result = await finalizePlan(ctx.run, { planId, userId: ctx.user.id });
+      warnings = result.warnings;
+      announcementId = result.announcementId;
     });
     revalidatePath(page(companyId));
-    redirect(`${page(companyId)}?tila=valmis${warnings.length ? "&liitevaroitus=1" : ""}`);
+    const extra = `${warnings.length ? "&liitevaroitus=1" : ""}${announcementId ? `&tiedote=${announcementId}` : ""}`;
+    redirect(`${page(companyId)}?tila=valmis${extra}`);
   }
   revalidatePath(back);
   redirect(`${back}?tila=${intent === "preview" ? "esikatselu" : intent === "registry" ? "rekisteri" : "tallennettu"}`);

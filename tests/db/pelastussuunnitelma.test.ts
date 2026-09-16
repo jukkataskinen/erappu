@@ -130,6 +130,15 @@ describe("pelastussuunnitelma: RLS ja versiointi", () => {
     const doc = await db.asService((tx) => one<{ category: string; visibility: string; year: number }>(tx, "select category, visibility, year from er_documents where id = $1", [firstDocumentId]));
     expect(doc).toEqual({ category: "rescue_plan", visibility: "residents", year: 2026 });
 
+    // Asukkaille tiedoteluonnos, jota ei julkaista automaattisesti eikä näytetä portaalissa.
+    expect(result.announcementId).not.toBeNull();
+    const notice = await db.asService((tx) =>
+      one<{ status: string; audience_roles: string[]; title: string }>(tx, "select status, audience_roles, title from er_announcements where id = $1", [result.announcementId]),
+    );
+    expect(notice).toEqual({ status: "draft", audience_roles: ["owner", "resident"], title: "Taloyhtiön pelastussuunnitelma on päivitetty" });
+    const seenByResident = await db.asUser(residentA.sub, (tx) => tx.query("select id from er_announcements where id = $1", [result.announcementId]));
+    expect(seenByResident).toHaveLength(0);
+
     const task = await db.asService((tx) =>
       one<{ title: string; category: string; due_on: string; template_key: string; assignee_user_id: string; recurrence: { freq: string } }>(
         tx, "select title, category, to_char(due_on, 'YYYY-MM-DD') as due_on, template_key, assignee_user_id, recurrence from er_tasks where id = $1", [firstTaskId],

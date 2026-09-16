@@ -116,7 +116,7 @@ export async function previewPlanPdf(run: Runner, planId: string, companyId: str
  * luonnosmerkintää "ei vielä voimassa"), tiedosto tallennetaan ja kanta
  * päivitetään yhdessä transaktiossa. Epäonnistuessa tiedosto poistetaan.
  */
-export async function finalizePlan(run: Runner, input: { planId: string; userId: string }): Promise<{ documentId: string; warnings: string[] }> {
+export async function finalizePlan(run: Runner, input: { planId: string; userId: string }): Promise<{ documentId: string; announcementId: string | null; warnings: string[] }> {
   const loaded = await run((tx) => load(tx, input.planId));
   if (!loaded) throw new RescuePlanError("Suunnitelmaa ei löytynyt.");
   if (loaded.plan.status !== "draft") throw new RescuePlanError("Versio on jo merkitty valmiiksi.");
@@ -141,7 +141,7 @@ export async function finalizePlan(run: Runner, input: { planId: string; userId:
         document: { title, fileName: stored.fileName, storagePath: stored.storagePath, mimeType: stored.mimeType, sizeBytes: stored.sizeBytes, sha256: stored.sha256 },
       }),
     );
-    return { documentId: result.documentId, warnings: pdf.warnings };
+    return { documentId: result.documentId, announcementId: result.announcementId, warnings: pdf.warnings };
   } catch (err) {
     await deleteStoredFile(stored.storagePath);
     throw err;

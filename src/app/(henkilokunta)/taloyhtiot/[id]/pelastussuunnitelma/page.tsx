@@ -17,7 +17,7 @@ const MESSAGES: Record<string, string> = {
   poistettu: "Luonnos poistettiin.",
 };
 
-export default async function RescuePlanPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; tila?: string; liitevaroitus?: string }> }) {
+export default async function RescuePlanPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; tila?: string; liitevaroitus?: string; tiedote?: string }> }) {
   const ctx = await requireStaff();
   const { id } = await params;
   const sp = await searchParams;
@@ -39,7 +39,18 @@ export default async function RescuePlanPage({ params, searchParams }: { params:
       <CompanyHeader company={company} active="pelastussuunnitelma" />
       <FormError message={sp.virhe} />
       <div className="grid gap-6">
-        {sp.tila && MESSAGES[sp.tila] ? <Notice tone="ok" title={MESSAGES[sp.tila]} /> : null}
+        {sp.tila && MESSAGES[sp.tila] ? (
+          <Notice tone="ok" title={MESSAGES[sp.tila]}>
+            {sp.tila === "valmis" && sp.tiedote && /^[0-9a-f-]{36}$/i.test(sp.tiedote) ? (
+              <>
+                Asukkaille on tehty tiedoteluonnos uudesta versiosta.{" "}
+                <Link href={`/tiedotteet/${sp.tiedote}`} className="font-semibold underline">
+                  Tarkista ja julkaise tiedote
+                </Link>
+              </>
+            ) : null}
+          </Notice>
+        ) : null}
         {sp.liitevaroitus ? <Notice tone="warn" title="Kaikkia liitteitä ei voitu liittää PDF:ään.">Tarkista liiteluettelo suunnitelman lopusta.</Notice> : null}
         {apartmentCount > 0 && apartmentCount < 3 ? (
           <Notice tone="info" title="Pelastussuunnitelma ei välttämättä ole pakollinen">

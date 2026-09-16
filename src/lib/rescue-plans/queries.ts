@@ -124,14 +124,35 @@ export interface StoredPlanDocument {
 }
 
 /**
+ * Tiedoteluonnos asukkaille uudesta versiosta. Suunnitelma on saatettava
+ * asukkaiden tietoon (VNa 407/2011 3 §), mutta tiedotetta ei julkaista
+ * automaattisesti: isännöitsijä tarkistaa tekstin ja julkaisee sen itse.
+ * Sisäiselle tai hallituksen suunnitelmalle luonnosta ei tehdä.
+ */
+export function rescuePlanAnnouncement(visibility: PlanVisibility, preparedOn: string, version: number): { title: string; body: string; audience: string[] } | null {
+  if (visibility !== "residents" && visibility !== "owners") return null;
+  const [y, m, d] = preparedOn.split("-").map(Number);
+  return {
+    title: "Taloyhtiön pelastussuunnitelma on päivitetty",
+    body: [
+      `Taloyhtiön pelastussuunnitelmasta on laadittu uusi versio (${version}, päivätty ${d}.${m}.${y}).`,
+      "Suunnitelma on luettavissa portaalin Dokumentit-osiossa. Tutustu erityisesti toimintaohjeisiin hälytystilanteissa, kokoontumispaikkaan ja siihen, missä pääsulut ja alkusammuttimet ovat.",
+      "Pidäthän huoneistosi palovaroittimet toimintakunnossa: testaa ne säännöllisesti ja vaihda paristo tarvittaessa.",
+    ].join("\n\n"),
+    audience: visibility === "owners" ? ["owner"] : ["owner", "resident"],
+  };
+}
+
+/**
  * Merkitsee luonnoksen valmiiksi yhdessä transaktiossa: dokumenttirivi,
  * edellisen version korvautuminen (sen PDF sisäiseksi, jotta asukkaat
- * näkevät vain voimassa olevan), vuosikellon tarkistustehtävä ja loki.
+ * näkevät vain voimassa olevan), vuosikellon tarkistustehtävä, tiedoteluonnos
+ * asukkaille ja loki.
  */
 export async function finalizeDraft(
   tx: Sql,
   input: { planId: string; userId: string; document: StoredPlanDocument },
-): Promise<{ documentId: string; taskId: string; supersededId: string | null }> {
+): Promise<{ documentId: string; taskId: string; supersededId: string | null; announcementId: string | null }> {
   const [plan] = await tx.query<{
     id: string; organization_id: string; company_id: string; version: number; status: PlanStatus;
     prepared_on: string | null; next_review_on: string | null; visibility: PlanVisibility;
@@ -171,11 +192,22 @@ export async function finalizeDraft(
       where id = $1`,
     [plan.id, input.userId, doc.id, taskId],
   );
+  const notice = rescuePlanAnnouncement(plan.visibility, plan.prepared_on, plan.version);
+  const announcementId = notice
+    ? (
+        await tx.query<{ id: string }>(
+          `insert into er_announcements (organization_id, company_id, title, body, audience_roles, channels, status, origin, author_user_id)
+           values ($1,$2,$3,$4,$5,'{portal}','draft','staff',$6) returning id`,
+          [plan.organization_id, plan.company_id, notice.title, notice.body, notice.audience, input.userId],
+        )
+      )[0].id
+    : null;
+
   await audit(tx, {
     organizationId: plan.organization_id, userId: input.userId, action: "finalize", entity: "rescue_plan", entityId: plan.id,
-    details: { version: plan.version, documentId: doc.id, taskId, supersededId: previous?.id ?? null },
+    details: { version: plan.version, documentId: doc.id, taskId, supersededId: previous?.id ?? null, announcementId },
   });
-  return { documentId: doc.id, taskId, supersededId: previous?.id ?? null };
+  return { documentId: doc.id, taskId, supersededId: previous?.id ?? null, announcementId };
 }
 
 /**
