@@ -14,6 +14,31 @@ export const ASBESTOS_YEAR_LIMIT = 1994;
 export const ASBESTOS_NOTE =
   "Yhtiön rakennus on valmistunut ennen vuotta 1994. Rakennusmateriaaleissa voi olla asbestia tai muita haitta-aineita, joten purettavien materiaalien asbesti- ja haitta-ainekartoitus on tehtävä ennen purku- ja muutostöitä.";
 
+/** Energiatodistus on voimassa enintään kymmenen vuotta laatimisesta (laki rakennuksen energiatodistuksesta 50/2013, 8 §). */
+export const ENERGY_CERTIFICATE_VALID_YEARS = 10;
+
+/**
+ * Huomautus vanhentuneesta energiatodistuksesta. Laatimisesta tiedetään usein
+ * vain vuosi: yli kymmenen vuotta vanha todistus on varmasti vanhentunut,
+ * täsmälleen kymmenen vuoden ikäinen voi olla vanhentunut. Tuntematon vuosi → null.
+ */
+export function energyCertificateValidityNote(year: number | null, currentYear: number): string | null {
+  if (year === null) return null;
+  const age = currentYear - year;
+  if (age > ENERGY_CERTIFICATE_VALID_YEARS) {
+    return `Energiatodistus on laadittu vuonna ${year}, joten se on yli ${ENERGY_CERTIFICATE_VALID_YEARS} vuotta vanha ja vanhentunut (laki rakennuksen energiatodistuksesta 50/2013, 8 §). Todistuksen tiedot eivät välttämättä enää päde.`;
+  }
+  if (age === ENERGY_CERTIFICATE_VALID_YEARS) {
+    return `Energiatodistus on laadittu vuonna ${year}. Todistus on voimassa enintään ${ENERGY_CERTIFICATE_VALID_YEARS} vuotta laatimisesta (laki 50/2013, 8 §), joten se voi olla jo vanhentunut eivätkä tiedot välttämättä enää päde.`;
+  }
+  return null;
+}
+
+/** Omistusosuus murtolukuna; koko osakeryhmä → "1/1". */
+export function ownershipShareText(numerator: number, denominator: number): string {
+  return `${numerator}/${denominator}`;
+}
+
 /** Asbestihuomautus, jos jokin rakennus on valmistunut ennen vuotta 1994. Tuntematon vuosi ei laukaise huomautusta. */
 export function asbestosNote(buildings: { completed_year: number | null }[]): string | null {
   return buildings.some((b) => b.completed_year !== null && b.completed_year < ASBESTOS_YEAR_LIMIT) ? ASBESTOS_NOTE : null;

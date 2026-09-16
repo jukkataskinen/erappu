@@ -107,6 +107,7 @@ describe("asiakirjojen renderöinti", () => {
         label: "A 1", kindLabel: "Asuinhuoneisto", shareRanges: "–", shareCount: 0, votes: null, areaM2: null, areaVerified: "Ei tiedossa", layout: null, floor: null,
         staircase: null, intendedUse: null, building: null, address: null, htjId: null, notes: null,
       },
+      owners: { rows: [{ name: "Maija Meikäläinen", share: "1/1", since: "1.6.2020" }], source: "Omistajat yhtiön osakeluettelon mukaan." },
       possession: { companyPossession: "Ei", companyRented: "Ei", widowRight: "Ei tiedossa", spousesCommonHome: "Ei tiedossa", otherRestrictions: null, shortTermRental: "–" },
       renovationNotices: [],
       renovationNoticesSince: null,

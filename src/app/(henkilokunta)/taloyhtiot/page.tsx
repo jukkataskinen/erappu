@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge, EmptyState, LinkButton, PageHeader, Table, Td, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
-import { listCompanies } from "@/lib/registry/queries";
+import { hasShareIssues, listCompanies } from "@/lib/registry/queries";
 import { formatNumber } from "@/lib/format";
 
 export const metadata = { title: "Taloyhtiöt" };
@@ -36,7 +36,7 @@ export default async function CompaniesPage() {
           </thead>
           <tbody>
             {companies.map((c) => {
-              const sharesOk = c.total_shares !== null && c.total_shares === c.shares_in_units && c.missing_ranges === 0;
+              const sharesOk = !hasShareIssues(c);
               return (
                 <tr key={c.id} className="hover:bg-cloud/50">
                   <Td>
@@ -52,11 +52,11 @@ export default async function CompaniesPage() {
                   </Td>
                   <Td numeric>
                     {formatNumber(c.shares_in_units)}
-                    {c.total_shares && c.total_shares !== c.shares_in_units ? <span className="block text-xs text-coral">yhtiössä {formatNumber(c.total_shares)}</span> : null}
+                    {!c.share_checks_off && c.total_shares && c.total_shares !== c.shares_in_units ? <span className="block text-xs text-coral">yhtiössä {formatNumber(c.total_shares)}</span> : null}
                   </Td>
                   <Td>
                     <div className="flex flex-wrap gap-1">
-                      {sharesOk ? <Badge tone="ok">Osakkeet kunnossa</Badge> : <Badge tone="alert">Osakkeissa korjattavaa</Badge>}
+                      {c.share_checks_off ? <Badge tone="neutral">Omat säännöt</Badge> : sharesOk ? <Badge tone="ok">Osakkeet kunnossa</Badge> : <Badge tone="alert">Osakkeissa korjattavaa</Badge>}
                       {c.htj_synced_at ? <Badge tone="ok">HTJ</Badge> : <Badge tone="neutral">Ei HTJ</Badge>}
                     </div>
                   </Td>

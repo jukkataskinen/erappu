@@ -93,6 +93,10 @@ export interface ManagerCertificateData {
     htjId: string | null;
     notes: string | null;
   };
+  owners: {
+    rows: { name: string; share: string; since: string }[];
+    source: string;
+  };
   possession: {
     companyPossession: string;
     companyRented: string;
@@ -227,6 +231,17 @@ export function ManagerCertificate({ data }: { data: ManagerCertificateData }) {
             { label: "HTJ-osakeryhmätunnus", value: orDash(u.htjId) },
           ]}
         />
+        <SubHeading>Omistajat</SubHeading>
+        <DataTable
+          columns={[
+            { key: "name", label: "Omistaja", flex: 3 },
+            { key: "share", label: "Osuus", flex: 1, align: "right" },
+            { key: "since", label: "Omistus alkaen", flex: 1.2 },
+          ]}
+          rows={data.owners.rows}
+          emptyText="Osakeluetteloon ei ole kirjattu omistajia."
+        />
+        <Muted style={{ marginTop: 4 }}>{data.owners.source}</Muted>
         <SubHeading>Hallinta ja rajoitukset</SubHeading>
         <KeyValues
           items={[

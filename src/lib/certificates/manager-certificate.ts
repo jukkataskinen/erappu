@@ -11,7 +11,8 @@ import { formatArea, formatDate, formatEuro, formatInteger, formatShareRanges } 
 import { computeMonthlyCharges, type ChargeBasisInput } from "./charges";
 import { availabilityEntries, findAttachmentCandidates, type AttachmentEntry } from "./attachments";
 import {
-  asbestosNote, buildingSummary, chargePriceList, loanRow, parsePropertyCode, purposeText, spacesByKind, SPOUSES_HOME_LABEL, yesNo, type LoanInput,
+  asbestosNote, buildingSummary, chargePriceList, energyCertificateValidityNote, loanRow, ownershipShareText, parsePropertyCode, purposeText, spacesByKind,
+  SPOUSES_HOME_LABEL, yesNo, type LoanInput,
 } from "./content";
 import { CERTIFICATE_TEMPLATE_APPROVED } from "./pricing";
 
@@ -20,7 +21,8 @@ import { CERTIFICATE_TEMPLATE_APPROVED } from "./pricing";
  * 174/2013 ja 567/2026; luonnos, Jukan hyväksyttävä).
  *
  * Yhtiön tiedot, rakennukset, vastikkeet, lainat ja korjaukset eRapun
- * rekisteristä; omistajat ja panttaukset HTJ:stä (merkintä todistuksessa).
+ * rekisteristä; omistajat osakeluettelosta (HTJ:stä haettuina, jos yhtiö on
+ * synkronoitu), panttaukset HTJ:stä (merkintä todistuksessa).
  * Luetaan kutsujan transaktiossa (henkilökunnan RLS).
  */
 
@@ -117,7 +119,7 @@ export async function loadManagerCertificateData(
   if (!company) return null;
   const companyId = group.company_id;
 
-  const [properties, buildings, groups, bases, loans, loanShares, works, needs, decided, notices, mortgages, insurances, chair, candidates] = await Promise.all([
+  const [properties, buildings, groups, bases, loans, loanShares, works, needs, decided, notices, mortgages, insurances, chair, candidates, owners] = await Promise.all([
     tx.query<{
       property_code: string; tenure: string | null; area_m2: string | null; lessor: string | null; lease_ends_on: string | null; annual_rent_eur: string | null;
       rent_review_basis: string | null; building_rights_m2: string | null; unused_building_rights_m2: string | null; parking_spaces_built: number | null;
@@ -207,6 +209,14 @@ export async function loadManagerCertificateData(
       [companyId],
     ),
     findAttachmentCandidates(tx, companyId, shareGroupId),
+    // Voimassa olevat omistukset; henkilötunnuksia ei lueta.
+    tx.query<{ name: string; share_numerator: number; share_denominator: number; starts_on: string | null }>(
+      `select p.display_name as name, o.share_numerator, o.share_denominator, o.starts_on::text
+         from er_ownerships o join er_parties p on p.id = o.party_id
+        where o.share_group_id = $1 and (o.ends_on is null or o.ends_on >= current_date)
+        order by o.starts_on nulls last, p.display_name`,
+      [shareGroupId],
+    ),
   ]);
 
   const paymentStatus = await readPaymentStatus(tx, shareGroupId);
@@ -224,8 +234,12 @@ export async function loadManagerCertificateData(
   const htjTransferred = company.htj_register_transferred_on ? ` ${formatDate(company.htj_register_transferred_on)}` : "";
   const energyFacts = buildings
     .filter((b) => b.energy_class || b.energy_certificate_year)
-    .map((b) => `${b.label ? `Rakennus ${b.label}: ` : ""}energialuokka ${b.energy_class ?? "–"}${b.energy_certificate_year ? `, todistus ${b.energy_certificate_year}` : ""}`);
+    // Accessista tuotu tunnus voi olla rakennusmäärä ("2 rakennusta"), jolloin sitä ei kirjoiteta muotoon "Rakennus 2 rakennusta".
+    .map((b) => `${b.label ? (/^\d+ rakennusta$/i.test(b.label) ? `Rakennukset (${b.label}): ` : `Rakennus ${b.label}: `) : ""}energialuokka ${b.energy_class ?? "–"}${b.energy_certificate_year ? `, todistus ${b.energy_certificate_year}` : ""}`);
   const energyDoc = candidates.find((c) => c.key === "energy_certificate")?.document;
+  const energyYears = [...buildings.map((b) => b.energy_certificate_year), energyDoc?.year ?? null].filter((y): y is number => y !== null);
+  const issuedYear = Number((opts.issuedOn ?? isoDateHelsinki()).slice(0, 4));
+  const energyValidity = energyCertificateValidityNote(energyYears.length ? Math.max(...energyYears) : null, issuedYear);
   const withAttachments = opts.order?.withAttachments ?? false;
 
   const insuranceRows = insurances.length
@@ -268,11 +282,16 @@ export async function loadManagerCertificateData(
       shareCertificates: company.htj_synced_at || company.htj_register_transferred_on
         ? `Osakeluettelo on siirretty huoneistotietojärjestelmään${htjTransferred}. Paperiset osakekirjat mitätöidään, kun omistus kirjataan huoneistotietojärjestelmään.`
         : "Osakeluetteloa ei ole merkitty siirretyksi huoneistotietojärjestelmään. Tieto osakekirjoista tarkistetaan isännöitsijältä.",
-      energy: energyFacts.length
-        ? `${energyFacts.join("; ")}.${energyDoc ? "" : " Energiatodistusta ei ole tallennettu asiakirjoihin."}`
-        : energyDoc
-          ? `Energiatodistus: ${energyDoc.title}.`
-          : "Yhtiön rakennuksille laadittua energiatodistusta ei ole kirjattu.",
+      energy: [
+        energyFacts.length
+          ? `${energyFacts.join("; ")}.${energyDoc ? "" : " Energiatodistusta ei ole tallennettu asiakirjoihin."}`
+          : energyDoc
+            ? `Energiatodistus: ${energyDoc.title}.`
+            : "Yhtiön rakennuksille laadittua energiatodistusta ei ole kirjattu.",
+        energyValidity,
+      ]
+        .filter(Boolean)
+        .join(" "),
     },
     manager: {
       name: company.manager_name,
@@ -354,6 +373,14 @@ export async function loadManagerCertificateData(
       address: group.street_address,
       htjId: group.htj_id,
       notes: group.certificate_notes,
+    },
+    owners: {
+      rows: owners.map((o) => ({ name: o.name, share: ownershipShareText(o.share_numerator, o.share_denominator), since: formatDate(o.starts_on) })),
+      source: company.htj_synced_at
+        ? `Omistajat huoneistotietojärjestelmästä haetun osakeluettelon mukaan (haettu ${formatDate(company.htj_synced_at)}). Virallinen omistustieto on osakehuoneistorekisterin otteella.`
+        : company.htj_register_transferred_on
+          ? "Omistajat yhtiön osakeluettelon mukaan. Osakeluettelo on siirretty huoneistotietojärjestelmään, joten virallinen omistustieto on osakehuoneistorekisterin otteella."
+          : "Omistajat yhtiön osakeluettelon mukaan.",
     },
     possession: {
       companyPossession: group.company_possession

@@ -20,11 +20,20 @@ export interface CompanyListRow {
   missing_ranges: number;
   manager_name: string | null;
   htj_synced_at: string | null;
+  /** Yhtiö toimii omien sääntöjensä mukaan (extra.share_checks = "off"), joten osakemäärän ja -välien tarkistus ohitetaan. */
+  share_checks_off: boolean;
+}
+
+/** Onko osakeluettelossa korjattavaa. Ohitettu tarkistus ei ole virhe. */
+export function hasShareIssues(c: Pick<CompanyListRow, "total_shares" | "shares_in_units" | "missing_ranges" | "share_checks_off">): boolean {
+  if (c.share_checks_off) return false;
+  return c.missing_ranges > 0 || c.total_shares === null || c.total_shares !== c.shares_in_units;
 }
 
 export async function listCompanies(tx: Sql, organizationId: string): Promise<CompanyListRow[]> {
   return tx.query<CompanyListRow>(
     `select c.id, c.name, c.business_id, c.company_form, c.city, c.total_shares, c.htj_synced_at,
+            coalesce(c.extra->>'share_checks', '') = 'off' as share_checks_off,
             coalesce(u.full_name, u.email) as manager_name,
             (select count(*)::int from er_share_groups g where g.company_id = c.id and g.removed_on is null) as unit_count,
             (select count(*)::int from er_share_groups g where g.company_id = c.id and g.removed_on is null and g.kind = 'apartment') as apartment_count,

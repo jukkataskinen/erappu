@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  asbestosNote, buildingSummary, chargePriceList, loanRow, parsePropertyCode, purposeText, spacesByKind, yesNo,
+  asbestosNote, buildingSummary, chargePriceList, energyCertificateValidityNote, loanRow, ownershipShareText, parsePropertyCode, purposeText, spacesByKind, yesNo,
 } from "@/lib/certificates/content";
 import { availabilityEntries, type AttachmentCandidate } from "@/lib/certificates/attachments";
 
@@ -69,5 +69,18 @@ describe("isännöitsijäntodistuksen johdetut tiedot", () => {
       { number: 1, key: "articles", label: "Yhtiöjärjestys", title: "YJ", dateText: "2008", pages: null, status: "available" },
       { number: 2, key: "budget", label: "Talousarvio", title: null, dateText: null, pages: null, status: "missing" },
     ]);
+  });
+});
+
+describe("energiatodistuksen voimassaolo", () => {
+  it("yli 10 vuotta vanha on vanhentunut, tasan 10 vuotta voi olla", () => {
+    expect(energyCertificateValidityNote(2009, 2026)).toContain("vanhentunut");
+    expect(energyCertificateValidityNote(2016, 2026)).toContain("voi olla jo vanhentunut");
+    expect(energyCertificateValidityNote(2020, 2026)).toBeNull();
+    expect(energyCertificateValidityNote(null, 2026)).toBeNull();
+  });
+
+  it("omistusosuus murtolukuna", () => {
+    expect(ownershipShareText(1, 2)).toBe("1/2");
   });
 });

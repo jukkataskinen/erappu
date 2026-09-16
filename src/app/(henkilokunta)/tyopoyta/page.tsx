@@ -22,7 +22,7 @@ function greeting() {
 export default async function DashboardPage() {
   const ctx = await requireStaff();
   const companies = await ctx.run((tx) => listCompanies(tx, ctx.org.organizationId));
-  const withIssues = companies.filter((c) => c.missing_ranges > 0 || (c.total_shares !== null && c.total_shares !== c.shares_in_units));
+  const withIssues = companies.filter((c) => !c.share_checks_off && (c.missing_ranges > 0 || (c.total_shares !== null && c.total_shares !== c.shares_in_units)));
   const withoutHtj = companies.filter((c) => !c.htj_synced_at);
   const units = companies.reduce((s, c) => s + c.apartment_count, 0);
   const firstName = ctx.user.fullName?.split(" ")[0];
