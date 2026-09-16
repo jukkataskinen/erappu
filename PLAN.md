@@ -142,7 +142,7 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - Varaus: ensimmäinen varaaja saa työn (lukitus kannassa, ei kilpatilannetta), pyyntö poistuu muilta, isännöitsijä saa ilmoituksen ja voi perua varauksen. Varaamaton pyyntö palaa isännöitsijälle määräajan jälkeen.
   - Ei torille: kiireelliset viat (suoraan päivystäjälle) eikä yhtiöt, joilla on voimassa huoltosopimus, joka määrää tekijän.
   - Hinnat: tori edellyttää sovittua hinnastoa tai tuntihintoja palveluntuottajittain, muuten jokainen työ vaatii tarjouskierroksen.
-  - Taloyhtiön päätös: hallitus hyväksyy toimintatavan ja euro-rajan (esim. alle 500 euron korjaukset hyväksytyiltä tekijöiltä).
+  - Taloyhtiön päätös (Jukka vahvisti 17.9.2026): hallitus hyväksyy toimintatavan ja euro-rajan, esim. "alle 500 euron korjaukset saa tilata torilta hyväksytyiltä tekijöiltä". Toteutus: yhtiökohtainen asetus (tori käytössä, euro-raja, päätöspäivä ja viittaus hallituksen pöytäkirjaan). Ilman päätöstä yhtiön pyyntöjä ei voi viedä torille, ja rajan ylittävä työ vaatii isännöitsijän erillisen tilauksen.
   - Avoimet kysymykset Jukalle ennen toteutusta: hinnaston muoto; varauksen voimassaoloaika; saako asukas tiedon varaajasta.
 
 ## Jatkokehitys (Jukan toiveet)
