@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
   experimental: {
     // Middleware katkaisee oletuksena yli 10 Mt:n pyynnöt; dokumentit ovat enintään 20 Mt (MAX_UPLOAD_BYTES) + lomakekentät.
     middlewareClientMaxBodySize: "21mb",
+    serverActions: {
+      // Palvelintoiminnon oletusraja on 1 Mt. Muutostyöilmoituksen liitteet
+      // (suunnitelma-PDF, pohjapiirustus) tulevat palvelintoiminnolla, ja niiden
+      // yhteiskoko rajataan sovelluksessa (MAX_NOTICE_ATTACHMENT_TOTAL).
+      bodySizeLimit: "21mb",
+    },
   },
   outputFileTracingIncludes: {
     // pdfkit lataa vakiofontit dynaamisella requirella, jota jäljitin ei näe

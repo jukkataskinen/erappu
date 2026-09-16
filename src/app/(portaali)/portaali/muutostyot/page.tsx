@@ -2,17 +2,21 @@ import Link from "next/link";
 import { Badge, EmptyState, LinkButton, Notice, Panel } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
 import { formatDate } from "@/lib/format";
-import { listPortalNotices, type NoticeRow } from "@/lib/maintenance/queries";
+import { CONTRACTOR_KIND_LABEL, workSummary, type ContractorKind } from "@/lib/maintenance/notice-form";
+import { listNoticeWorksFor, listPortalNotices, type NoticeRow, type NoticeWorkRow } from "@/lib/maintenance/queries";
 import { RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
 
 export const metadata = { title: "Muutostyöt" };
 
-function NoticeCard({ n, showCompany }: { n: NoticeRow; showCompany: boolean }) {
+function NoticeCard({ n, works, showCompany }: { n: NoticeRow; works: NoticeWorkRow[]; showCompany: boolean }) {
+  const start = n.works_start ?? n.planned_start;
+  const end = n.works_end ?? n.planned_end;
+  const summary = n.work_count > 0 ? workSummary(n.work_types, n.work_count) : n.work_type ?? "Muutostyö";
   return (
     <Panel>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold">{n.work_type ?? "Muutostyö"}</p>
+          <p className="font-semibold">{summary}</p>
           <p className="text-sm text-ink/60">
             {showCompany ? `${n.company_name}, ` : ""}huoneisto {n.unit_label} · {formatDate(n.created_at)}
           </p>
@@ -20,9 +24,26 @@ function NoticeCard({ n, showCompany }: { n: NoticeRow; showCompany: boolean }) 
         <Badge tone={RENOVATION_STATUS_TONE[n.status]}>{RENOVATION_STATUS_LABEL[n.status]}</Badge>
       </div>
       <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm">{n.description}</p>
-      {n.planned_start ? (
+      <p className="mt-2 text-xs text-ink/60">
+        {n.work_count === 1 ? "1 muutostyö" : `${n.work_count} muutostyötä`}
+        {n.attachment_count > 0 ? ` · ${n.attachment_count} liitettä` : ""}
+      </p>
+      {works.length > 0 ? (
+        <ul className="mt-2 divide-y divide-line text-sm">
+          {works.map((w) => (
+            <li key={w.id} className="py-2">
+              <p className="font-semibold">{w.work_type}</p>
+              <p className="text-xs text-ink/65">
+                {w.contractor_kind === "contractor" ? (w.contractor_name ?? "Urakoitsija") : CONTRACTOR_KIND_LABEL[w.contractor_kind as ContractorKind] ?? w.contractor_kind}
+                {w.planned_start ? ` · ${formatDate(w.planned_start)} – ${formatDate(w.planned_end)}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {works.length === 0 && start ? (
         <p className="mt-2 text-xs text-ink/60">
-          Suunniteltu {formatDate(n.planned_start)} – {formatDate(n.planned_end)}
+          Suunniteltu {formatDate(start)} – {formatDate(end)}
         </p>
       ) : null}
       {n.conditions ? (
@@ -46,7 +67,12 @@ function NoticeCard({ n, showCompany }: { n: NoticeRow; showCompany: boolean }) 
 export default async function PortalRenovationsPage({ searchParams }: { searchParams: Promise<{ tila?: string }> }) {
   const ctx = await requirePortal();
   const { tila } = await searchParams;
-  const notices = await ctx.run((tx) => listPortalNotices(tx));
+  const [notices, works] = await ctx.run(async (tx) => {
+    const rows = await listPortalNotices(tx);
+    return [rows, await listNoticeWorksFor(tx, rows.map((n) => n.id))] as const;
+  });
+  const worksByNotice = new Map<string, NoticeWorkRow[]>();
+  for (const w of works) worksByNotice.set(w.notice_id, [...(worksByNotice.get(w.notice_id) ?? []), w]);
   const ownGroups = new Set(ctx.user.portal.filter((g) => (g.role === "owner" || g.role === "resident") && g.shareGroupId).map((g) => g.shareGroupId));
   const canSubmit = ctx.user.portal.some((g) => g.role === "owner" && g.shareGroupId);
   const own = notices.filter((n) => ownGroups.has(n.share_group_id));
@@ -76,7 +102,7 @@ export default async function PortalRenovationsPage({ searchParams }: { searchPa
         {own.length === 0 ? (
           <EmptyState title="Ei muutostyöilmoituksia">{canSubmit ? "Tee ilmoitus ennen kuin aloitat remontin." : "Muutostyöilmoituksen voi tehdä huoneiston osakas."}</EmptyState>
         ) : (
-          own.map((n) => <NoticeCard key={n.id} n={n} showCompany={multiCompany} />)
+          own.map((n) => <NoticeCard key={n.id} n={n} works={worksByNotice.get(n.id) ?? []} showCompany={multiCompany} />)
         )}
       </div>
 
@@ -86,7 +112,7 @@ export default async function PortalRenovationsPage({ searchParams }: { searchPa
           <p className="text-sm text-ink/60">Näet nämä hallituksen jäsenenä.</p>
           <div className="mt-3 grid gap-3">
             {others.map((n) => (
-              <NoticeCard key={n.id} n={n} showCompany={multiCompany} />
+              <NoticeCard key={n.id} n={n} works={worksByNotice.get(n.id) ?? []} showCompany={multiCompany} />
             ))}
           </div>
         </>

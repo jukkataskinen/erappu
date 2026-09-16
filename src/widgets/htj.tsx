@@ -5,6 +5,7 @@ import { formatDate, formatDateTime, isoDateHelsinki } from "@/lib/format";
 import { REPORT_STATE_LABEL } from "@/lib/htj/htj2";
 import { OBLIGATION_LABEL } from "@/lib/htj/obligation";
 import { companyHtjOverview, listHtjOverview } from "@/lib/htj/queries";
+import { workSummary } from "@/lib/maintenance/notice-form";
 import { listPortalNotices } from "@/lib/maintenance/queries";
 import { OPEN_FOR_COMPANY, OPEN_FOR_OWNER, RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
 
@@ -139,7 +140,7 @@ export async function PortalHomeWidget({ ctx }: { ctx: PortalContext }) {
           {notices.map((n) => (
             <li key={n.id} className="flex items-center justify-between gap-3 py-2">
               <span className="min-w-0">
-                <span className="font-semibold">{n.work_type ?? "Muutostyö"}</span>
+                <span className="font-semibold">{n.work_count > 0 ? workSummary(n.work_types, n.work_count) : n.work_type ?? "Muutostyö"}</span>
                 <span className="block text-xs text-ink/55">
                   {n.unit_label} · {formatDate(n.created_at)}
                 </span>

@@ -5,6 +5,7 @@ import { Badge, Button, EmptyState, Field, Input, LinkButton, Notice, Panel, Sec
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatEur, isoDateHelsinki, toIsoDate } from "@/lib/format";
 import { NEED_STATUS_LABEL, PERFORMED_BY_LABEL, WORK_SOURCE_LABEL, type NeedStatus } from "@/lib/maintenance/labels";
+import { workSummary } from "@/lib/maintenance/notice-form";
 import { listDecidedNeeds, listNeeds, listNotices, listWorks } from "@/lib/maintenance/queries";
 import { OPEN_FOR_OWNER, RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
 import { isKnownWorkType, WORK_TYPE_LABELS } from "@/lib/maintenance/work-types";
@@ -86,11 +87,16 @@ export default async function RepairsPage({ params, searchParams }: { params: Pr
                       <Td className="font-semibold">{n.unit_label}</Td>
                       <Td>
                         <Link href={`/taloyhtiot/${id}/korjaukset/muutostyot/${n.id}`} className="font-semibold hover:text-sky">
-                          {n.work_type ?? "Muutostyö"}
+                          {n.work_count > 0 ? workSummary(n.work_types, n.work_count) : n.work_type ?? "Muutostyö"}
                         </Link>
                         <p className="line-clamp-2 text-xs text-ink/65">{n.description}</p>
+                        <p className="text-xs text-ink/50">
+                          {n.work_count === 1 ? "1 työ" : `${n.work_count} työtä`}
+                          {n.attachment_count > 0 ? ` · ${n.attachment_count} liitettä` : ""}
+                          {n.guide_acknowledged_at ? " · ohje kuitattu" : ""}
+                        </p>
                       </Td>
-                      <Td>{n.planned_start ? `${formatDate(n.planned_start)} – ${formatDate(n.planned_end)}` : "–"}</Td>
+                      <Td>{n.works_start ?? n.planned_start ? `${formatDate(n.works_start ?? n.planned_start)} – ${formatDate(n.works_end ?? n.planned_end)}` : "–"}</Td>
                       <Td>
                         <Badge tone={RENOVATION_STATUS_TONE[n.status]}>{RENOVATION_STATUS_LABEL[n.status]}</Badge>
                       </Td>
@@ -109,7 +115,7 @@ export default async function RepairsPage({ params, searchParams }: { params: Pr
                   {closedNotices.map((n) => (
                     <li key={n.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                       <Link href={`/taloyhtiot/${id}/korjaukset/muutostyot/${n.id}`} className="hover:text-sky">
-                        {n.unit_label}: {n.work_type ?? "Muutostyö"}
+                        {n.unit_label}: {n.work_count > 0 ? workSummary(n.work_types, n.work_count) : n.work_type ?? "Muutostyö"}
                       </Link>
                       <span className="flex items-center gap-2">
                         <Badge tone={RENOVATION_STATUS_TONE[n.status]}>{RENOVATION_STATUS_LABEL[n.status]}</Badge>

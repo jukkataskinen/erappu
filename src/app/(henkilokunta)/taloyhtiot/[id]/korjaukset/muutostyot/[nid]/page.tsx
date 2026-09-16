@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, DefinitionList, Field, Input, Notice, Panel, SectionTitle, Select, Textarea } from "@/components/ui";
+import { Badge, Button, DefinitionList, Field, Input, Notice, Panel, SectionTitle, Select, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
+import { formatBytes } from "@/lib/documents/labels";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { getNotice } from "@/lib/maintenance/queries";
+import { CONTRACTOR_KIND_LABEL, type ContractorKind } from "@/lib/maintenance/notice-form";
+import { getNotice, listNoticeAttachments, listNoticeWorks } from "@/lib/maintenance/queries";
 import { nextStatuses, RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
 import { processRenovationNotice } from "../../actions";
 
@@ -16,7 +18,11 @@ export default async function NoticePage({ params, searchParams }: { params: Pro
   const { virhe, tila } = await searchParams;
   const company = await loadCompany(ctx, id);
   if (!/^[0-9a-f-]{36}$/i.test(nid)) notFound();
-  const notice = await ctx.run((tx) => getNotice(tx, nid));
+  const [notice, works, attachments] = await ctx.run(async (tx) => [
+    await getNotice(tx, nid),
+    await listNoticeWorks(tx, nid),
+    await listNoticeAttachments(tx, nid),
+  ] as const);
   if (!notice || notice.company_id !== id) notFound();
   const canProcess = ctx.can("owner", "manager", "assistant");
   const options = [notice.status, ...nextStatuses(notice.status)];
@@ -40,16 +46,100 @@ export default async function NoticePage({ params, searchParams }: { params: Pro
             items={[
               { label: "Ilmoittaja", value: notice.submitted_by_name ?? "–" },
               { label: "Saapui", value: formatDateTime(notice.created_at) },
-              { label: "Työlaji", value: notice.work_type ?? "–" },
-              { label: "Suunniteltu aika", value: notice.planned_start ? `${formatDate(notice.planned_start)} – ${formatDate(notice.planned_end)}` : "–" },
+              { label: "Työlajit", value: notice.work_types ?? notice.work_type ?? "–" },
+              {
+                label: "Suunniteltu aika",
+                value: notice.works_start ?? notice.planned_start
+                  ? `${formatDate(notice.works_start ?? notice.planned_start)} – ${formatDate(notice.works_end ?? notice.planned_end)}`
+                  : "–",
+              },
               { label: "Päätös", value: formatDate(notice.decided_on) },
               { label: "Valmistui", value: formatDate(notice.completed_on) },
               { label: "Valvoja", value: notice.supervisor ?? "–" },
               { label: "Korjaushistoriassa", value: notice.maintenance_work_id ? "Kyllä" : "Ei" },
+              {
+                label: "Muutostyöohje kuitattu",
+                value: notice.guide_acknowledged_at ? (
+                  <>
+                    {formatDateTime(notice.guide_acknowledged_at)}
+                    {notice.guide_document_id ? (
+                      <>
+                        {" · "}
+                        <a href={`/api/dokumentit/${notice.guide_document_id}`} className="text-sky underline">
+                          ohje
+                        </a>
+                      </>
+                    ) : (
+                      " · yhtiöllä ei ollut tallennettua ohjetta"
+                    )}
+                  </>
+                ) : (
+                  <Badge tone="warn">Ei kuittausta</Badge>
+                ),
+              },
+              {
+                label: "Ilmoitustapa",
+                value: [notice.notify_email ? "sähköposti" : null, notice.notify_sms ? "tekstiviesti (ei vielä käytössä)" : null].filter(Boolean).join(", ") || "ei ilmoituksia",
+              },
             ]}
           />
-          <h3 className="mt-5 text-sm font-semibold">Kuvaus</h3>
+          <h3 className="mt-5 text-sm font-semibold">Yhteenveto</h3>
           <p className="mt-1 whitespace-pre-wrap text-sm">{notice.description}</p>
+
+          <h3 className="mt-5 text-sm font-semibold">Muutostyöt ({works.length})</h3>
+          {works.length === 0 ? (
+            <p className="mt-1 text-sm text-ink/65">Ilmoituksella ei ole työrivejä.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-line">
+              {works.map((w) => (
+                <li key={w.id} className="py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold">{w.work_type}</p>
+                    <p className="text-xs text-ink/60">
+                      {w.planned_start ? `${formatDate(w.planned_start)} – ${formatDate(w.planned_end)}` : "aikataulu avoin"}
+                    </p>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm">{w.description}</p>
+                  <p className="mt-1 text-xs text-ink/65">
+                    Tekijä: {CONTRACTOR_KIND_LABEL[w.contractor_kind as ContractorKind] ?? w.contractor_kind}
+                    {w.contractor_name ? ` · ${w.contractor_name}` : ""}
+                    {w.contractor_business_id ? ` (${w.contractor_business_id})` : ""}
+                    {w.contractor_contact ? ` · ${w.contractor_contact}` : ""}
+                  </p>
+                  {w.contractor_qualification ? <p className="text-xs text-ink/65">Pätevyys: {w.contractor_qualification}</p> : null}
+                  {w.maintenance_work_id ? <p className="text-xs text-moss">Kirjattu korjaushistoriaan.</p> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h3 className="mt-5 text-sm font-semibold">Liitteet ({attachments.length})</h3>
+          {attachments.length === 0 ? (
+            <p className="mt-1 text-sm text-ink/65">Osakas ei liittänyt tiedostoja.</p>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Tiedosto</Th>
+                  <Th>Lisätty</Th>
+                  <Th numeric>Koko</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {attachments.map((a) => (
+                  <tr key={a.id}>
+                    <Td>
+                      <a href={`/api/dokumentit/${a.id}`} target="_blank" rel="noreferrer" className="font-semibold hover:text-sky">
+                        {a.file_name}
+                      </a>
+                    </Td>
+                    <Td>{formatDate(a.created_at)}</Td>
+                    <Td numeric>{formatBytes(a.size_bytes)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
           {notice.conditions ? (
             <>
               <h3 className="mt-5 text-sm font-semibold">Ehdot</h3>
