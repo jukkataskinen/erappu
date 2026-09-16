@@ -10,6 +10,7 @@ import {
   statementHealth,
   type GovernanceDoc,
   type GovernanceMeeting,
+  type LastMeeting,
   type Health,
 } from "@/lib/governance/overview";
 import { MEETING_STATUS, MEETING_STATUS_TONE } from "@/lib/meetings/labels";
@@ -42,12 +43,17 @@ function DocCell({ doc, health, missingHref }: { doc: GovernanceDoc | null; heal
   );
 }
 
-function MeetingCell({ companyId, last, next, health }: { companyId: string; last: GovernanceMeeting | null; next: GovernanceMeeting | null; health: Health }) {
+function MeetingCell({ companyId, last, next, health }: { companyId: string; last: LastMeeting | null; next: GovernanceMeeting | null; health: Health }) {
   return (
     <div className="flex gap-2">
       <Dot health={health} />
       <div className="min-w-0">
-        {last ? (
+        {last?.source === "document" ? (
+          <a href={`/dokumentit/${last.id}`} className="hover:text-sky">
+            <span className="tabular font-semibold">{last.date ? formatDate(last.date) : last.year}</span> <Badge tone="neutral">Pöytäkirja</Badge>
+            {!last.date ? <span className="block max-w-48 truncate text-xs text-ink/55">{last.title}</span> : null}
+          </a>
+        ) : last ? (
           <Link href={`/taloyhtiot/${companyId}/kokoukset/${last.id}`} className="hover:text-sky">
             <span className="tabular font-semibold">{formatDate(last.starts_at)}</span>{" "}
             <Badge tone={MEETING_STATUS_TONE[last.status]}>{MEETING_STATUS[last.status]}</Badge>
@@ -77,7 +83,7 @@ export async function GovernancePanel({ ctx }: { ctx: StaffContext }) {
     <Panel>
       <SectionTitle actions={<Link href="/kokoukset" className="text-sm text-sky">Kokoukset</Link>}>Hallinto</SectionTitle>
       <p className="mb-3 text-sm text-ink/65">
-        Viimeisin tallennettu talousarvio ja tilinpäätös (dokumenttien vuosi) sekä viimeisin pidetty kokous. Väri olettaa kalenterivuoden tilikauden ja varsinaisen yhtiökokouksen kesäkuun loppuun mennessä.
+        Viimeisin tallennettu talousarvio ja tilinpäätös (dokumenttien vuosi) sekä viimeisin pidetty kokous kokouksista tai pöytäkirjadokumenteista. Väri olettaa kalenterivuoden tilikauden ja varsinaisen yhtiökokouksen kesäkuun loppuun mennessä.
       </p>
       <Table>
         <thead>
