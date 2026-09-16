@@ -7,6 +7,7 @@ import { listBoard, listOwners } from "@/lib/registry/queries";
 import { BOARD_ROLE } from "@/lib/registry/labels";
 import { InvitePartyButton } from "@/components/invitations/InvitePartyButton";
 import { addBoardMember, endBoardMembership } from "../../actions";
+import { GovernancePanel, loadGovernance } from "./governance";
 
 export const metadata = { title: "Hallitus" };
 
@@ -15,7 +16,7 @@ export default async function BoardPage({ params, searchParams }: { params: Prom
   const { id } = await params;
   const company = await loadCompany(ctx, id);
   const { virhe } = await searchParams;
-  const [board, owners] = await ctx.run((tx) => Promise.all([listBoard(tx, id, true), listOwners(tx, id)]));
+  const [board, owners, governance] = await ctx.run((tx) => Promise.all([listBoard(tx, id, true), listOwners(tx, id), loadGovernance(tx, id)]));
   const current = board.filter((b) => !b.ends_on || new Date(b.ends_on) >= new Date(new Date().toDateString()));
   const past = board.filter((b) => !current.includes(b));
   const ownerOptions = [...new Map(owners.map((o) => [o.party_id, o.display_name])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi"));
@@ -81,6 +82,7 @@ export default async function BoardPage({ params, searchParams }: { params: Prom
               </ul>
             </details>
           ) : null}
+          {governance ? <GovernancePanel companyId={id} row={governance} canWrite={ctx.can("owner", "manager")} /> : null}
         </div>
 
         {canWrite ? (

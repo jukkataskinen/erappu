@@ -294,7 +294,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             {general ? (
               <p className="mb-3 text-sm text-ink/65">
                 Edustettuna {formatNumber(summary.representedShares)} osaketta · äänet leikkurin jälkeen {formatNumber(summary.totalVotes)}
-                {summary.cap !== null ? ` · enimmäisäänimäärä ${formatNumber(summary.cap)} (1/5, AOYL 6:27 §)` : ""}
+                {summary.cap !== null ? ` · enimmäisäänimäärä ${formatNumber(summary.cap)} (1/5, AOYL 6:13 §)` : ""}
               </p>
             ) : null}
             {attendees.length === 0 ? (

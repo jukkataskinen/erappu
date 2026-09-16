@@ -1,6 +1,7 @@
 import type { Sql } from "@/lib/db";
 import { groupOwnersForVoting, type OwnershipInput } from "./attendees";
 import { isGeneralMeeting, type MeetingKind } from "./labels";
+import { annualGeneralAgenda, type AuditorKind } from "./agenda";
 import { resolveAgenda, type AgendaItemTemplate } from "./templates";
 
 /**
@@ -32,13 +33,39 @@ export async function createMeeting(tx: Sql, m: NewMeeting): Promise<{ id: strin
     "select items from er_agenda_templates where organization_id = $1 and kind = $2 and is_default limit 1",
     [company.organization_id, m.kind],
   );
-  const items = resolveAgenda(m.kind, custom?.items);
+  // Varsinainen yhtiökokous: ilman organisaation omaa pohjaa esityslista rakennetaan
+  // yhtiön yhtiöjärjestyksen hallitus- ja tarkastajamääristä (0097).
+  const items = m.kind === "annual_general" && !(custom?.items?.length)
+    ? await companyAnnualAgenda(tx, m.companyId)
+    : resolveAgenda(m.kind, custom?.items);
   for (const [index, item] of items.entries()) {
     await tx.query("insert into er_meeting_items (organization_id, meeting_id, position, title, proposal) values ($1,$2,$3,$4,$5)", [
       company.organization_id, row.id, index + 1, item.title, item.proposal || null,
     ]);
   }
   return { id: row.id, organizationId: company.organization_id };
+}
+
+async function companyAnnualAgenda(tx: Sql, companyId: string): Promise<AgendaItemTemplate[]> {
+  const [c] = await tx.query<{
+    company_form: string; board_members_min: number | null; board_members_max: number | null; board_deputies_min: number | null; board_deputies_max: number | null;
+    auditor_kind: AuditorKind | null; auditors_count: number | null; deputy_auditors_count: number | null; chair_name: string | null;
+  }>(
+    `select c.company_form, c.board_members_min, c.board_members_max, c.board_deputies_min, c.board_deputies_max, c.auditor_kind, c.auditors_count,
+            c.deputy_auditors_count,
+            (select p.display_name from er_board_memberships b join er_parties p on p.id = b.party_id
+              where b.company_id = c.id and b.role = 'chair' and b.starts_on <= current_date and (b.ends_on is null or b.ends_on >= current_date)
+              order by b.starts_on desc limit 1) as chair_name
+       from er_housing_companies c where c.id = $1`,
+    [companyId],
+  );
+  return annualGeneralAgenda(
+    {
+      boardMembersMin: c.board_members_min, boardMembersMax: c.board_members_max, boardDeputiesMin: c.board_deputies_min, boardDeputiesMax: c.board_deputies_max,
+      auditorKind: c.auditor_kind, auditorsCount: c.auditors_count, deputyAuditorsCount: c.deputy_auditors_count, isHousingCompany: c.company_form !== "koy",
+    },
+    { chairName: c.chair_name },
+  );
 }
 
 export async function addItem(tx: Sql, meetingId: string, title: string, proposal: string | null): Promise<boolean> {

@@ -5,7 +5,7 @@ import type { MeetingKind } from "./labels";
  *
  * LUONNOS: juridinen sisältö on Jukan tarkistettava ennen käyttöä
  * (BLOCKERS 4, DECISIONS 2026-09-15). Varsinaisen yhtiökokouksen asiat
- * noudattavat asunto-osakeyhtiölain 6:10 §:ää ja Accessin kokoukset-taulun
+ * noudattavat asunto-osakeyhtiölain 6:3 §:ää ja Accessin kokoukset-taulun
  * §1–§15-rakennetta.
  *
  * Pohjat ovat vakioina eivätkä kantarivejä, koska ne ovat samat kaikille
@@ -36,7 +36,7 @@ const ORGANIZING: AgendaItemTemplate = {
 
 const ATTENDANCE: AgendaItemTemplate = {
   title: "Läsnäolijat ja ääniluettelo",
-  proposal: "Todetaan läsnä ja edustettuina olevat osakkaat, tarkastetaan valtakirjat ja vahvistetaan ääniluettelo. Kukaan ei voi äänestää yli viidesosalla kokouksessa edustetusta äänimäärästä (AOYL 6:27 §), ellei yhtiöjärjestyksessä toisin määrätä.",
+  proposal: "Todetaan läsnä ja edustettuina olevat osakkaat, tarkastetaan valtakirjat ja vahvistetaan ääniluettelo. Kukaan ei voi äänestää yli viidesosalla kokouksessa edustetusta äänimäärästä (AOYL 6:13 §), ellei yhtiöjärjestyksessä toisin määrätä.",
 };
 
 const LEGALITY: AgendaItemTemplate = {
@@ -62,7 +62,7 @@ const CLOSING: AgendaItemTemplate = {
 export const DEFAULT_AGENDA_TEMPLATES: Record<MeetingKind, AgendaTemplate> = {
   annual_general: {
     kind: "annual_general",
-    name: "Varsinainen yhtiökokous (AOYL 6:10 §)",
+    name: "Varsinainen yhtiökokous (AOYL 6:3 §)",
     items: [
       OPENING,
       ORGANIZING,
@@ -91,7 +91,7 @@ export const DEFAULT_AGENDA_TEMPLATES: Record<MeetingKind, AgendaTemplate> = {
       },
       {
         title: "Kunnossapitotarveselvitys ja hallituksen selvitys kunnossapidosta",
-        proposal: "Esitetään hallituksen selvitys yhtiön kunnossapitotarpeesta seuraavan viiden vuoden aikana sekä selvitys kunnossapitotöistä, jotka on tehty edellisen selvityksen jälkeen, ja osakkaiden muutostöistä (AOYL 6:10 § 3 mom.).",
+        proposal: "Esitetään hallituksen selvitys yhtiön kunnossapitotarpeesta seuraavan viiden vuoden aikana sekä selvitys kunnossapitotöistä, jotka on tehty edellisen selvityksen jälkeen, ja osakkaiden muutostöistä (AOYL 6:3 §).",
       },
       {
         title: "Talousarvio ja vastikkeet",
@@ -157,7 +157,7 @@ export function resolveAgenda(kind: MeetingKind, custom?: AgendaItemTemplate[] |
 }
 
 /**
- * Kokouskutsun viimeinen lähetyspäivä. AOYL 6:18 §: kutsu toimitetaan
+ * Kokouskutsun viimeinen lähetyspäivä. AOYL 6:20 §: kutsu toimitetaan
  * aikaisintaan kaksi kuukautta ja viimeistään kaksi viikkoa ennen kokousta,
  * ellei yhtiöjärjestyksessä määrätä toisin (parametri). Palauttaa ISO-päivän.
  */

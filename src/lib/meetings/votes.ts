@@ -2,7 +2,7 @@
  * Äänimäärät yhtiökokouksessa.
  *
  * Jokainen osake tuottaa yhden äänen (`votesPerShare`), ellei yhtiöjärjestys
- * määrää toisin. AOYL 6:27 §:n äänileikkuri: kukaan ei saa kokouksessa
+ * määrää toisin. AOYL 6:13 §:n äänileikkuri: kukaan ei saa kokouksessa
  * äänestää yli viidesosalla kokouksessa edustettujen osakkeiden
  * yhteenlasketusta äänimäärästä. Yhtiöjärjestys voi poiketa tästä, joten
  * raja on parametri (`capFraction`, `null` = ei leikkuria).

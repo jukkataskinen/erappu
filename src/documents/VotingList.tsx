@@ -5,7 +5,7 @@
  *
  * Sama asiakirja kahdessa tilassa: osakasluettelo kokouksen alkuun
  * (kaikki osakkaat, osakkeet ja täydet äänet) ja ääniluettelo kokouksessa
- * vahvistettavaksi (läsnä ja edustettuina olevat, äänet AOYL 6:27 §:n
+ * vahvistettavaksi (läsnä ja edustettuina olevat, äänet AOYL 6:13 §:n
  * leikkurin jälkeen). Ei henkilötunnuksia eikä osoitteita.
  */
 
@@ -102,7 +102,7 @@ export function VotingList({ data }: { data: VotingListData }) {
         {votesMode ? (
           <View style={{ marginTop: 8 }}>
             <Muted>
-              * Äänimäärä rajattu: kukaan ei voi äänestää yli viidesosalla kokouksessa edustettujen osakkeiden äänimäärästä (AOYL 6:27 §), ellei
+              * Äänimäärä rajattu: kukaan ei voi äänestää yli viidesosalla kokouksessa edustettujen osakkeiden äänimäärästä (AOYL 6:13 §), ellei
               yhtiöjärjestyksessä toisin määrätä.
             </Muted>
           </View>

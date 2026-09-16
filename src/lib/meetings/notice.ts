@@ -5,7 +5,7 @@ import { MEETING_KIND, type MeetingKind } from "./labels";
  * Kokouskutsun vastaanottajat ja sähköpostiviesti.
  *
  * Sähköinen kutsu vain osakkaalle, joka on antanut suostumuksen ja jolla on
- * sähköpostiosoite (AOYL 6:18 §: kutsu toimitetaan yhtiöjärjestyksen
+ * sähköpostiosoite (AOYL 6:21 §: kutsu toimitetaan yhtiöjärjestyksen
  * määräämällä tavalla; sähköinen toimitus vaatii osakkaan suostumuksen).
  * Muille tulostetaan paperikutsu.
  */
