@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, freshDb, one, seedTwoOrgs, type Fixture } from "../helpers/db";
 import type { Database } from "@/lib/db/types";
-import { createMeeting, moveItem, prefillAttendees } from "@/lib/meetings/mutations";
+import { addItem, createItemTask, createMeeting, moveItem, prefillAttendees, updateItem } from "@/lib/meetings/mutations";
 import { listItems, listMeetings } from "@/lib/meetings/queries";
 import { processSigningEvent } from "@/lib/meetings/signing";
 import { EsinettiMockClient, completeMockRound, resetMockEsinetti } from "@/lib/esinetti/mock";
@@ -229,5 +229,45 @@ describe("isännöitsijäntodistus", () => {
     const ok = await db.asUser(f.managerA.sub, (tx) => loadManagerCertificateData(tx, groupA1));
     expect(ok?.finance.paymentStatus).toBe("Erääntyneitä maksuja 35,50 € (tilanne 1.9.2026).");
     await db.asService((tx) => tx.query("delete from er_payment_status where share_group_id = $1", [groupA1]));
+  });
+});
+
+describe("kokouksen asiasta isännöitsijän tehtävä", () => {
+  it("uusi asia viedään tehtävälistalle isännöitsijälle, eikä samasta asiasta synny toista tehtävää", async () => {
+    await db.asService((tx) => tx.query("update er_housing_companies set manager_user_id = $1 where id = $2", [f.managerA.id, f.companyA]));
+    const meeting = await db.asUser(f.managerA.sub, (tx) =>
+      createMeeting(tx, { companyId: f.companyA, kind: "board", startsAt: "2026-05-15T15:00:00.000Z", location: null, remoteParticipation: false, remoteUrl: null, fiscalYear: null, createdBy: f.managerA.id }),
+    );
+    const itemId = await db.asUser(f.managerA.sub, (tx) => addItem(tx, meeting!.id, "Katon pinnoituksen tarjouspyynnöt", "Pyydetään kolme tarjousta."));
+    await db.asUser(f.managerA.sub, (tx) => updateItem(tx, meeting!.id, itemId!, { title: "Katon pinnoituksen tarjouspyynnöt", proposal: "Pyydetään kolme tarjousta.", decision: "Hyväksyttiin." }));
+    const taskId = await db.asUser(f.managerA.sub, (tx) => createItemTask(tx, { meetingId: meeting!.id, itemId: itemId!, userId: f.managerA.id }));
+    const again = await db.asUser(f.managerA.sub, (tx) => createItemTask(tx, { meetingId: meeting!.id, itemId: itemId!, userId: f.managerA.id }));
+    expect(again).toBe(taskId);
+
+    const task = await db.asService((tx) =>
+      one<{ title: string; description: string; due_on: string; category: string; assignee_user_id: string }>(
+        tx, "select title, description, to_char(due_on, 'YYYY-MM-DD') as due_on, category, assignee_user_id from er_tasks where id = $1", [taskId],
+      ),
+    );
+    expect(task).toMatchObject({ title: "Katon pinnoituksen tarjouspyynnöt", due_on: "2026-05-29", category: "board_meeting", assignee_user_id: f.managerA.id });
+    expect(task.description).toContain("Hallituksen kokous 15.5.2026");
+    expect(task.description).toContain("Päätös: Hyväksyttiin.");
+    const items = await db.asUser(f.managerA.sub, (tx) => listItems(tx, meeting!.id));
+    expect(items.find((i) => i.id === itemId)).toMatchObject({ task_id: taskId, task_due_on: "2026-05-29", task_done: false });
+
+    // Toisen organisaation henkilökunta ei voi viedä asiaa tehtäväksi.
+    expect(await db.asUser(f.managerB.sub, (tx) => createItemTask(tx, { meetingId: meeting!.id, itemId: itemId!, userId: f.managerB.id }))).toBeNull();
+  });
+});
+
+describe("asian lisäys asialistalle", () => {
+  it("uusi asia lisätään kokouksen päättämisen edelle", async () => {
+    const meeting = await db.asUser(f.managerA.sub, (tx) =>
+      createMeeting(tx, { companyId: f.companyA, kind: "annual_general", startsAt: "2027-05-12T15:00:00.000Z", location: null, remoteParticipation: false, remoteUrl: null, fiscalYear: "2026", createdBy: f.managerA.id }),
+    );
+    await db.asUser(f.managerA.sub, (tx) => addItem(tx, meeting!.id, "Katon pinnoitus", null));
+    await db.asUser(f.managerA.sub, (tx) => addItem(tx, meeting!.id, "Sähköinen osakeluettelo", null));
+    const titles = (await db.asUser(f.managerA.sub, (tx) => listItems(tx, meeting!.id))).map((i) => i.title);
+    expect(titles.slice(-4)).toEqual(["Muut asiat:", "Katon pinnoitus", "Sähköinen osakeluettelo", "Kokouksen päättäminen"]);
   });
 });

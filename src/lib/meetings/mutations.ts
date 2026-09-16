@@ -1,6 +1,8 @@
 import type { Sql } from "@/lib/db";
+import { addDays, type IsoDate } from "@/lib/tasks/dates";
+import { insertTask } from "@/lib/tasks/queries";
 import { groupOwnersForVoting, type OwnershipInput } from "./attendees";
-import { isGeneralMeeting, type MeetingKind } from "./labels";
+import { isGeneralMeeting, MEETING_KIND, type MeetingKind } from "./labels";
 import { annualGeneralAgenda, type AuditorKind } from "./agenda";
 import { resolveAgenda, type AgendaItemTemplate } from "./templates";
 
@@ -68,14 +70,79 @@ async function companyAnnualAgenda(tx: Sql, companyId: string): Promise<AgendaIt
   );
 }
 
-export async function addItem(tx: Sql, meetingId: string, title: string, proposal: string | null): Promise<boolean> {
-  const rows = await tx.query(
-    `insert into er_meeting_items (organization_id, meeting_id, position, title, proposal)
-     select m.organization_id, m.id, coalesce((select max(position) from er_meeting_items where meeting_id = m.id), 0) + 1, $2, $3
-       from er_meetings m where m.id = $1 returning id`,
-    [meetingId, title, proposal],
+/**
+ * Lisää asian asialistalle. Jos viimeinen asia on "Kokouksen päättäminen",
+ * uusi asia lisätään sen edelle (Muut asiat -kohdan alle), muuten loppuun.
+ */
+export async function addItem(tx: Sql, meetingId: string, title: string, proposal: string | null): Promise<string | null> {
+  const [last] = await tx.query<{ id: string; position: number; title: string }>(
+    "select id, position, title from er_meeting_items where meeting_id = $1 order by position desc limit 1",
+    [meetingId],
   );
-  return rows.length > 0;
+  const beforeClosing = last && /^kokouksen päättäminen/i.test(last.title.trim());
+  if (beforeClosing) {
+    // Uniikkiehto on viivästetty, joten päättämisen siirto ja lisäys onnistuvat samassa transaktiossa.
+    await tx.query("update er_meeting_items set position = position + 1 where id = $1", [last.id]);
+  }
+  const rows = await tx.query<{ id: string }>(
+    `insert into er_meeting_items (organization_id, meeting_id, position, title, proposal)
+     select m.organization_id, m.id, $4::int, $2, $3
+       from er_meetings m where m.id = $1 returning id`,
+    [meetingId, title, proposal, beforeClosing ? last.position : (last?.position ?? 0) + 1],
+  );
+  return rows[0]?.id ?? null;
+}
+
+/** Oletusmääräpäivä kokouksesta viedylle tehtävälle: kaksi viikkoa kokouksen jälkeen. */
+export const ITEM_TASK_DEFAULT_DAYS = 14;
+
+/** Tehtävän kuvaus: kokous, pykälä, esitys ja päätös. */
+export function itemTaskDescription(opts: { kind: MeetingKind; meetingDate: string; position: number; proposal: string | null; decision: string | null }): string {
+  const [y, m, d] = opts.meetingDate.split("-").map(Number);
+  return [
+    `${MEETING_KIND[opts.kind]} ${d}.${m}.${y}, ${opts.position} §.`,
+    opts.proposal ? `Esitys: ${opts.proposal}` : null,
+    opts.decision ? `Päätös: ${opts.decision}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 4000);
+}
+
+/**
+ * Vie kokouksen asian isännöitsijän tehtävälistalle. Vastuuhenkilö on yhtiön
+ * isännöitsijä, jos hän on organisaation jäsen, muuten viejä. Jos asialla on
+ * jo tehtävä, palautetaan se eikä uutta luoda.
+ */
+export async function createItemTask(tx: Sql, opts: { meetingId: string; itemId: string; userId: string; dueOn?: IsoDate | null }): Promise<string | null> {
+  const [x] = await tx.query<{
+    organization_id: string; company_id: string; kind: MeetingKind; meeting_date: string; position: number; title: string; proposal: string | null;
+    decision: string | null; task_id: string | null; manager_user_id: string | null;
+  }>(
+    `select m.organization_id, m.company_id, m.kind, to_char(m.starts_at at time zone 'Europe/Helsinki', 'YYYY-MM-DD') as meeting_date, i.position, i.title,
+            i.proposal, i.decision, (select t.id from er_tasks t where t.id = i.task_id) as task_id,
+            (select om.user_id from er_org_members om where om.organization_id = c.organization_id and om.user_id = c.manager_user_id) as manager_user_id
+       from er_meeting_items i
+       join er_meetings m on m.id = i.meeting_id
+       join er_housing_companies c on c.id = m.company_id
+      where i.id = $1 and i.meeting_id = $2`,
+    [opts.itemId, opts.meetingId],
+  );
+  if (!x) return null;
+  if (x.task_id) return x.task_id;
+  const taskId = await insertTask(tx, {
+    organizationId: x.organization_id,
+    companyId: x.company_id,
+    title: x.title.slice(0, 200),
+    description: itemTaskDescription({ kind: x.kind, meetingDate: x.meeting_date, position: x.position, proposal: x.proposal, decision: x.decision }),
+    dueOn: opts.dueOn ?? addDays(x.meeting_date as IsoDate, ITEM_TASK_DEFAULT_DAYS),
+    recurrence: null,
+    category: isGeneralMeeting(x.kind) ? "general_meeting" : "board_meeting",
+    assigneeUserId: x.manager_user_id ?? opts.userId,
+    createdBy: opts.userId,
+  });
+  await tx.query("update er_meeting_items set task_id = $2 where id = $1", [opts.itemId, taskId]);
+  return taskId;
 }
 
 export async function updateItem(tx: Sql, meetingId: string, itemId: string, fields: { title: string; proposal: string | null; decision: string | null }): Promise<boolean> {

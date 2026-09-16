@@ -8,11 +8,12 @@ import { audit } from "@/lib/audit";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { assertRealEsinetti, canSimulateSigning, getEsinettiClient, isEsinettiError } from "@/lib/esinetti";
 import { generateMeetingDocument, type MeetingDocumentKind } from "@/lib/meetings/documents";
-import { addItem, createMeeting, deleteItem, moveItem, prefillAttendees, updateItem } from "@/lib/meetings/mutations";
+import { addItem, createItemTask, createMeeting, deleteItem, moveItem, prefillAttendees, updateItem } from "@/lib/meetings/mutations";
 import { NoticeError, sendMeetingNotice } from "@/lib/meetings/send-notice";
 import { SigningError, startMinutesSigning } from "@/lib/meetings/signing";
 import { simulateSigning } from "@/lib/meetings/simulate";
 import { helsinkiLocalToIso } from "@/lib/meetings/time";
+import type { IsoDate } from "@/lib/tasks/dates";
 
 /**
  * Kokousten palvelintoiminnot. Jokainen toiminto ajetaan käyttäjän
@@ -121,12 +122,24 @@ const itemSchema = z.object({
   decision: optText(4000),
 });
 
+/** "Vie isännöitsijän tehtävälistalle" -valinta ja vapaaehtoinen määräpäivä. */
+const taskSchema = z.object({
+  to_task: z.preprocess((v) => v === "on" || v === "1", z.boolean()),
+  task_due_on: z.preprocess(emptyToNull, z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Anna määräpäivä muodossa pp.kk.vvvv.").nullable()),
+});
+
 export async function addItemAction(formData: FormData) {
   const { companyId, meetingId, back } = ids(formData);
   const ctx = await writer(back);
   const d = parseForm(itemSchema, formData, back);
-  const ok = await ctx.run((tx) => addItem(tx, meetingId, d.title, d.proposal));
+  const t = parseForm(taskSchema, formData, back);
+  const ok = await ctx.run(async (tx) => {
+    const itemId = await addItem(tx, meetingId, d.title, d.proposal);
+    if (itemId && t.to_task) await createItemTask(tx, { meetingId, itemId, userId: ctx.user.id, dueOn: t.task_due_on as IsoDate | null });
+    return !!itemId;
+  });
   if (!ok) fail(back, "Asiaa ei voitu lisätä.");
+  if (t.to_task) revalidatePath(`/taloyhtiot/${companyId}/vuosikello`);
   done(companyId, meetingId, "#asiat");
 }
 
@@ -135,8 +148,15 @@ export async function updateItemAction(formData: FormData) {
   const ctx = await writer(back);
   const itemId = uuid.parse(formData.get("item_id"));
   const d = parseForm(itemSchema, formData, back);
-  const ok = await ctx.run((tx) => updateItem(tx, meetingId, itemId, d));
+  const t = parseForm(taskSchema, formData, back);
+  const ok = await ctx.run(async (tx) => {
+    const updated = await updateItem(tx, meetingId, itemId, d);
+    // Tehtävä luodaan tallennuksen jälkeen, jotta siihen tulee juuri kirjattu päätös.
+    if (updated && t.to_task) await createItemTask(tx, { meetingId, itemId, userId: ctx.user.id, dueOn: t.task_due_on as IsoDate | null });
+    return updated;
+  });
   if (!ok) fail(back, "Asiaa ei löytynyt.");
+  if (t.to_task) revalidatePath(`/taloyhtiot/${companyId}/vuosikello`);
   done(companyId, meetingId, "#asiat");
 }
 

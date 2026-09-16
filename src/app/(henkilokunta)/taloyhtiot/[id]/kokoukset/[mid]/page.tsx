@@ -33,6 +33,24 @@ import {
 
 export const metadata = { title: "Kokous" };
 
+/** "Vie isännöitsijän tehtävälistalle" ja vapaaehtoinen määräpäivä (oletus kaksi viikkoa kokouksesta). */
+function TaskToggle({ idSuffix }: { idSuffix: string }) {
+  return (
+    <div className="grid gap-2 rounded-xl border border-line bg-cloud/40 p-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="to_task" className="mt-0.5 h-5 w-5" />
+        <span>
+          <span className="font-semibold">Vie isännöitsijän tehtävälistalle</span>
+          <span className="block text-xs text-ink/55">Tehtävä tulee yhtiön vuosikelloon isännöitsijälle. Määräpäivä on oletuksena kaksi viikkoa kokouksen jälkeen.</span>
+        </span>
+      </label>
+      <Field label="Määräpäivä" htmlFor={`task_due_on_${idSuffix}`}>
+        <Input id={`task_due_on_${idSuffix}`} name="task_due_on" type="date" />
+      </Field>
+    </div>
+  );
+}
+
 const DOC_BUTTONS = [
   { kind: "notice", label: "Kokouskutsu", generalOnly: false },
   { kind: "agenda", label: "Esityslista", generalOnly: false },
@@ -210,6 +228,11 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                           <span className="font-semibold">Päätös:</span> {item.decision}
                         </p>
                       ) : null}
+                      {item.task_id ? (
+                        <Link href={`/taloyhtiot/${id}/vuosikello`} className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-sky hover:underline">
+                          {item.task_done ? "Tehtävä kuitattu" : `Isännöitsijän tehtävälistalla, määräpäivä ${formatDate(item.task_due_on)}`}
+                        </Link>
+                      ) : null}
                     </div>
                     {canWrite ? (
                       <div className="flex shrink-0 gap-1">
@@ -247,6 +270,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                         <Field label="Päätös" htmlFor={`decision_${item.id}`}>
                           <Textarea id={`decision_${item.id}`} name="decision" defaultValue={item.decision ?? ""} />
                         </Field>
+                        {item.task_id ? null : <TaskToggle idSuffix={item.id} />}
                         <div className="flex gap-2">
                           <Button variant="secondary">Tallenna</Button>
                         </div>
@@ -270,6 +294,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 <Field label="Esitys" htmlFor="new_proposal">
                   <Textarea id="new_proposal" name="proposal" />
                 </Field>
+                <TaskToggle idSuffix="new" />
                 <div>
                   <Button variant="secondary">Lisää asia</Button>
                 </div>

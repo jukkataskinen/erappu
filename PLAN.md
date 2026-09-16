@@ -154,6 +154,7 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [ ] Palveluntuottajan oma järjestelmä ja tunnukset myöhemmin (edellinen kohta); torilinkki on siihen asti väliaikainen ratkaisu
 
 ## Jatkokehitys (Jukan toiveet)
+- [x] Kokouksen asiasta isännöitsijän tehtävä (Jukka 17.9.2026): "Vie isännöitsijän tehtävälistalle" uuden ja muokattavan asian lomakkeessa, määräpäivä oletuksena kaksi viikkoa kokouksesta, tehtävä yhtiön vuosikelloon isännöitsijälle (kokous, pykälä, esitys, päätös), merkintä asialistalla; migraatio 0099 `er_meeting_items.task_id`. Uusi asia lisätään kokouksen päättämisen edelle.
 - [x] Vuosikello Jukan mallikuvan pohjalta (17.9.2026): hallituksen kokoukset (talvi: KPTS, talousarvio ja viestintä; kevät: tilinpäätös ja yhtiökokouksen valmistelu; järjestäytymiskokous; kesä: hankkeet; syksy: kirjanpito), yhtiökokoustiedote, talveen varautuminen (kiinteistö- ja pihakierros) ja asukastiedotteet vuodenajoittain. Migraatio 0098 luokat `board_meeting` ja `communication`; talousarvio siirtyi talven hallituksen kokoukseen (hyväksytään kevään yhtiökokouksessa)
   - [ ] Asukastiedote-tehtävästä suora linkki tiedoteluonnokseen valmiilla tekstillä
   - [ ] Vuosikello ympyräkuvana (vuodenajat, hallitus ulkokehällä, asukasviestintä sisällä) yhtiön sivulle ja portaaliin

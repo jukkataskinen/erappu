@@ -74,10 +74,18 @@ export interface MeetingItemRow {
   title: string;
   proposal: string | null;
   decision: string | null;
+  task_id: string | null;
+  task_due_on: string | null;
+  task_done: boolean;
 }
 
 export async function listItems(tx: Sql, meetingId: string): Promise<MeetingItemRow[]> {
-  return tx.query<MeetingItemRow>("select id, position, title, proposal, decision from er_meeting_items where meeting_id = $1 order by position", [meetingId]);
+  return tx.query<MeetingItemRow>(
+    `select i.id, i.position, i.title, i.proposal, i.decision, t.id as task_id, to_char(t.due_on, 'YYYY-MM-DD') as task_due_on, (t.done_at is not null) as task_done
+       from er_meeting_items i left join er_tasks t on t.id = i.task_id
+      where i.meeting_id = $1 order by i.position`,
+    [meetingId],
+  );
 }
 
 export interface AttendeeRow {
