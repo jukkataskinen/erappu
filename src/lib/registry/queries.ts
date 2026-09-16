@@ -158,13 +158,16 @@ export interface OwnerRow {
   starts_on: string | null;
   source: string;
   has_portal: boolean;
+  /** Osakeryhmän pienin osakenumero: yhtiöjärjestyksen järjestys. Null, jos osakevälejä ei ole kirjattu. */
+  first_share: number | null;
 }
 
 export async function listOwners(tx: Sql, companyId: string): Promise<OwnerRow[]> {
   return tx.query<OwnerRow>(
     `select o.id as ownership_id, p.id as party_id, p.display_name, p.email, p.phone, p.street_address, p.postal_code, p.city,
             g.unit_label, g.id as share_group_id, o.share_numerator, o.share_denominator, g.share_count, o.starts_on, o.source,
-            (p.user_id is not null) as has_portal
+            (p.user_id is not null) as has_portal,
+            (select min(r.first_share) from er_share_ranges r where r.share_group_id = g.id) as first_share
        from er_ownerships o
        join er_share_groups g on g.id = o.share_group_id
        join er_parties p on p.id = o.party_id

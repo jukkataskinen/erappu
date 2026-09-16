@@ -13,15 +13,34 @@ export const metadata = { title: "Osakkaat" };
  * osakeluetteloa, mutta isännöitsijä tarvitsee ajantasaisen osakasluettelon
  * yhteystietoineen kokouskutsuja ja laskutusta varten.
  */
-export default async function OwnersPage({ params }: { params: Promise<{ id: string }> }) {
+const ORDERS = [
+  { key: "huoneisto", label: "Huoneiston mukaan" },
+  { key: "yhtiojarjestys", label: "Yhtiöjärjestyksen mukaan" },
+  { key: "nimi", label: "Nimen mukaan" },
+] as const;
+type OrderKey = (typeof ORDERS)[number]["key"];
+
+export default async function OwnersPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ jarjestys?: string }> }) {
   const ctx = await requireStaff();
   const { id } = await params;
+  const { jarjestys } = await searchParams;
+  const order: OrderKey = ORDERS.find((o) => o.key === jarjestys)?.key ?? "huoneisto";
   const company = await loadCompany(ctx, id);
   const owners = await ctx.run((tx) => listOwners(tx, id));
 
-  // Huoneistojärjestys (A 2 ennen A 10), saman huoneiston omistajat nimen mukaan.
-  const unitOrder = new Intl.Collator("fi", { numeric: true, sensitivity: "base" });
-  const sorted = [...owners].sort((a, b) => unitOrder.compare(a.unit_label, b.unit_label) || unitOrder.compare(a.display_name, b.display_name));
+  // Huoneistojärjestys (A 2 ennen A 10); yhtiöjärjestyksen järjestys osakenumeroiden
+  // mukaan (osakkeet on numeroitu yhtiöjärjestyksen huoneistoluettelon järjestyksessä);
+  // saman huoneiston omistajat nimen mukaan.
+  const text = new Intl.Collator("fi", { numeric: true, sensitivity: "base" });
+  const byShares = (a: { first_share: number | null }, b: { first_share: number | null }) =>
+    (a.first_share ?? Number.MAX_SAFE_INTEGER) - (b.first_share ?? Number.MAX_SAFE_INTEGER);
+  const sorted = [...owners].sort((a, b) =>
+    order === "nimi"
+      ? text.compare(a.display_name, b.display_name) || text.compare(a.unit_label, b.unit_label)
+      : order === "yhtiojarjestys"
+        ? byShares(a, b) || text.compare(a.unit_label, b.unit_label) || text.compare(a.display_name, b.display_name)
+        : text.compare(a.unit_label, b.unit_label) || text.compare(a.display_name, b.display_name),
+  );
 
   const byParty = new Map<string, { name: string; email: string | null; phone: string | null; address: string; units: string[]; shares: number; portal: boolean; sources: Set<string> }>();
   for (const o of sorted) {
@@ -59,6 +78,23 @@ export default async function OwnersPage({ params }: { params: Promise<{ id: str
             Kokouskutsua ei voi toimittaa ilman yhteystietoja.
           </Notice>
         </div>
+      ) : null}
+      {rows.length > 0 ? (
+        <nav aria-label="Järjestys" className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-ink/60">Järjestys:</span>
+          {ORDERS.map((o) => (
+            <Link
+              key={o.key}
+              href={o.key === "huoneisto" ? `/taloyhtiot/${id}/osakkaat` : `/taloyhtiot/${id}/osakkaat?jarjestys=${o.key}`}
+              aria-current={o.key === order ? "page" : undefined}
+              className={`inline-flex min-h-[var(--size-touch)] items-center rounded-full border px-4 text-sm font-semibold ${
+                o.key === order ? "border-ink bg-ink text-paper" : "border-line bg-paper text-ink/75 hover:text-ink"
+              }`}
+            >
+              {o.label}
+            </Link>
+          ))}
+        </nav>
       ) : null}
       {rows.length === 0 ? (
         <EmptyState title="Ei osakkaita">Lisää omistajat huoneistojen kautta tai hae ne HTJ:stä.</EmptyState>
