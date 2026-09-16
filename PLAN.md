@@ -140,10 +140,12 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - Näkyvyys (Jukka vahvisti 17.9.2026): vain organisaatiolle tai yhtiölle hyväksytyt palveluntuottajat. Organisaatiolle hyväksytty näkee kaikkien isännöitävien yhtiöiden torille viedyt pyynnöt, yhtiölle hyväksytty vain sen yhtiön pyynnöt. Pohjana nykyinen `er_service_providers` ja portaalin `provider`-rooli; lisäksi ala- ja aluesuodatus (sähkö, putki, huolto; paikkakunta).
   - Tietojen minimointi: ennen varausta näkyvät ala, paikkakunta, kiireellisyys ja lyhyt kuvaus; osoite, huoneisto, kuvat ja ilmoittajan yhteystiedot vasta varaajalle (sama tehtävälinkki kuin tilauksessa, `/tehtava/[token]`).
   - Varaus: ensimmäinen varaaja saa työn (lukitus kannassa, ei kilpatilannetta), pyyntö poistuu muilta, isännöitsijä saa ilmoituksen ja voi perua varauksen. Varaamaton pyyntö palaa isännöitsijälle määräajan jälkeen.
+  - Varauksen voimassaolo (Jukka vahvisti 17.9.2026): viikko. Varaaja ilmoittaa varatessaan arvioidun toteutusajankohdan. Jos työtä ei ole kuitattu tehdyksi viikon kuluessa varauksesta, varaus raukeaa ja pyyntö palaa torille; varaaja ja isännöitsijä saavat tiedon.
+  - Tieto asukkaalle (Jukka vahvisti 17.9.2026): ilmoittaja näkee portaalissa ja saa viestin, mikä yritys työn varasi ja arvioidun toteutusajankohdan. Ajankohdan muutos päivittyy samaan näkymään.
   - Ei torille: kiireelliset viat (suoraan päivystäjälle) eikä yhtiöt, joilla on voimassa huoltosopimus, joka määrää tekijän.
-  - Hinnat: tori edellyttää sovittua hinnastoa tai tuntihintoja palveluntuottajittain, muuten jokainen työ vaatii tarjouskierroksen.
+  - Hinnat (Jukka vahvisti 17.9.2026): ei hinnastoa, työ laskutetaan toteuttajan omalla tuntihinnalla. Tuntihinta kirjataan palveluntuottajarekisteriin ja näytetään isännöitsijälle varauksen yhteydessä; toteutunut kustannus kirjataan tehtävälinkin kautta kuten nyt. Tarkennettava toteutuksessa: miten yhtiön euro-raja tarkistetaan ennen työtä (esim. varaaja antaa tuntiarvion).
   - Taloyhtiön päätös (Jukka vahvisti 17.9.2026): hallitus hyväksyy toimintatavan ja euro-rajan, esim. "alle 500 euron korjaukset saa tilata torilta hyväksytyiltä tekijöiltä". Toteutus: yhtiökohtainen asetus (tori käytössä, euro-raja, päätöspäivä ja viittaus hallituksen pöytäkirjaan). Ilman päätöstä yhtiön pyyntöjä ei voi viedä torille, ja rajan ylittävä työ vaatii isännöitsijän erillisen tilauksen.
-  - Avoimet kysymykset Jukalle ennen toteutusta: hinnaston muoto; varauksen voimassaoloaika; saako asukas tiedon varaajasta.
+  - Päätökset tehty 17.9.2026 (näkyvyys, taloyhtiön päätös, hinnat, varaus, tieto asukkaalle); toteutus voidaan aloittaa.
 
 ## Jatkokehitys (Jukan toiveet)
 - [~] Pelastussuunnitelma-generaattori: taloyhtiön pelastussuunnitelma rekisterin tiedoista (rakennukset, lämmitys, yhteiset tilat, väestönsuoja, vastuuhenkilöt) täytettävänä pohjana ja PDF:nä, vuosipäivitys vuosikelloon (lähtötilanne 15.9.2026)
