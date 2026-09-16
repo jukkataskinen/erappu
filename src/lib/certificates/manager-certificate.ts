@@ -183,8 +183,11 @@ export async function loadManagerCertificateData(
       [companyId],
     ),
     tx.query<{ work_type: string | null; created_at: string; status: string; completed_on: string | null; decided_on: string | null }>(
-      `select work_type, created_at::text, status, completed_on::text, decided_on::text from er_renovation_notices
-        where share_group_id = $1 and status <> 'cancelled' order by created_at desc`,
+      // Työlajit ilmoituksen työriveiltä (0093); vanha sarake vain varalle.
+      `select coalesce((select string_agg(distinct w.work_type, ', ') from er_renovation_notice_works w where w.notice_id = n.id), n.work_type) as work_type,
+              n.created_at::text, n.status, n.completed_on::text, n.decided_on::text
+         from er_renovation_notices n
+        where n.share_group_id = $1 and n.status <> 'cancelled' order by n.created_at desc`,
       [shareGroupId],
     ),
     tx.query<{ amount_eur: string; holder: string | null; registered_on: string | null; property_code: string | null }>(

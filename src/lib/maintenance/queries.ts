@@ -71,6 +71,7 @@ export interface NoticeRow {
   share_group_id: string;
   unit_label: string;
   description: string;
+  /** Vanha yhden työn sarake. Uusissa ilmoituksissa tyhjä: työlajit ovat `work_types`. */
   work_type: string | null;
   planned_start: string | null;
   planned_end: string | null;
@@ -82,6 +83,17 @@ export interface NoticeRow {
   maintenance_work_id: string | null;
   submitted_by_name: string | null;
   submitted_by_user_id: string | null;
+  guide_acknowledged_at: string | null;
+  guide_document_id: string | null;
+  notify_email: boolean;
+  notify_sms: boolean;
+  /** Työrivien määrä ja työlajit (er_renovation_notice_works). */
+  work_count: number;
+  work_types: string | null;
+  /** Aikaisin aloitus ja myöhäisin valmistuminen työriveiltä. */
+  works_start: string | null;
+  works_end: string | null;
+  attachment_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -89,11 +101,96 @@ export interface NoticeRow {
 const NOTICE_SELECT = `
   select n.id, n.company_id, c.name as company_name, n.share_group_id, g.unit_label, n.description, n.work_type,
          n.planned_start::text, n.planned_end::text, n.status, n.conditions, n.supervisor, n.decided_on::text, n.completed_on::text,
-         n.maintenance_work_id, p.display_name as submitted_by_name, n.submitted_by_user_id, n.created_at::text, n.updated_at::text
+         n.maintenance_work_id, p.display_name as submitted_by_name, n.submitted_by_user_id,
+         n.guide_acknowledged_at::text, n.guide_document_id, n.notify_email, n.notify_sms,
+         coalesce(w.work_count, 0) as work_count, w.work_types, w.works_start::text, w.works_end::text,
+         coalesce(a.attachment_count, 0) as attachment_count,
+         n.created_at::text, n.updated_at::text
     from er_renovation_notices n
     join er_housing_companies c on c.id = n.company_id
     join er_share_groups g on g.id = n.share_group_id
-    left join er_parties p on p.id = n.submitted_by_party_id`;
+    left join er_parties p on p.id = n.submitted_by_party_id
+    left join lateral (
+      select count(*)::int as work_count, string_agg(distinct rw.work_type, ', ') as work_types,
+             min(rw.planned_start) as works_start, max(rw.planned_end) as works_end
+        from er_renovation_notice_works rw where rw.notice_id = n.id
+    ) w on true
+    left join lateral (
+      select count(*)::int as attachment_count from er_documents d
+       where d.subject_table = 'er_renovation_notices' and d.subject_id = n.id
+    ) a on true`;
+
+export interface NoticeWorkRow {
+  id: string;
+  notice_id: string;
+  sort_order: number;
+  work_type: string;
+  description: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  contractor_kind: string;
+  contractor_name: string | null;
+  contractor_business_id: string | null;
+  contractor_contact: string | null;
+  contractor_qualification: string | null;
+  maintenance_work_id: string | null;
+}
+
+const WORK_COLUMNS =
+  "id, notice_id, sort_order, work_type, description, planned_start::text, planned_end::text, contractor_kind, contractor_name, contractor_business_id, contractor_contact, contractor_qualification, maintenance_work_id";
+
+export function listNoticeWorks(tx: Sql, noticeId: string) {
+  return tx.query<NoticeWorkRow>(`select ${WORK_COLUMNS} from er_renovation_notice_works where notice_id = $1 order by sort_order`, [noticeId]);
+}
+
+/** Työrivit usealle ilmoitukselle kerralla (portaalin lista). */
+export function listNoticeWorksFor(tx: Sql, noticeIds: string[]): Promise<NoticeWorkRow[]> {
+  if (noticeIds.length === 0) return Promise.resolve([]);
+  return tx.query<NoticeWorkRow>(
+    `select ${WORK_COLUMNS} from er_renovation_notice_works where notice_id = any($1::uuid[]) order by notice_id, sort_order`,
+    [noticeIds],
+  );
+}
+
+export interface NoticeAttachmentRow {
+  id: string;
+  title: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: string;
+  created_at: string;
+}
+
+export function listNoticeAttachments(tx: Sql, noticeId: string) {
+  return tx.query<NoticeAttachmentRow>(
+    `select id, title, file_name, mime_type, size_bytes::text, created_at::text from er_documents
+      where subject_table = 'er_renovation_notices' and subject_id = $1 order by created_at`,
+    [noticeId],
+  );
+}
+
+export interface RenovationGuideRow {
+  id: string;
+  company_id: string;
+  company_name: string | null;
+  title: string;
+  created_at: string;
+}
+
+/**
+ * Yhtiöiden muutostyöohjeet (uusin kustakin yhtiöstä). RLS rajaa rivit, joten
+ * osakas näkee ohjeen vain, jos se on tallennettu osakkaille näkyvänä.
+ */
+export function listRenovationGuides(tx: Sql, companyIds: string[]): Promise<RenovationGuideRow[]> {
+  if (companyIds.length === 0) return Promise.resolve([]);
+  return tx.query<RenovationGuideRow>(
+    `select distinct on (d.company_id) d.id, d.company_id, c.name as company_name, d.title, d.created_at::text
+       from er_documents d left join er_housing_companies c on c.id = d.company_id
+      where d.category = 'renovation_guide' and d.share_group_id is null and d.company_id = any($1::uuid[])
+      order by d.company_id, d.year desc nulls last, d.created_at desc`,
+    [companyIds],
+  );
+}
 
 export function listNotices(tx: Sql, companyId: string) {
   return tx.query<NoticeRow>(`${NOTICE_SELECT} where n.company_id = $1 order by n.created_at desc`, [companyId]);

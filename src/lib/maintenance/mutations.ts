@@ -1,6 +1,7 @@
 import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { queueMessage } from "@/lib/messaging";
+import { MAX_NOTICE_WORKS, type NoticeWorkInput } from "./notice-form";
 import { RENOVATION_STATUS_LABEL, validateRenovationUpdate, type RenovationStatus, type RenovationUpdate } from "./renovation";
 import { isKnownWorkType } from "./work-types";
 import type { NeedStatus } from "./labels";
@@ -20,18 +21,31 @@ export class MaintenanceError extends Error {
 export interface NewNotice {
   userId: string;
   shareGroupId: string;
+  /** Ilmoituksen yhteenveto. Työkohtaiset kuvaukset ovat työriveillä. */
   description: string;
-  workType: string | null;
-  plannedStart: string | null;
-  plannedEnd: string | null;
+  works: NoticeWorkInput[];
+  /** Muutostyöohje, jonka lukemisen osakas kuittasi (jos yhtiöllä on ohje). */
+  guideDocumentId?: string | null;
+  guideAcknowledged?: boolean;
+  notifyEmail?: boolean;
+  notifySms?: boolean;
+}
+
+export interface SubmittedNotice {
+  id: string;
+  organizationId: string;
+  companyId: string;
+  shareGroupId: string;
 }
 
 /**
  * Osakkaan muutostyöilmoitus. RLS sallii lisäyksen vain osakkaalle omaan
- * huoneistoon (0004), ja viesti vastuuisännöitsijälle lisätään samassa
- * transaktiossa (0021).
+ * huoneistoon (0004), työrivit vain omaan ilmoitukseen (0093), ja viesti
+ * vastuuisännöitsijälle lisätään samassa transaktiossa (0021).
  */
-export async function submitNotice(tx: Sql, n: NewNotice): Promise<string> {
+export async function submitNotice(tx: Sql, n: NewNotice): Promise<SubmittedNotice> {
+  if (n.works.length === 0) throw new MaintenanceError("Lisää vähintään yksi muutostyö.");
+  if (n.works.length > MAX_NOTICE_WORKS) throw new MaintenanceError(`Yhdellä ilmoituksella voi olla enintään ${MAX_NOTICE_WORKS} muutostyötä.`);
   const [group] = await tx.query<{ organization_id: string; company_id: string }>(
     "select organization_id, company_id from er_share_groups where id = $1 and removed_on is null",
     [n.shareGroupId],
@@ -42,13 +56,24 @@ export async function submitNotice(tx: Sql, n: NewNotice): Promise<string> {
     [n.userId, group.organization_id],
   );
   const [row] = await tx.query<{ id: string }>(
-    `insert into er_renovation_notices (organization_id, company_id, share_group_id, submitted_by_user_id, submitted_by_party_id, description, work_type, planned_start, planned_end)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
-    [group.organization_id, group.company_id, n.shareGroupId, n.userId, party?.id ?? null, n.description, n.workType, n.plannedStart, n.plannedEnd],
+    `insert into er_renovation_notices (organization_id, company_id, share_group_id, submitted_by_user_id, submitted_by_party_id, description,
+        guide_acknowledged_at, guide_document_id, notify_email, notify_sms)
+     values ($1,$2,$3,$4,$5,$6, case when $7::boolean then now() else null end, $8, $9, $10) returning id`,
+    [group.organization_id, group.company_id, n.shareGroupId, n.userId, party?.id ?? null, n.description,
+      n.guideAcknowledged ?? false, n.guideDocumentId ?? null, n.notifyEmail ?? true, n.notifySms ?? false],
   );
+  for (const [i, w] of n.works.entries()) {
+    await tx.query(
+      `insert into er_renovation_notice_works (organization_id, notice_id, sort_order, work_type, description, planned_start, planned_end,
+          contractor_kind, contractor_name, contractor_business_id, contractor_contact, contractor_qualification)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [group.organization_id, row.id, i + 1, w.workType, w.description, w.plannedStart, w.plannedEnd,
+        w.contractorKind, w.contractorName, w.contractorBusinessId, w.contractorContact, w.contractorQualification],
+    );
+  }
   await tx.query("select er_notify_renovation_notice($1)", [row.id]);
-  await audit(tx, { organizationId: group.organization_id, userId: n.userId, action: "create", entity: "renovation_notice", entityId: row.id });
-  return row.id;
+  await audit(tx, { organizationId: group.organization_id, userId: n.userId, action: "create", entity: "renovation_notice", entityId: row.id, details: { works: n.works.length } });
+  return { id: row.id, organizationId: group.organization_id, companyId: group.company_id, shareGroupId: n.shareGroupId };
 }
 
 /**
@@ -59,10 +84,10 @@ export async function submitNotice(tx: Sql, n: NewNotice): Promise<string> {
 export async function processNotice(tx: Sql, opts: { id: string; userId: string; update: RenovationUpdate; today: string }): Promise<void> {
   const [cur] = await tx.query<{
     id: string; organization_id: string; company_id: string; share_group_id: string; status: RenovationStatus; description: string; work_type: string | null;
-    maintenance_work_id: string | null; submitted_by_party_id: string | null; company_name: string; unit_label: string; decided_on: string | null;
+    maintenance_work_id: string | null; submitted_by_party_id: string | null; company_name: string; unit_label: string; decided_on: string | null; notify_email: boolean;
   }>(
     `select n.id, n.organization_id, n.company_id, n.share_group_id, n.status, n.description, n.work_type, n.maintenance_work_id, n.submitted_by_party_id, n.decided_on::text,
-            c.name as company_name, g.unit_label
+            n.notify_email, c.name as company_name, g.unit_label
        from er_renovation_notices n join er_housing_companies c on c.id = n.company_id join er_share_groups g on g.id = n.share_group_id
       where n.id = $1`,
     [opts.id],
@@ -74,15 +99,34 @@ export async function processNotice(tx: Sql, opts: { id: string; userId: string;
   const u = checked.value;
 
   let workId = cur.maintenance_work_id;
-  if (u.status === "completed" && !workId) {
-    const workType = isKnownWorkType(cur.work_type) ? cur.work_type! : "Muu";
-    const [w] = await tx.query<{ id: string }>(
-      `insert into er_maintenance_works (organization_id, company_id, share_group_id, project, work_type, completed_year, completed_on, description, performed_by, source)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,'shareholder','renovation_notice') returning id`,
-      [cur.organization_id, cur.company_id, cur.share_group_id, `Osakkaan muutostyö, ${cur.unit_label}`, workType, Number(u.completedOn!.slice(0, 4)), u.completedOn,
-        cur.description.slice(0, 2000)],
+  if (u.status === "completed") {
+    // Jokaisesta työrivistä tulee oma rivi korjaushistoriaan, jotta
+    // isännöitsijäntodistus näyttää työlajit oikein. Ilmoituksen oma
+    // maintenance_work_id osoittaa ensimmäiseen (vanha yhteensopivuus).
+    const rows = await tx.query<{ id: string; work_type: string; description: string; maintenance_work_id: string | null }>(
+      "select id, work_type, description, maintenance_work_id from er_renovation_notice_works where notice_id = $1 order by sort_order",
+      [cur.id],
     );
-    workId = w.id;
+    const works = rows.length > 0
+      ? rows
+      : [{ id: null as string | null, work_type: cur.work_type ?? "Muu", description: cur.description, maintenance_work_id: cur.maintenance_work_id }];
+    const created: string[] = [];
+    for (const w of works) {
+      if (w.maintenance_work_id) {
+        created.push(w.maintenance_work_id);
+        continue;
+      }
+      const workType = isKnownWorkType(w.work_type) ? w.work_type : "Muu";
+      const [m] = await tx.query<{ id: string }>(
+        `insert into er_maintenance_works (organization_id, company_id, share_group_id, project, work_type, completed_year, completed_on, description, performed_by, source)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,'shareholder','renovation_notice') returning id`,
+        [cur.organization_id, cur.company_id, cur.share_group_id, `Osakkaan muutostyö, ${cur.unit_label}`, workType, Number(u.completedOn!.slice(0, 4)), u.completedOn,
+          w.description.slice(0, 2000)],
+      );
+      if (w.id) await tx.query("update er_renovation_notice_works set maintenance_work_id = $2 where id = $1", [w.id, m.id]);
+      created.push(m.id);
+    }
+    workId = workId ?? created[0] ?? null;
   }
 
   const rows = await tx.query(
@@ -92,7 +136,9 @@ export async function processNotice(tx: Sql, opts: { id: string; userId: string;
   );
   if (rows.length === 0) throw new MaintenanceError("Roolillasi ei voi käsitellä ilmoitusta.");
 
-  if (u.status !== cur.status && cur.submitted_by_party_id) {
+  // Osakas valitsi ilmoitustavan lomakkeella. Tekstiviestikanavaa ei ole
+  // (BLOCKERS 7), joten valinta näkyy vain henkilökunnalle.
+  if (u.status !== cur.status && cur.submitted_by_party_id && cur.notify_email) {
     const [p] = await tx.query<{ email: string | null }>("select email from er_parties where id = $1", [cur.submitted_by_party_id]);
     if (p?.email) {
       const extra = u.status === "approved_with_conditions" && u.conditions ? `\n\nEhdot:\n${u.conditions}` : "";

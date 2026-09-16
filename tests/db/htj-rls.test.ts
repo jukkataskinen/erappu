@@ -71,9 +71,28 @@ describe("HTJ-taulujen organisaatioeristys", () => {
 
 describe("muutostyöilmoitukset portaalissa", () => {
   it("osakas tekee ilmoituksen omasta huoneistostaan ja viesti menee isännöitsijälle", async () => {
-    noticeId = await db.asUser(r.users.owner.sub, (tx) =>
-      submitNotice(tx, { userId: r.users.owner.id, shareGroupId: r.groups["A 2"], description: "Kylpyhuoneen remontti", workType: "Märkätilat", plannedStart: "2026-10-01", plannedEnd: "2026-11-15" }),
+    const submitted = await db.asUser(r.users.owner.sub, (tx) =>
+      submitNotice(tx, {
+        userId: r.users.owner.id,
+        shareGroupId: r.groups["A 2"],
+        description: "Kylpyhuoneen remontti",
+        guideAcknowledged: true,
+        works: [
+          {
+            workType: "Märkätilat",
+            description: "Kylpyhuoneen vedeneristys ja laatoitus uusitaan.",
+            plannedStart: "2026-10-01",
+            plannedEnd: "2026-11-15",
+            contractorKind: "contractor",
+            contractorName: "Remonttipalvelu Oy",
+            contractorBusinessId: "1234567-1",
+            contractorContact: "Työnjohtaja 040 111 2222",
+            contractorQualification: "Sertifioitu vedeneristäjä",
+          },
+        ],
+      }),
     );
+    noticeId = submitted.id;
     const msgs = await db.asService((tx) => tx.query<{ recipient: string; subject: string; body: string }>("select recipient, subject, body from er_outbound_messages where subject_id = $1", [noticeId]));
     expect(msgs).toHaveLength(1);
     expect(msgs[0].subject).toMatch(/A 2/);

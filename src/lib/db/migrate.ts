@@ -7,8 +7,12 @@ const ROOT = process.cwd();
 /**
  * Ajaa paikallisen Supabase-jäljitelmän ja kaikki migraatiot järjestyksessä.
  * Käytetään vain PGlitessä; Supabaseen migraatiot ajetaan Supabase CLI:llä.
+ *
+ * `until` pysäyttää ajon annettuun tiedostoon (mukaan lukien). Sitä käyttävät
+ * yhteensopivuustestit, jotka luovat vanhan tietomallin mukaisia rivejä ennen
+ * kuin uusi migraatio ajetaan.
  */
-export async function migrateLocal(db: Database, root = ROOT): Promise<string[]> {
+export async function migrateLocal(db: Database, root = ROOT, until?: string): Promise<string[]> {
   await db.exec(await readFile(path.join(root, "supabase/local/0000_supabase_shim.sql"), "utf8"));
   await db.exec(`create table if not exists er_schema_migrations (
     name text primary key, applied_at timestamptz not null default now());
@@ -24,6 +28,7 @@ export async function migrateLocal(db: Database, root = ROOT): Promise<string[]>
 
   const ran: string[] = [];
   for (const file of files) {
+    if (until && file > until) break;
     if (applied.has(file)) continue;
     const sql = await readFile(path.join(dir, file), "utf8");
     await db.exec(`begin;\n${sql}\n;insert into er_schema_migrations (name) values ('${file.replace(/'/g, "")}');\ncommit;`);
