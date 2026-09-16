@@ -82,4 +82,5 @@ export const EVENT_TYPE_LABEL: Record<string, string> = {
   notification: "Ilmoitus",
   assignment: "Käsittely",
   cost: "Kustannus",
+  marketplace: "Tori",
 };

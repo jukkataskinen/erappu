@@ -8,6 +8,8 @@ import { StatusBadge } from "@/lib/service-requests/components/parts";
 import { getProvider, listCompanyOptions, listCompanyServices, listRequests } from "@/lib/service-requests/queries";
 import { addCompanyService, removeCompanyService, setDefaultService, updateProvider } from "../actions";
 import { ProviderFields } from "../ProviderFields";
+import { getProviderMarketplace } from "@/lib/marketplace/queries";
+import { ProviderMarketplacePanel } from "./ProviderMarketplacePanel";
 
 export const metadata = { title: "Palveluntuottaja" };
 
@@ -17,11 +19,12 @@ export default async function ProviderPage({ params, searchParams }: { params: P
   const { virhe } = await searchParams;
   const provider = await ctx.run((tx) => getProvider(tx, id));
   if (!provider) notFound();
-  const [services, companies, requests] = await ctx.run((tx) =>
+  const [services, companies, requests, marketplace] = await ctx.run((tx) =>
     Promise.all([
       listCompanyServices(tx, { providerId: id }),
       listCompanyOptions(tx, ctx.org.organizationId),
       listRequests(tx, ctx.org.organizationId, { openOnly: true, providerId: id }),
+      getProviderMarketplace(tx, id),
     ]),
   );
   const open = requests;
@@ -108,6 +111,8 @@ export default async function ProviderPage({ params, searchParams }: { params: P
               </form>
             ) : null}
           </Panel>
+
+          <ProviderMarketplacePanel providerId={id} info={marketplace} companies={companies} canWrite={canWrite} />
 
           <Panel>
             <SectionTitle>Avoimet pyynnöt</SectionTitle>

@@ -3,12 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { queueContractReminders } from "@/lib/contracts/reminders";
 import { isoDateHelsinki } from "@/lib/format";
+import { maintainMarketplace } from "@/lib/marketplace/mutations";
 import { queueTaskReminders } from "@/lib/tasks/reminders";
 
 /**
  * Päivittäinen muistutusajo (Vercel Cron tai muu ajastin): vuosikellon
  * erääntyvät ja myöhässä olevat tehtävät sekä sopimusten irtisanomis-
- * muistutukset lähtevien viestien jonoon. Lähetys tehdään viestijonon
+ * muistutukset lähtevien viestien jonoon sekä torin varausten raukeaminen. Lähetys tehdään viestijonon
  * omassa ajossa.
  *
  * Suojaus: Authorization: Bearer CRON_SECRET. Kehityksessä ilman
@@ -33,7 +34,9 @@ async function run(request: NextRequest) {
     const db = await getDb();
     const tasks = await db.asService((tx) => queueTaskReminders(tx, today));
     const contracts = await db.asService((tx) => queueContractReminders(tx, today));
-    return NextResponse.json({ ok: true, date: today, tasks, contracts });
+    // Torin rauenneet varaukset takaisin torille ja tehdyt työt valmiiksi (varaus voimassa viikon).
+    const marketplace = await db.asService((tx) => maintainMarketplace(tx));
+    return NextResponse.json({ ok: true, date: today, tasks, contracts, marketplace });
   } catch (err) {
     // Ei rakennetta vastaukseen; tarkempi virhe palvelimen lokiin.
     console.error("[cron:muistutukset]", err instanceof Error ? err.message : err);

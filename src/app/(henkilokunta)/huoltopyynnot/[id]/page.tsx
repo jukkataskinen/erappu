@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { MarketplacePanel } from "./MarketplacePanel";
 import { ProviderShare } from "./ProviderShare";
 import { notFound } from "next/navigation";
 import { FormError } from "@/components/FormError";
 import { Button, DefinitionList, Field, Input, Notice, PageHeader, Panel, SectionTitle, Select, Textarea } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime, formatEur } from "@/lib/format";
+import { getCompanyMarketplace, getListingForRequest } from "@/lib/marketplace/queries";
 import { listStaff } from "@/lib/registry/queries";
 import { PhotoForm } from "@/lib/service-requests/components/PhotoForm";
 import { PhotoInput } from "@/lib/service-requests/components/PhotoInput";
@@ -32,14 +34,14 @@ function VisibilitySelect({ id, defaultValue = "internal" }: { id: string; defau
   );
 }
 
-export default async function ServiceRequestPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; tilattu?: string }> }) {
+export default async function ServiceRequestPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; tilattu?: string; tori?: string }> }) {
   const ctx = await requireStaff();
   const { id } = await params;
-  const { virhe, tilattu } = await searchParams;
+  const { virhe, tilattu, tori } = await searchParams;
   const request = await ctx.run((tx) => getRequest(tx, id));
   if (!request || request.organization_id !== ctx.org.organizationId) notFound();
 
-  const [events, providers, staff, groups, links] = await ctx.run((tx) =>
+  const [events, providers, staff, groups, links, listing, marketplace] = await ctx.run((tx) =>
     Promise.all([
       listEvents(tx, id),
       listProviders(tx, ctx.org.organizationId),
@@ -51,6 +53,8 @@ export default async function ServiceRequestPage({ params, searchParams }: { par
           order by created_at desc limit 1`,
         [id],
       ),
+      getListingForRequest(tx, id),
+      getCompanyMarketplace(tx, request.company_id),
     ]),
   );
   const canWrite = ctx.can("owner", "manager", "assistant");
@@ -268,6 +272,17 @@ export default async function ServiceRequestPage({ params, searchParams }: { par
               </form>
             </Panel>
           ) : null}
+
+          <MarketplacePanel
+            requestId={id}
+            urgent={request.urgency === "urgent"}
+            finished={finished}
+            company={marketplace}
+            listing={listing}
+            canWrite={canWrite}
+            message={tori}
+            categoryLabel={CATEGORY_LABEL[request.category]}
+          />
 
           {canWrite ? (
             <Panel>

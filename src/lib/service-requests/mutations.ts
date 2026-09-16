@@ -210,7 +210,7 @@ export async function updateCost(
  */
 export async function orderFromProvider(
   tx: Sql,
-  opts: { requestId: string; actor: Actor; channel?: "email" | "share" },
+  opts: { requestId: string; actor: Actor; channel?: "email" | "share" | "marketplace" },
 ): Promise<{ link: string; shareText: string }> {
   const channel = opts.channel ?? "email";
   const r = await lockRequest(tx, opts.requestId);
@@ -231,7 +231,7 @@ export async function orderFromProvider(
     await queueMessage(tx, { organizationId: r.organization_id, recipient: r.provider_email!, subject: msg.subject, body: msg.body, subjectTable: "er_service_requests", subjectId: r.id });
   }
   await tx.query("update er_service_requests set ordered_at = now(), provider_acknowledged_at = null where id = $1", [r.id]);
-  const via = channel === "email" ? "sähköpostilla" : "jakolinkkinä (esim. WhatsApp)";
+  const via = channel === "email" ? "sähköpostilla" : channel === "marketplace" ? "torilta" : "jakolinkkinä (esim. WhatsApp)";
   await addEvent(tx, { requestId: r.id, type: "notification", body: `Tilaus ${via}: ${r.provider_name ?? "palveluntuottaja"}.`, visibility: "internal", actor: opts.actor });
   if (["new", "received", "waiting"].includes(r.status)) {
     await changeStatus(tx, { requestId: r.id, to: "ordered", actor: opts.actor, mode: "staff" });

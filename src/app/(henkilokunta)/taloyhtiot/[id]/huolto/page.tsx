@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, EmptyState, LinkButton, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
+import { Badge, Button, EmptyState, Field, Input, LinkButton, Notice, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
+import { getCompanyMarketplace } from "@/lib/marketplace/queries";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate } from "@/lib/format";
 import { QrCode } from "@/lib/service-requests/components/QrCode";
@@ -10,20 +11,21 @@ import { CATEGORY_LABEL } from "@/lib/service-requests/labels";
 import { getPublicFormToken, publicFormUrl } from "@/lib/service-requests/links";
 import { listCompanyServices, listRequests } from "@/lib/service-requests/queries";
 import { isOpen } from "@/lib/service-requests/status";
-import { rotatePublicForm } from "./actions";
+import { rotatePublicForm, saveMarketplaceSettings } from "./actions";
 
 export const metadata = { title: "Huolto" };
 
-export default async function CompanyMaintenancePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; kaikki?: string }> }) {
+export default async function CompanyMaintenancePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; kaikki?: string; tori?: string }> }) {
   const ctx = await requireStaff();
   const { id } = await params;
-  const { virhe, kaikki } = await searchParams;
+  const { virhe, kaikki, tori } = await searchParams;
   const company = await loadCompany(ctx, id);
-  const [requests, services, form] = await ctx.run((tx) =>
+  const [requests, services, form, marketplace] = await ctx.run((tx) =>
     Promise.all([
       listRequests(tx, company.organization_id, { companyId: id, openOnly: kaikki !== "1", limit: 200 }),
       listCompanyServices(tx, { companyId: id }),
       getPublicFormToken(tx, id),
+      getCompanyMarketplace(tx, id),
     ]),
   );
   const canWrite = ctx.can("owner", "manager", "assistant");
@@ -117,6 +119,49 @@ export default async function CompanyMaintenancePage({ params, searchParams }: {
                 </Button>
               </form>
             ) : null}
+          </Panel>
+
+          <Panel id="tori">
+            <SectionTitle actions={marketplace?.marketplace_enabled ? <Badge tone="ok">Käytössä</Badge> : <Badge tone="neutral">Ei käytössä</Badge>}>Tori</SectionTitle>
+            {tori === "tallennettu" ? (
+              <div className="mb-3">
+                <Notice tone="ok" title="Torin tiedot tallennettiin." />
+              </div>
+            ) : null}
+            <p className="mb-4 text-sm text-ink/70">
+              Torilta hyväksytyt palveluntuottajat voivat varata yhtiön huoltotöitä omalla tuntihinnallaan. Käyttö edellyttää hallituksen päätöstä ja eurorajaa: rajan
+              ylittävän arvion isännöitsijä hyväksyy erikseen.
+            </p>
+            {ctx.can("owner", "manager") ? (
+              <form action={saveMarketplaceSettings} className="grid gap-3">
+                <input type="hidden" name="company_id" value={id} />
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <input type="checkbox" name="enabled" value="1" defaultChecked={marketplace?.marketplace_enabled ?? false} className="h-5 w-5" /> Hallitus on hyväksynyt torin käytön
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Euroraja (€, sis. alv)" htmlFor="limit_eur" hint="Esim. 500">
+                    <Input id="limit_eur" name="limit_eur" inputMode="decimal" defaultValue={marketplace?.marketplace_limit_eur ?? ""} />
+                  </Field>
+                  <Field label="Hallituksen päätöspäivä" htmlFor="decided_on">
+                    <Input id="decided_on" name="decided_on" type="date" defaultValue={marketplace?.marketplace_decided_on ?? ""} />
+                  </Field>
+                </div>
+                <Field label="Päätös ja pöytäkirja" htmlFor="decision_note" hint="Esim. hallituksen kokous 3/2026, 5 §">
+                  <Input id="decision_note" name="decision_note" maxLength={500} defaultValue={marketplace?.marketplace_decision_note ?? ""} />
+                </Field>
+                <div>
+                  <Button type="submit" variant="secondary">
+                    Tallenna
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <p className="text-sm text-ink/65">
+                {marketplace?.marketplace_enabled
+                  ? `Raja ${marketplace.marketplace_limit_eur} €, päätös ${formatDate(marketplace.marketplace_decided_on)}.`
+                  : "Tori ei ole käytössä."}
+              </p>
+            )}
           </Panel>
 
           <Panel>

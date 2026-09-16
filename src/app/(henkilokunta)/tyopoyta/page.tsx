@@ -11,7 +11,9 @@ import * as arki from "@/widgets/arki";
 import { GovernancePanel } from "./GovernancePanel";
 import { CONTACT_TOPIC_LABEL } from "@/lib/contacts/labels";
 import { listStaffThreads } from "@/lib/contacts/queries";
-import { formatDate } from "@/lib/format";
+import { listPendingApprovals } from "@/lib/marketplace/queries";
+import { estimateEur } from "@/lib/marketplace/rules";
+import { formatDate, formatEur } from "@/lib/format";
 
 export const metadata = { title: "Työpöytä" };
 
@@ -24,9 +26,10 @@ function greeting() {
 
 export default async function DashboardPage() {
   const ctx = await requireStaff();
-  const [companies, waitingContacts] = await ctx.run(async (tx) => [
+  const [companies, waitingContacts, pendingApprovals] = await ctx.run(async (tx) => [
     await listCompanies(tx, ctx.org.organizationId),
     await listStaffThreads(tx, ctx.org.organizationId, { status: "open" }),
+    await listPendingApprovals(tx, ctx.org.organizationId),
   ] as const);
   const withIssues = companies.filter((c) => !c.share_checks_off && (c.missing_ranges > 0 || (c.total_shares !== null && c.total_shares !== c.shares_in_units)));
   const withoutHtj = companies.filter((c) => !c.htj_synced_at);
@@ -48,6 +51,27 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {pendingApprovals.length > 0 ? (
+          <Panel>
+            <SectionTitle>Torivaraukset odottavat hyväksyntää</SectionTitle>
+            <ul className="divide-y divide-line">
+              {pendingApprovals.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                  <Link href={`/huoltopyynnot/${p.request_id}#tori`} className="min-w-0 hover:text-sky">
+                    <span className="block truncate font-semibold">
+                      #{p.request_number} {p.company_name}
+                    </span>
+                    <span className="text-sm text-ink/65">{p.provider_name}</span>
+                  </Link>
+                  <span className="shrink-0 text-right text-sm">
+                    <span className="font-semibold">{formatEur(estimateEur(Number(p.estimated_hours), Number(p.hourly_rate_eur)))}</span>
+                    <span className="block text-xs text-ink/55">raja {formatEur(p.limit_eur)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
         {waitingContacts.length > 0 ? (
           <Panel>
             <SectionTitle actions={<Link href="/yhteydenotot" className="text-sm text-sky">Kaikki</Link>}>Yhteydenotot odottavat vastausta</SectionTitle>

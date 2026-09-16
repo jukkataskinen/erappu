@@ -7,7 +7,7 @@ import { randomToken, sha256Hex } from "./crypto";
  * huoltopyyntölomake, todistustilaus ja kutsu. Kantaan tallennetaan vain
  * tokenin tiiviste, joten kantavedoksesta ei saa toimivia linkkejä.
  */
-export type LinkPurpose = "provider_task" | "public_request_form" | "certificate_order" | "invite";
+export type LinkPurpose = "provider_task" | "public_request_form" | "certificate_order" | "invite" | "provider_marketplace";
 
 export async function createAccessLink(
   tx: Sql,
