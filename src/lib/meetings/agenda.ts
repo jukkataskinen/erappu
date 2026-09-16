@@ -51,13 +51,13 @@ export function boardElectionTitle(g: CompanyGovernance): string {
     if (!deputies || deputies.max === 0) return "";
     if (deputies.min === deputies.max) return ` ja ${counted(deputies.min, "varajäsen", "varajäsentä")}`;
     if (deputies.min === 0) return ` sekä tarvittaessa enintään ${counted(deputies.max, "varajäsen", "varajäsentä")}`;
-    return ` sekä ${numberWord(deputies.min)}–${numberWord(deputies.max)} varajäsentä`;
+    return ` sekä ${deputies.min}–${deputies.max} varajäsentä`;
   })();
 
   if (members.min === members.max) {
     return `Valitaan hallituksen jäsenet: ${counted(members.min, "varsinainen jäsen", "varsinaista jäsentä")}${deputyText}.`;
   }
-  return `Päätetään hallituksen jäsenten lukumäärästä ja valitaan hallituksen jäsenet (yhtiöjärjestyksen mukaan ${numberWord(members.min)}–${numberWord(members.max)} varsinaista jäsentä${deputyText}).`;
+  return `Päätetään hallituksen jäsenten lukumäärästä ja valitaan hallituksen jäsenet (yhtiöjärjestyksen mukaan ${members.min}–${members.max} varsinaista jäsentä${deputyText}).`;
 }
 
 const AUDITOR_NOUN: Record<Exclude<AuditorKind, "optional">, { one: string; many: string; deputyOne: string; deputyMany: string }> = {

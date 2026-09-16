@@ -18,7 +18,7 @@ describe("varsinaisen yhtiökokouksen esityslista yhtiöjärjestyksen mukaan", (
     );
     expect(boardElectionTitle({ ...base, boardMembersMin: 5, boardMembersMax: 5, boardDeputiesMin: 0, boardDeputiesMax: 0 })).toBe("Valitaan hallituksen jäsenet: viisi varsinaista jäsentä.");
     expect(boardElectionTitle({ ...base, boardMembersMin: 3, boardMembersMax: 5, boardDeputiesMin: null, boardDeputiesMax: null })).toBe(
-      "Päätetään hallituksen jäsenten lukumäärästä ja valitaan hallituksen jäsenet (yhtiöjärjestyksen mukaan kolme–viisi varsinaista jäsentä).",
+      "Päätetään hallituksen jäsenten lukumäärästä ja valitaan hallituksen jäsenet (yhtiöjärjestyksen mukaan 3–5 varsinaista jäsentä).",
     );
     expect(boardElectionTitle({ ...base, boardMembersMin: 1, boardMembersMax: 5, boardDeputiesMin: 0, boardDeputiesMax: 1 })).toContain("tarvittaessa enintään yksi varajäsen");
     expect(auditorElectionTitle({ ...base, auditorKind: "optional" })).toContain("ei ole pakollinen");
