@@ -11,7 +11,7 @@ import { formatArea, formatDate, formatEuro, formatInteger, formatShareRanges } 
 import { computeMonthlyCharges, type ChargeBasisInput } from "./charges";
 import { availabilityEntries, findAttachmentCandidates, type AttachmentEntry } from "./attachments";
 import {
-  asbestosNote, buildingSummary, chargePriceList, energyCertificateValidityNote, loanRow, ownershipShareText, parsePropertyCode, purposeText, spacesByKind,
+  asbestosNote, buildingSummary, chargePriceList, energyCertificateValidityNote, loanRow, ownershipShareText, parsePropertyCode, purposeText, rescuePlanText, spacesByKind,
   SPOUSES_HOME_LABEL, yesNo, type LoanInput,
 } from "./content";
 import { CERTIFICATE_TEMPLATE_APPROVED } from "./pricing";
@@ -119,7 +119,7 @@ export async function loadManagerCertificateData(
   if (!company) return null;
   const companyId = group.company_id;
 
-  const [properties, buildings, groups, bases, loans, loanShares, works, needs, decided, notices, mortgages, insurances, chair, candidates, owners] = await Promise.all([
+  const [properties, buildings, groups, bases, loans, loanShares, works, needs, decided, notices, mortgages, insurances, chair, candidates, owners, rescuePlans, rescueDocs] = await Promise.all([
     tx.query<{
       property_code: string; tenure: string | null; area_m2: string | null; lessor: string | null; lease_ends_on: string | null; annual_rent_eur: string | null;
       rent_review_basis: string | null; building_rights_m2: string | null; unused_building_rights_m2: string | null; parking_spaces_built: number | null;
@@ -217,6 +217,18 @@ export async function loadManagerCertificateData(
         order by o.starts_on nulls last, p.display_name`,
       [shareGroupId],
     ),
+    tx.query<{ prepared_on: string; next_review_on: string }>(
+      `select prepared_on::text, next_review_on::text from er_rescue_plans
+        where company_id = $1 and status = 'final' and superseded_at is null
+        order by version desc limit 1`,
+      [companyId],
+    ),
+    tx.query<{ year: number | null; created_at: string }>(
+      `select year, created_at::text from er_documents
+        where company_id = $1 and share_group_id is null and category = 'rescue_plan'
+        order by year desc nulls last, created_at desc limit 1`,
+      [companyId],
+    ),
   ]);
 
   const paymentStatus = await readPaymentStatus(tx, shareGroupId);
@@ -279,6 +291,7 @@ export async function loadManagerCertificateData(
       shareIssueAuthorization: company.share_issue_authorization,
       articlesLawsuit: company.articles_lawsuit,
       notes: company.certificate_notes,
+      rescuePlan: rescuePlanText(rescuePlans[0] ?? null, rescueDocs[0] ?? null, opts.issuedOn ?? isoDateHelsinki()),
       shareCertificates: company.htj_synced_at || company.htj_register_transferred_on
         ? `Osakeluettelo on siirretty huoneistotietojärjestelmään${htjTransferred}. Paperiset osakekirjat mitätöidään, kun omistus kirjataan huoneistotietojärjestelmään.`
         : "Osakeluetteloa ei ole merkitty siirretyksi huoneistotietojärjestelmään. Tieto osakekirjoista tarkistetaan isännöitsijältä.",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  asbestosNote, buildingSummary, chargePriceList, energyCertificateValidityNote, loanRow, ownershipShareText, parsePropertyCode, purposeText, spacesByKind, yesNo,
+  asbestosNote, buildingSummary, chargePriceList, energyCertificateValidityNote, loanRow, ownershipShareText, parsePropertyCode, purposeText, rescuePlanText, spacesByKind, yesNo,
 } from "@/lib/certificates/content";
 import { availabilityEntries, type AttachmentCandidate } from "@/lib/certificates/attachments";
 
@@ -82,5 +82,16 @@ describe("energiatodistuksen voimassaolo", () => {
 
   it("omistusosuus murtolukuna", () => {
     expect(ownershipShareText(1, 2)).toBe("1/2");
+  });
+});
+
+describe("pelastussuunnitelma todistuksessa", () => {
+  it("valmis suunnitelma, myöhästynyt tarkistus, asiakirja ja puuttuva", () => {
+    expect(rescuePlanText({ prepared_on: "2026-03-01", next_review_on: "2027-03-01" }, null, "2026-09-16")).toBe(
+      "Pelastussuunnitelma on laadittu 1.3.2026, seuraava tarkistus 1.3.2027.",
+    );
+    expect(rescuePlanText({ prepared_on: "2024-03-01", next_review_on: "2025-03-01" }, null, "2026-09-16")).toContain("myöhässä");
+    expect(rescuePlanText(null, { year: 2019, created_at: "2026-09-14T21:00:00Z" }, "2026-09-16")).toContain("vuodelta 2019");
+    expect(rescuePlanText(null, null, "2026-09-16")).toContain("ei ole kirjattu");
   });
 });

@@ -53,6 +53,7 @@ export interface ManagerCertificateData {
     notes: string | null;
     shareCertificates: string;
     energy: string;
+    rescuePlan: string;
   };
   manager: { name: string | null; email: string | null; phone: string | null; office: string; officeAddress: string | null; officePhone: string | null };
   properties: { code: string; parts: string | null; area: string; tenure: string; lease: string | null; buildingRights: string | null }[];
@@ -536,6 +537,7 @@ export function ManagerCertificate({ data }: { data: ManagerCertificateData }) {
           items={[
             { label: "Osakekirjat", value: c.shareCertificates },
             { label: "Energiatodistus", value: c.energy },
+            { label: "Pelastussuunnitelma", value: c.rescuePlan },
             { label: "Osakeanti- ja optiovaltuutukset", value: c.shareIssueAuthorization ?? "Ei voimassa olevia valtuutuksia" },
             { label: "Kanne yhtiöjärjestyksen määräyksen muuttamiseksi", value: c.articlesLawsuit ?? "Ei yhtiön tiedossa olevaa kannetta" },
             { label: "Yhtiön lisätiedot", value: c.notes ?? "Ei muita yhtiön taloudelliseen tilaan tai huoneiston käyttöön olennaisesti vaikuttavia seikkoja." },

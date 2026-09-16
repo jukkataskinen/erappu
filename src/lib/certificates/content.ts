@@ -34,6 +34,27 @@ export function energyCertificateValidityNote(year: number | null, currentYear: 
   return null;
 }
 
+/**
+ * Pelastussuunnitelman tila todistukseen (PL 379/2011 15 §, VNa 407/2011).
+ * Ensisijaisesti eRapun generaattorilla valmiiksi merkitty voimassa oleva
+ * versio, muuten yhtiön asiakirjoihin tallennettu suunnitelma.
+ */
+export function rescuePlanText(
+  plan: { prepared_on: string; next_review_on: string } | null,
+  doc: { year: number | null; created_at: string } | null,
+  today: string,
+): string {
+  if (plan) {
+    const late = plan.next_review_on < today ? " Tarkistus on myöhässä." : "";
+    return `Pelastussuunnitelma on laadittu ${formatDate(plan.prepared_on)}, seuraava tarkistus ${formatDate(plan.next_review_on)}.${late}`;
+  }
+  if (doc) {
+    const when = doc.year ? `vuodelta ${doc.year}` : `tallennettu ${formatDate(doc.created_at.slice(0, 10))}`;
+    return `Yhtiön asiakirjoissa on pelastussuunnitelma (${when}). Suunnitelman ajantasaisuus tarkistetaan isännöitsijältä.`;
+  }
+  return "Pelastussuunnitelmaa ei ole kirjattu isännöitsijän tietoihin.";
+}
+
 /** Omistusosuus murtolukuna; koko osakeryhmä → "1/1". */
 export function ownershipShareText(numerator: number, denominator: number): string {
   return `${numerator}/${denominator}`;

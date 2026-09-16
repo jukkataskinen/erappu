@@ -21,7 +21,7 @@ const baseData: ManagerCertificateData = {
     name: "As Oy Kuvitteellinen", businessId: "1234567-1", registeredOn: null, address: null, articlesDate: null, commercialRegisterNote: null,
     htjSynced: true, htjTransferredOn: null, boardChair: null, propertyMaintenance: null, totalShares: 100, sharesApartments: 100, sharesOther: 0,
     vat: "Ei", chargesDecidedBy: null, articlesMaintenanceClause: null, shareIssueAuthorization: null, articlesLawsuit: null, notes: null,
-    shareCertificates: "–", energy: "–",
+    shareCertificates: "–", energy: "–", rescuePlan: "Pelastussuunnitelma on laadittu 1.3.2026, seuraava tarkistus 1.3.2027.",
   },
   manager: { name: "Iida Isännöitsijä", email: null, phone: null, office: "Isännöinti Testi Oy", officeAddress: null, officePhone: null },
   properties: [],
