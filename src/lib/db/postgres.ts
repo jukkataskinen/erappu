@@ -1,6 +1,7 @@
 import pg from "pg";
 import type { Database, Sql } from "./types";
 import { stripSslMode } from "../config/deploy-env";
+import { serialize } from "./serial";
 
 /**
  * Tuotantokanta (Supabase). Yhteys Supabasen session pooleriin käyttäjällä
@@ -16,9 +17,10 @@ export function createPostgresDatabase(connectionString: string): Database {
       await client.query("begin");
       await client.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
       await client.query(`set local role ${role === "service_role" ? "service_role" : "authenticated"}`);
+      const runQuery = serialize((text: string, params: unknown[]) => client.query(text, params));
       const tx: Sql = {
         async query<R>(text: string, params: unknown[] = []) {
-          const res = await client.query(text, params);
+          const res = await runQuery(text, params);
           return res.rows as R[];
         },
       };
