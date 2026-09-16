@@ -35,6 +35,7 @@ export const CHARGE_TYPE: Record<string, string> = {
   capital: "Pääomavastike",
   financing: "Rahoitusvastike",
   water: "Vesimaksu",
+  hot_water: "Lämmin vesi",
   sauna: "Saunamaksu",
   parking: "Autopaikkamaksu",
   other: "Muu maksu",

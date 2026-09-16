@@ -6,6 +6,7 @@ import { centsToDecimal, toCents } from "./money";
 import { primaryPayer, type OwnershipForBilling } from "./payers";
 import { assignSequenceNumbers, companyReference } from "./references";
 import type { MatchCandidate, MatchedStatus, UnmatchedRow } from "./payment-import";
+import { advanceParts, monthlyAdvanceDescription, type WaterAdvance } from "@/lib/water/settlement";
 
 /**
  * Laskutusajon muodostus ja tilasiirtymät. Kaikki funktiot saavat
@@ -130,6 +131,8 @@ export function buildRunLines(input: {
   unitNumbers: Map<string, number>;
   ownerships: OwnershipRow[];
   loanShares?: LoanShareForRun[];
+  /** Vesiennakot (0100): laskutetaan kuukausittain omana rivinään. */
+  waterAdvances?: WaterAdvance[];
 }): { lines: RunLineDraft[]; totals: RunTotals } {
   const lines: RunLineDraft[] = [];
   const warnings: string[] = [];
@@ -175,6 +178,23 @@ export function buildRunLines(input: {
         quantity: "1.0000",
         unitPrice: `${centsToDecimal(amount)}00`,
         amountCents: amount,
+        vatPercent: "0.0",
+        referenceNumber: reference,
+      });
+    }
+
+    for (const part of advanceParts(input.waterAdvances ?? [], g.id, input.period)) {
+      groupLines.push({
+        shareGroupId: g.id,
+        unitLabel: g.unit_label,
+        payerPartyId: payer?.party_id ?? null,
+        chargeBasisId: null,
+        loanId: null,
+        chargeType: "water_advance",
+        description: monthlyAdvanceDescription(part, input.period),
+        quantity: "1.0000",
+        unitPrice: `${centsToDecimal(part.cents)}00`,
+        amountCents: part.cents,
         vatPercent: "0.0",
         referenceNumber: reference,
       });
@@ -227,7 +247,7 @@ export async function createBillingRun(
   const period = monthPeriod(opts.month);
 
   const [existing] = await tx.query<{ id: string }>(
-    "select id from er_billing_runs where company_id = $1 and period_start = $2 and status <> 'cancelled'",
+    "select id from er_billing_runs where company_id = $1 and period_start = $2 and status <> 'cancelled' and kind = 'charges'",
     [opts.companyId, period.start],
   );
   if (existing) throw new FinanceError("Kaudelle on jo laskutusajo. Peru se ensin, jos haluat laskea uudelleen.");
@@ -247,7 +267,11 @@ export async function createBillingRun(
       )
     : [];
 
-  const { lines, totals } = buildRunLines({ period, companyNumber: settings.company_number, bases, groups, unitNumbers, ownerships, loanShares });
+  const waterAdvances = await tx.query<WaterAdvance>(
+    "select share_group_id, monthly_eur::text, starts_on::text, ends_on::text from er_water_advances where company_id = $1",
+    [opts.companyId],
+  );
+  const { lines, totals } = buildRunLines({ period, companyNumber: settings.company_number, bases, groups, unitNumbers, ownerships, loanShares, waterAdvances });
   if (lines.length === 0) throw new FinanceError("Kaudelle ei muodostunut yhtään vastikeriviä. Tarkista vastikeperusteet ja huoneistojen pinta-alat.");
 
   const [run] = await tx.query<{ id: string }>(
@@ -255,13 +279,13 @@ export async function createBillingRun(
      values ($1,$2,$3,$4,$5,$6,$7) returning id`,
     [settings.organization_id, opts.companyId, period.start, period.end, dueDateFor(period.start, settings.due_day), opts.userId, JSON.stringify(totals)],
   );
-  for (const l of lines) {
+  for (const [index, l] of lines.entries()) {
     await tx.query(
       `insert into er_billing_lines (organization_id, run_id, share_group_id, payer_party_id, charge_basis_id, loan_id, charge_type,
-          description, quantity, unit_price, amount_eur, vat_percent, reference_number)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+          description, quantity, unit_price, amount_eur, vat_percent, reference_number, line_no)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
       [settings.organization_id, run.id, l.shareGroupId, l.payerPartyId, l.chargeBasisId, l.loanId, l.chargeType, l.description,
-        l.quantity, l.unitPrice, centsToDecimal(l.amountCents), l.vatPercent, l.referenceNumber],
+        l.quantity, l.unitPrice, centsToDecimal(l.amountCents), l.vatPercent, l.referenceNumber, index + 1],
     );
   }
   return { runId: run.id, totals };
@@ -288,10 +312,10 @@ export async function cancelBillingRun(tx: Sql, runId: string, companyId: string
 /** Viennin aineisto kirjanpitoadapterille. */
 export async function loadRunExport(tx: Sql, runId: string, companyId: string) {
   const [run] = await tx.query<{
-    id: string; organization_id: string; status: string; period_start: string; period_end: string; due_on: string | null;
+    id: string; organization_id: string; status: string; kind: string; period_start: string; period_end: string; due_on: string | null;
     company_name: string; business_id: string; bank_iban: string | null; bank_bic: string | null;
   }>(
-    `select r.id, r.organization_id, r.status, r.period_start::text, r.period_end::text, r.due_on::text,
+    `select r.id, r.organization_id, r.status, r.kind, r.period_start::text, r.period_end::text, r.due_on::text,
             c.name as company_name, c.business_id, s.bank_iban, s.bank_bic
        from er_billing_runs r
        join er_housing_companies c on c.id = r.company_id
@@ -311,7 +335,7 @@ export async function loadRunExport(tx: Sql, runId: string, companyId: string) {
        join er_share_groups g on g.id = l.share_group_id
        left join er_parties p on p.id = l.payer_party_id
       where l.run_id = $1
-      order by l.reference_number, l.charge_type, l.description`,
+      order by l.reference_number, l.line_no, l.charge_type, l.description`,
     [runId],
   );
   return { run, lines };

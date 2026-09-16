@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, EmptyState, Field, Input, Notice, Panel, SectionTitle, Select, Stat, Table, Td, Textarea, Th } from "@/components/ui";
+import { Badge, Button, EmptyState, LinkButton, Field, Input, Notice, Panel, SectionTitle, Select, Stat, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime, formatEur, isoDateHelsinki } from "@/lib/format";
 import { formatReference } from "@/lib/validation/finnish";
 import { isEffectiveOn } from "@/lib/finance/charges";
-import { BASIS, CHARGE_TYPE, RUN_STATUS, formatPrice, trimDecimal, UNIT_KIND } from "@/lib/finance/labels";
+import { BASIS, BASIS_CHARGE_TYPES, CHARGE_TYPE, RUN_KIND, RUN_STATUS, formatPrice, trimDecimal, UNIT_KIND } from "@/lib/finance/labels";
 import { accrualCents, getBillingSettings, listImports, listLoans, listMortgages, listRuns, listUnitFinance, loadChargeBases, maintenanceRate, sumEur } from "@/lib/finance/queries";
 import { loadBillableGroups } from "@/lib/finance/billing";
 import { monthPeriod } from "@/lib/finance/dates";
@@ -52,7 +52,7 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
   const overdueTotal = sumEur(withStatus.map((u) => u.overdue_eur));
   const currentBases = bases.filter((b) => isEffectiveOn(b, today) || b.starts_on > today);
   const pastBases = bases.filter((b) => !currentBases.includes(b));
-  const currentRun = runs.find((r) => r.period_start.startsWith(month) && r.status !== "cancelled");
+  const currentRun = runs.find((r) => r.kind === "charges" && r.period_start.startsWith(month) && r.status !== "cancelled");
 
   return (
     <>
@@ -81,7 +81,15 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="grid min-w-0 content-start gap-6">
           <Panel>
-            <SectionTitle>Laskutusajot</SectionTitle>
+            <SectionTitle
+              actions={
+                <LinkButton variant="ghost" href={`/taloyhtiot/${id}/talous/vesi`}>
+                  Vesilaskutus
+                </LinkButton>
+              }
+            >
+              Laskutusajot
+            </SectionTitle>
             {canWrite ? (
               <form action={createRun} className="mb-4 flex flex-wrap items-end gap-3">
                 <input type="hidden" name="company_id" value={id} />
@@ -114,8 +122,9 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
                     <tr key={r.id} className="hover:bg-cloud/50">
                       <Td>
                         <Link href={`/taloyhtiot/${id}/talous/ajot/${r.id}`} className="font-semibold hover:text-sky">
-                          {Number(r.period_start.slice(5, 7))}/{r.period_start.slice(0, 4)}
+                          {r.kind === "water_settlement" ? `${formatDate(r.period_start)}–${formatDate(r.period_end)}` : `${Number(r.period_start.slice(5, 7))}/${r.period_start.slice(0, 4)}`}
                         </Link>
+                        {r.kind === "water_settlement" ? <p className="text-xs text-ink/55">{RUN_KIND.water_settlement}</p> : null}
                       </Td>
                       <Td>
                         <Badge tone={RUN_STATUS[r.status].tone}>{RUN_STATUS[r.status].label}</Badge>
@@ -157,9 +166,9 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
                 </p>
                 <Field label="Vastikelaji" htmlFor="charge_type">
                   <Select id="charge_type" name="charge_type" defaultValue="maintenance">
-                    {Object.entries(CHARGE_TYPE).map(([k, v]) => (
+                    {BASIS_CHARGE_TYPES.map((k) => (
                       <option key={k} value={k}>
-                        {v}
+                        {CHARGE_TYPE[k]}
                       </option>
                     ))}
                   </Select>

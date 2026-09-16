@@ -24,6 +24,8 @@ export interface BillingExportLine {
 
 export interface BillingRunExport {
   runId: string;
+  /** Vastikeajo tai vesimaksun tasaus (0100). */
+  kind?: "charges" | "water_settlement";
   companyName: string;
   businessId: string;
   periodStart: string;

@@ -182,6 +182,8 @@ export async function listLoanShares(tx: Sql, loanId: string): Promise<LoanShare
 
 export interface RunRow {
   id: string;
+  kind: "charges" | "water_settlement";
+  reading_round_id: string | null;
   period_start: string;
   period_end: string;
   due_on: string | null;
@@ -197,7 +199,7 @@ export interface RunRow {
 
 export async function listRuns(tx: Sql, companyId: string, limit = 24): Promise<RunRow[]> {
   return tx.query<RunRow>(
-    `select r.id, r.period_start::text, r.period_end::text, r.due_on::text, r.status, r.totals, r.created_at, r.approved_at, r.exported_at,
+    `select r.id, r.kind, r.reading_round_id, r.period_start::text, r.period_end::text, r.due_on::text, r.status, r.totals, r.created_at, r.approved_at, r.exported_at,
             r.export_document_id, coalesce(cu.full_name, cu.email) as created_by_name, coalesce(au.full_name, au.email) as approved_by_name
        from er_billing_runs r
        left join er_users cu on cu.id = r.created_by
@@ -210,7 +212,7 @@ export async function listRuns(tx: Sql, companyId: string, limit = 24): Promise<
 
 export async function getRun(tx: Sql, companyId: string, runId: string): Promise<RunRow | null> {
   const [row] = await tx.query<RunRow>(
-    `select r.id, r.period_start::text, r.period_end::text, r.due_on::text, r.status, r.totals, r.created_at, r.approved_at, r.exported_at,
+    `select r.id, r.kind, r.reading_round_id, r.period_start::text, r.period_end::text, r.due_on::text, r.status, r.totals, r.created_at, r.approved_at, r.exported_at,
             r.export_document_id, coalesce(cu.full_name, cu.email) as created_by_name, coalesce(au.full_name, au.email) as approved_by_name
        from er_billing_runs r
        left join er_users cu on cu.id = r.created_by
@@ -233,19 +235,21 @@ export interface RunLineRow {
   amount_eur: string;
   vat_percent: string;
   reference_number: string;
+  line_no: number;
 }
 
 export async function listRunLines(tx: Sql, runId: string): Promise<RunLineRow[]> {
   const rows = await tx.query<RunLineRow>(
     `select l.id, l.share_group_id, g.unit_label, p.display_name as payer_name, l.charge_type, l.description, l.quantity::text,
-            l.unit_price::text, l.amount_eur::text, l.vat_percent::text, l.reference_number
+            l.unit_price::text, l.amount_eur::text, l.vat_percent::text, l.reference_number, l.line_no
        from er_billing_lines l
        join er_share_groups g on g.id = l.share_group_id
        left join er_parties p on p.id = l.payer_party_id
-      where l.run_id = $1`,
+      where l.run_id = $1
+      order by l.line_no`,
     [runId],
   );
-  return rows.sort((a, b) => a.unit_label.localeCompare(b.unit_label, "fi", { numeric: true }) || a.charge_type.localeCompare(b.charge_type));
+  return rows.sort((a, b) => a.unit_label.localeCompare(b.unit_label, "fi", { numeric: true }) || a.line_no - b.line_no || a.charge_type.localeCompare(b.charge_type));
 }
 
 export interface ImportRow {

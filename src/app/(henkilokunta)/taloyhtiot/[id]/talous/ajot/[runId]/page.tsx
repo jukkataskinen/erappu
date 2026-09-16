@@ -5,7 +5,7 @@ import { Badge, Button, DefinitionList, LinkButton, Notice, Panel, SectionTitle,
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime, formatEur } from "@/lib/format";
 import { formatReference } from "@/lib/validation/finnish";
-import { CHARGE_TYPE, RUN_STATUS, trimDecimal } from "@/lib/finance/labels";
+import { CHARGE_TYPE, RUN_KIND, RUN_STATUS, trimDecimal } from "@/lib/finance/labels";
 import { getRun, listRunLines, sumEur } from "@/lib/finance/queries";
 import { approveRun, cancelRun, exportRun } from "../../actions";
 
@@ -43,7 +43,9 @@ export default async function BillingRunPage({ params, searchParams }: { params:
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl">
-            Laskutusajo {Number(run.period_start.slice(5, 7))}/{run.period_start.slice(0, 4)}
+            {run.kind === "water_settlement"
+              ? `${RUN_KIND.water_settlement} ${formatDate(run.period_start)}–${formatDate(run.period_end)}`
+              : `Laskutusajo ${Number(run.period_start.slice(5, 7))}/${run.period_start.slice(0, 4)}`}
           </h2>
           <Badge tone={status.tone}>{status.label}</Badge>
         </div>
@@ -51,6 +53,11 @@ export default async function BillingRunPage({ params, searchParams }: { params:
           <LinkButton variant="ghost" href={`/taloyhtiot/${id}/talous`}>
             Takaisin talouteen
           </LinkButton>
+          {run.reading_round_id ? (
+            <LinkButton variant="ghost" href={`/taloyhtiot/${id}/talous/vesi/lukemat/${run.reading_round_id}`}>
+              Lukemat
+            </LinkButton>
+          ) : null}
           {run.export_document_id ? (
             <LinkButton variant="secondary" href={`/api/dokumentit/${run.export_document_id}?lataa=1`} prefetch={false}>
               Lataa CSV
@@ -140,7 +147,7 @@ export default async function BillingRunPage({ params, searchParams }: { params:
                   <ul className="grid gap-1">
                     {rows.map((l) => (
                       <li key={l.id} className="flex justify-between gap-4">
-                        <span>{l.description}</span>
+                        <span className={Number(l.amount_eur) < 0 ? "text-ink/75" : undefined}>{l.description}</span>
                         <span className="tabular whitespace-nowrap text-ink/70">
                           {formatEur(l.amount_eur)}
                           {Number(l.vat_percent) > 0 ? ` (alv ${trimDecimal(l.vat_percent)} %)` : ""}

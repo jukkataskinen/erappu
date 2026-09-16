@@ -1,18 +1,30 @@
 import Link from "next/link";
 import { Badge, DefinitionList, EmptyState, Panel, SectionTitle } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
-import { formatNumber } from "@/lib/format";
+import { FormError } from "@/components/FormError";
+import { formatNumber, isoDateHelsinki } from "@/lib/format";
 import { BOARD_ROLE, SHARE_GROUP_KIND } from "@/lib/registry/labels";
 import { loadPortalHome } from "@/lib/settings/portal-home";
+import { portalWaterUnit, type PortalWaterUnit } from "@/lib/water/queries";
+import { WaterMeters } from "./WaterMeters";
 
 export const metadata = { title: "Oma huoneisto" };
 
 const UNIT_ROLE: Record<string, string> = { owner: "Osakas", resident: "Asukas" };
 const COMPANY_ROLE: Record<string, string> = { board: "Hallitus", owner: "Osakas", resident: "Asukas", provider: "Palveluntuottaja" };
 
-export default async function OwnHomePage() {
+export default async function OwnHomePage({ searchParams }: { searchParams: Promise<{ virhe?: string; vesi?: string }> }) {
   const ctx = await requirePortal();
   const { units, companies } = await loadPortalHome(ctx.db, ctx.user);
+  const { virhe, vesi } = await searchParams;
+  const today = isoDateHelsinki();
+  const water = new Map<string, PortalWaterUnit>();
+  await ctx.run(async (tx) => {
+    for (const u of units) {
+      const w = await portalWaterUnit(tx, u.share_group_id, u.company_id, today);
+      if (w) water.set(u.share_group_id, w);
+    }
+  });
 
   return (
     <>
@@ -22,6 +34,7 @@ export default async function OwnHomePage() {
           Omat tiedot
         </Link>
       </div>
+      <FormError message={virhe} />
 
       <section className="mb-8">
         <SectionTitle>Huoneistot</SectionTitle>
@@ -58,6 +71,7 @@ export default async function OwnHomePage() {
                     ]}
                   />
                 </div>
+                {water.has(u.share_group_id) ? <WaterMeters unit={water.get(u.share_group_id)!} thanked={vesi === "kiitos"} /> : null}
               </Panel>
             ))}
           </div>

@@ -21,7 +21,7 @@ import {
   markRunExported,
   savePaymentImport,
 } from "@/lib/finance/billing";
-import { isIsoDate } from "@/lib/finance/dates";
+import { fiDate, isIsoDate } from "@/lib/finance/dates";
 import { CHARGE_TYPE_TO_HTJ } from "@/lib/finance/labels";
 import { matchPaymentRows } from "@/lib/finance/payment-import";
 import { addChargeBasis, recalculateLoanShares } from "@/lib/finance/registers";
@@ -105,7 +105,7 @@ export async function saveBillingSettings(formData: FormData) {
 // Vastikeperusteet
 // ---------------------------------------------------------------------------
 const basisSchema = z.object({
-  charge_type: z.enum(["maintenance", "land", "heating", "capital", "financing", "water", "sauna", "parking", "other"]),
+  charge_type: z.enum(["maintenance", "land", "heating", "capital", "financing", "water", "hot_water", "sauna", "parking", "other"]),
   label: optText,
   basis: z.enum(["area_m2", "share", "unit", "person", "meter", "fixed"]),
   unit_price: decimal(4, "Yksikköhinta on luku, enintään neljä desimaalia."),
@@ -376,6 +376,7 @@ export async function exportRun(formData: FormData) {
   const adapter = getAccountingAdapter();
   const file = await adapter.exportBillingRun({
     runId: data.run.id,
+    kind: data.run.kind === "water_settlement" ? "water_settlement" : "charges",
     companyName: data.run.company_name,
     businessId: data.run.business_id,
     periodStart: data.run.period_start,
@@ -396,7 +397,9 @@ export async function exportRun(formData: FormData) {
         `insert into er_documents (organization_id, company_id, category, title, file_name, storage_path, mime_type, size_bytes, sha256, visibility,
             year, subject_table, subject_id, uploaded_by)
          values ($1,$2,'other',$3,$4,$5,$6,$7,$8,'internal',$9,'er_billing_runs',$10,$11) returning id`,
-        [data.run.organization_id, companyId, `Vastikelaskutus ${data.run.period_start.slice(5, 7)}/${data.run.period_start.slice(0, 4)} (kirjanpitoon)`,
+        [data.run.organization_id, companyId, data.run.kind === "water_settlement"
+          ? `Vesimaksun tasaus ${fiDate(data.run.period_start)}–${fiDate(data.run.period_end)} (kirjanpitoon)`
+          : `Vastikelaskutus ${data.run.period_start.slice(5, 7)}/${data.run.period_start.slice(0, 4)} (kirjanpitoon)`,
           stored.fileName, stored.storagePath, stored.mimeType, stored.sizeBytes, stored.sha256, Number(data.run.period_start.slice(0, 4)), runId, ctx.user.id],
       );
       if (!(await markRunExported(tx, runId, companyId, doc.id))) throw new FinanceError("Laskutusajon tila muuttui. Yritä uudelleen.");

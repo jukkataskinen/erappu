@@ -69,7 +69,7 @@ export const csvAdapter: KirjanpitoAdapteri = {
     const month = input.periodStart.slice(0, 7);
     const safeName = input.companyName.replace(/[^\wäöåÄÖÅ-]+/g, "_").slice(0, 60);
     return {
-      fileName: `vastikelaskutus_${safeName}_${month}.csv`,
+      fileName: input.kind === "water_settlement" ? `vesilaskutus_${safeName}_${input.periodEnd}.csv` : `vastikelaskutus_${safeName}_${month}.csv`,
       mimeType: "text/csv",
       content: Buffer.from(billingRunToCsv(input), "utf8"),
     };

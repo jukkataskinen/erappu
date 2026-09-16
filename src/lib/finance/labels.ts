@@ -4,7 +4,9 @@ export const CHARGE_TYPE: Record<string, string> = {
   heating: "Lämmitysvastike",
   capital: "Pääomavastike",
   financing: "Rahoitusvastike",
-  water: "Vesimaksu",
+  water: "Vesimaksu (kylmä vesi)",
+  hot_water: "Lämmin vesi",
+  water_advance: "Vesiennakko",
   sauna: "Saunamaksu",
   parking: "Autopaikkamaksu",
   other: "Muu maksu",
@@ -17,6 +19,8 @@ export const CHARGE_TYPE_TO_HTJ: Record<string, string | null> = {
   capital: "paaomavastike",
   financing: "paaomavastike",
   water: null,
+  hot_water: null,
+  water_advance: null,
   sauna: null,
   parking: null,
   other: null,
@@ -49,6 +53,15 @@ export const UNIT_KIND: Record<string, string> = {
   storage: "Varasto",
   other: "Muu",
 };
+
+/** Laskutusajon laji. */
+export const RUN_KIND: Record<string, string> = {
+  charges: "Vastikkeet",
+  water_settlement: "Vesimaksun tasaus",
+};
+
+/** Vastikeperusteeksi kelpaavat lajit (vesiennakko on osakeryhmäkohtainen, er_water_advances). */
+export const BASIS_CHARGE_TYPES = Object.keys(CHARGE_TYPE).filter((k) => k !== "water_advance");
 
 export const RUN_STATUS: Record<string, { label: string; tone: "neutral" | "info" | "ok" | "warn" | "alert" }> = {
   draft: { label: "Luonnos", tone: "warn" },
