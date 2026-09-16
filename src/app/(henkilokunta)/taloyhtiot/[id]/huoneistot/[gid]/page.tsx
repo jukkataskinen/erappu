@@ -11,7 +11,7 @@ import type { ShareRange } from "@/lib/registry/share-ranges";
 import { InvitePartyButton } from "@/components/invitations/InvitePartyButton";
 import { ShareGroupForm } from "../ShareGroupForm";
 import { UnitCertificateForm, type UnitCertificateValues } from "../UnitCertificateForm";
-import { addPartyToShareGroup, endRelation } from "../../../actions";
+import { addPartyToShareGroup, endRelation, updatePartyContact } from "../../../actions";
 
 export const metadata = { title: "Huoneisto" };
 
@@ -123,6 +123,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                       Osuus {formatFraction(o.share_numerator ?? 1, o.share_denominator ?? 1)} · alkaen {formatDate(o.starts_on)} · {SOURCE[o.source ?? "manual"]}
                     </p>
                     <p className="text-sm text-ink/60">{[o.email, o.phone].filter(Boolean).join(" · ") || "Ei yhteystietoja"}</p>
+                    {canWrite ? <ContactEditor companyId={id} groupId={gid} partyId={o.party_id} email={o.email} phone={o.phone} /> : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {o.has_portal ? <Badge tone="info">Portaalissa</Badge> : null}
@@ -159,6 +160,7 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
                       {RESIDENT_ROLE[r.role ?? "other"]} · alkaen {formatDate(r.starts_on)}
                     </p>
                     <p className="text-sm text-ink/60">{[r.email, r.phone].filter(Boolean).join(" · ") || "Ei yhteystietoja"}</p>
+                    {canWrite ? <ContactEditor companyId={id} groupId={gid} partyId={r.party_id} email={r.email} phone={r.phone} /> : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {r.has_portal ? <Badge tone="info">Portaalissa</Badge> : null}
@@ -263,5 +265,30 @@ export default async function ShareGroupPage({ params, searchParams }: { params:
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Yhteystietojen muokkaus avautuvana lomakkeena. Ilman sähköpostia
+ * portaalikutsua ei voi lähettää, joten puuttuva osoite avaa lomakkeen
+ * valmiiksi korostettuna.
+ */
+function ContactEditor({ companyId, groupId, partyId, email, phone }: { companyId: string; groupId: string; partyId: string; email: string | null; phone: string | null }) {
+  return (
+    <details className="mt-1">
+      <summary className="cursor-pointer text-xs font-semibold text-sky hover:underline">{email ? "Muokkaa yhteystietoja" : "Lisää sähköposti portaalikutsua varten"}</summary>
+      <form action={updatePartyContact} className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <input type="hidden" name="company_id" value={companyId} />
+        <input type="hidden" name="share_group_id" value={groupId} />
+        <input type="hidden" name="party_id" value={partyId} />
+        <Field label="Sähköposti" htmlFor={"email-" + partyId}>
+          <Input id={"email-" + partyId} name="email" type="email" defaultValue={email ?? ""} />
+        </Field>
+        <Field label="Puhelin" htmlFor={"phone-" + partyId}>
+          <Input id={"phone-" + partyId} name="phone" type="tel" defaultValue={phone ?? ""} />
+        </Field>
+        <Button variant="secondary">Tallenna</Button>
+      </form>
+    </details>
   );
 }

@@ -578,3 +578,46 @@ export async function updateBuildingHeating(formData: FormData) {
   revalidatePath("/kulutus");
   redirect(back);
 }
+
+const partyContactSchema = z.object({
+  company_id: uuid,
+  share_group_id: uuid,
+  party_id: uuid,
+  email: z.preprocess(emptyToNull, z.string().email("Sähköpostiosoite ei ole kelvollinen.").max(254).nullable()),
+  phone: z.preprocess(emptyToNull, z.string().max(60).nullable()),
+});
+
+/**
+ * Osakkaan tai asukkaan sähköposti ja puhelin huoneiston sivulta. Ilman
+ * sähköpostia portaalikutsua ei voi lähettää, ja Accessista tuoduilta
+ * osapuolilta osoite puuttuu lähes aina.
+ */
+export async function updatePartyContact(formData: FormData) {
+  const ctx = await staffWriter();
+  const companyId = uuid.parse(formData.get("company_id"));
+  const groupId = uuid.parse(formData.get("share_group_id"));
+  const back = `/taloyhtiot/${companyId}/huoneistot/${groupId}`;
+  const data = parseForm(partyContactSchema, formData, back);
+  await ctx.run(async (tx) => {
+    // Osapuolen pitää liittyä tähän huoneistoon omistajana tai asukkaana.
+    const [party] = await tx.query<{ organization_id: string; email: string | null; phone: string | null }>(
+      `select p.organization_id, p.email, p.phone from er_parties p
+        where p.id = $1
+          and (exists (select 1 from er_ownerships o where o.party_id = p.id and o.share_group_id = $2)
+            or exists (select 1 from er_residencies r where r.party_id = p.id and r.share_group_id = $2))`,
+      [data.party_id, groupId],
+    );
+    if (!party) fail(back, "Henkilöä ei löytynyt tästä huoneistosta.");
+    await tx.query("update er_parties set email = $2, phone = $3 where id = $1", [data.party_id, data.email, data.phone]);
+    await audit(tx, {
+      organizationId: party.organization_id,
+      userId: ctx.user.id,
+      action: "update",
+      entity: "party_contact",
+      entityId: data.party_id,
+      details: { email_changed: party.email !== data.email, phone_changed: party.phone !== data.phone },
+    });
+  });
+  revalidatePath(back);
+  redirect(back);
+}
