@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { renderDocumentPdf } from "@/documents/render";
 import { MeetingNotice, type MeetingNoticeData } from "@/documents/MeetingNotice";
+import { Agenda, otherMattersSubItems, postalLine } from "@/documents/Agenda";
 import { Minutes, type MinutesData } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
 import { ManagerCertificate, type ManagerCertificateData } from "@/documents/ManagerCertificate";
@@ -141,5 +142,28 @@ describe("asiakirjojen muotoilut", () => {
     expect(formatEuro(120)).toBe("120 €");
     expect(formatDate("2026-09-01")).toBe("1.9.2026");
     expect(formatMeetingTime("2027-04-14T15:00:00.000Z")).toBe("keskiviikko 14.4.2027 klo 18.00");
+  });
+});
+
+describe("esityslista", () => {
+  it("postirivi, Muut asiat -alakohdat ja PDF", async () => {
+    expect(postalLine("Jussilanpuisto 8, 41660 Toivakka")).toBe("41660 Toivakka");
+    const items = [
+      { position: 14, title: "Valitaan toiminnantarkastaja." },
+      { position: 15, title: "Muut asiat:" },
+      { position: 16, title: "Katon pinnoitus" },
+      { position: 17, title: "Kokouksen päättäminen" },
+    ];
+    expect([...otherMattersSubItems(items)]).toEqual([16]);
+    const pdf = await renderDocumentPdf(
+      <Agenda
+        data={{
+          organizationName: "Demo Isännöinti Oy", companyName: "As Oy Esimerkki", companyBusinessId: "1234567-1", companyAddress: "Rinnetie 4, 41660 Toivakka",
+          kind: "annual_general", startsAt: "2026-05-15T15:00:00.000Z", location: "Kerhohuone", remoteParticipation: false, remoteUrl: null, fiscalYear: "2025",
+          items: items.map((i) => ({ ...i, proposal: null })), manager: null, issuedOn: "2026-04-20",
+        }}
+      />,
+    );
+    expect(pdf.bytes.byteLength).toBeGreaterThan(1000);
   });
 });

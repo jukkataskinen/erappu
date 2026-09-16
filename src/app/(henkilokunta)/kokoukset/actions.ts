@@ -229,7 +229,7 @@ export async function deleteAttendeeAction(formData: FormData) {
 export async function generateDocumentAction(formData: FormData) {
   const { companyId, meetingId, back } = ids(formData);
   const ctx = await writer(back);
-  const kind = z.enum(["notice", "shareholders", "votes", "minutes"]).parse(formData.get("kind")) as MeetingDocumentKind;
+  const kind = z.enum(["notice", "agenda", "shareholders", "votes", "minutes"]).parse(formData.get("kind")) as MeetingDocumentKind;
   const result = await generateMeetingDocument(ctx.run, ctx.user.id, meetingId, kind);
   if (!result) fail(back, "Asiakirjaa ei voitu muodostaa tälle kokoukselle.");
   done(companyId, meetingId, "#asiakirjat");

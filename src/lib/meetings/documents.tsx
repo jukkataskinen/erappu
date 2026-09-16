@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 import { isoDateHelsinki } from "@/lib/format";
 import { deleteStoredFile, storeFile } from "@/lib/storage";
 import { renderDocumentPdf } from "@/documents/render";
+import { Agenda } from "@/documents/Agenda";
 import { MeetingNotice, type MeetingDocumentBase } from "@/documents/MeetingNotice";
 import { Minutes } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
@@ -20,10 +21,11 @@ import { getMeeting, listAttendees, listItems, type AttendeeRow, type MeetingRow
  * transaktiossaan. Jos rivin kirjoitus epäonnistuu, tiedosto poistetaan.
  */
 
-export type MeetingDocumentKind = "notice" | "shareholders" | "votes" | "minutes";
+export type MeetingDocumentKind = "notice" | "agenda" | "shareholders" | "votes" | "minutes";
 
 export const MEETING_DOCUMENT_TITLE: Record<MeetingDocumentKind, string> = {
   notice: "Kokouskutsu",
+  agenda: "Esityslista",
   shareholders: "Osakasluettelo",
   votes: "Ääniluettelo",
   minutes: "Pöytäkirja",
@@ -84,6 +86,9 @@ export function buildVoteSummary(attendees: AttendeeRow[]) {
 
 export async function renderMeetingDocument(loaded: LoadedMeeting, kind: MeetingDocumentKind) {
   const { base, attendees, meeting } = loaded;
+  if (kind === "agenda") {
+    return renderDocumentPdf(<Agenda data={base} />);
+  }
   if (kind === "notice") {
     return renderDocumentPdf(
       <MeetingNotice
@@ -152,11 +157,12 @@ export async function renderMeetingDocument(loaded: LoadedMeeting, kind: Meeting
 }
 
 export function meetingDocumentVisibility(meetingKind: string, kind: MeetingDocumentKind): "owners" | "board" {
-  return (kind === "notice" || kind === "minutes") && isGeneralMeeting(meetingKind) ? "owners" : "board";
+  return (kind === "notice" || kind === "agenda" || kind === "minutes") && isGeneralMeeting(meetingKind) ? "owners" : "board";
 }
 
 const FILE_PREFIX: Record<MeetingDocumentKind, string> = {
   notice: "kokouskutsu",
+  agenda: "esityslista",
   shareholders: "osakasluettelo",
   votes: "aaniluettelo",
   minutes: "poytakirja",
@@ -167,7 +173,7 @@ export async function generateMeetingDocument(run: Runner, userId: string, meeti
   const loaded = await run((tx) => loadMeetingForDocuments(tx, meetingId));
   if (!loaded) return null;
   const { meeting } = loaded;
-  if (kind !== "notice" && kind !== "minutes" && !isGeneralMeeting(meeting.kind)) return null;
+  if (kind !== "notice" && kind !== "agenda" && kind !== "minutes" && !isGeneralMeeting(meeting.kind)) return null;
 
   const pdf = await renderMeetingDocument(loaded, kind);
   const date = new Date(meeting.starts_at).toISOString().slice(0, 10);
@@ -184,7 +190,7 @@ export async function generateMeetingDocument(run: Runner, userId: string, meeti
   // Allekirjoittamaton pöytäkirja on sisäinen: vasta sinetöity versio
   // julkaistaan portaaliin (ks. signing.ts).
   const visibility = kind === "minutes" ? "internal" : meetingDocumentVisibility(meeting.kind, kind);
-  const category = kind === "notice" ? "meeting_notice" : "minutes";
+  const category = kind === "notice" || kind === "agenda" ? "meeting_notice" : "minutes";
   const title = `${MEETING_DOCUMENT_TITLE[kind]}: ${MEETING_KIND[meeting.kind].toLowerCase()} ${new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(meeting.starts_at))}`;
 
   try {

@@ -35,6 +35,7 @@ export const metadata = { title: "Kokous" };
 
 const DOC_BUTTONS = [
   { kind: "notice", label: "Kokouskutsu", generalOnly: false },
+  { kind: "agenda", label: "Esityslista", generalOnly: false },
   { kind: "shareholders", label: "Osakasluettelo", generalOnly: true },
   { kind: "votes", label: "Ääniluettelo", generalOnly: true },
   { kind: "minutes", label: "Pöytäkirjan luonnos", generalOnly: false },
