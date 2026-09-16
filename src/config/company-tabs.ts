@@ -34,6 +34,7 @@ export const COMPANY_MODULES = [
   { key: "htj", label: "HTJ", path: "/htj", icon: "registry", group: "rekisteri", description: "Osakeluettelo ja HTJ2-ilmoitukset", roles: ["owner", "manager", "accountant", "assistant"] },
   { key: "huolto", label: "Huoltopyynnöt", path: "/huolto", icon: "wrench", group: "arki", description: "Vikailmoitukset ja QR-lomake" },
   { key: "korjaukset", label: "Korjaukset", path: "/korjaukset", icon: "hammer", group: "arki", description: "Kunnossapito, muutostyöt ja KPTS" },
+  { key: "vastuunjako", label: "Vastuunjako", path: "/vastuunjako", icon: "split", group: "arki", description: "Kunnossapitovastuu yhtiön ja osakkaan kesken" },
   { key: "tiedotteet", label: "Tiedotteet", path: "/tiedotteet", icon: "megaphone", group: "arki", description: "Tiedotteet osakkaille ja asukkaille" },
   { key: "varaukset", label: "Varaukset", path: "/varaukset", icon: "key", group: "arki", description: "Saunat, pesutuvat ja kerhohuoneet" },
   { key: "vuosikello", label: "Vuosikello", path: "/vuosikello", icon: "list", group: "arki", description: "Määräajat ja toistuvat tehtävät" },

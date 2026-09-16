@@ -42,6 +42,7 @@ interface Counts {
   overdue_eur: string | null;
   rescue_review_on: string | null;
   rescue_draft: boolean;
+  responsibility_exceptions: number;
 }
 
 async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Counts> {
@@ -74,7 +75,8 @@ async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Co
        (select sum(overdue_eur)::text from er_payment_status where company_id = $1
          and as_of = (select max(as_of) from er_payment_status where company_id = $1)) as overdue_eur,
        (select next_review_on::text from er_rescue_plans where company_id = $1 and status = 'final' and superseded_at is null) as rescue_review_on,
-       exists (select 1 from er_rescue_plans where company_id = $1 and status = 'draft') as rescue_draft`,
+       exists (select 1 from er_rescue_plans where company_id = $1 and status = 'draft') as rescue_draft,
+       (select count(*)::int from er_responsibility_exceptions where company_id = $1) as responsibility_exceptions`,
     [companyId, today, OPEN_STATUSES, OPEN_FOR_COMPANY],
   );
   return row;
@@ -136,6 +138,10 @@ export async function loadCompanyModuleStatus(
   else if (c.next_task_on) s.vuosikello = { text: `Seuraava määräaika ${shortDate(c.next_task_on, today)}` };
   if (c.latest_reading_on) s.kulutus = { text: `Lukemat ${shortDate(c.latest_reading_on, today)} asti` };
   s.pelastussuunnitelma = rescuePlanStatus(c.rescue_review_on, c.rescue_draft, today);
+  s.vastuunjako =
+    c.responsibility_exceptions > 0
+      ? { text: plural(c.responsibility_exceptions, "yhtiökohtainen poikkeus", "yhtiökohtaista poikkeusta") }
+      : { text: "Lain mukainen yleinen jako", tone: "neutral" };
 
   if (c.payment_as_of) {
     s.talous =

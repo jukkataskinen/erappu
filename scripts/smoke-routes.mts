@@ -51,7 +51,7 @@ if (orderId) await check(`/todistukset/${orderId}`, staffSub);
 if (cid) {
   for (const tab of [
     "", "/perustiedot", "/muokkaa", "/osakkaat", "/hallitus", "/kiinteisto", "/huolto", "/talous", "/korjaukset", "/kokoukset", "/dokumentit", "/htj", "/htj/yhteenveto",
-    "/tiedotteet", "/vuosikello", "/varaukset", "/sopimukset", "/kulutus", "/todistukset", "/pelastussuunnitelma", "/pelastussuunnitelma/luonnos",
+    "/tiedotteet", "/vuosikello", "/varaukset", "/sopimukset", "/kulutus", "/todistukset", "/pelastussuunnitelma", "/pelastussuunnitelma/luonnos", "/vastuunjako", "/vastuunjako?muokkaa=parveke-lasit",
   ]) {
     await check(`/taloyhtiot/${cid}${tab}`, staffSub);
   }
@@ -75,7 +75,7 @@ if (cid) {
 
 for (const p of [
   "/portaali", "/portaali/huoltopyynnot", "/portaali/huoltopyynnot/uusi", "/portaali/tiedotteet", "/portaali/dokumentit", "/portaali/varaukset",
-  "/portaali/kokoukset", "/portaali/talous", "/portaali/muutostyot", "/portaali/muutostyot/uusi", "/portaali/oma", "/portaali/profiili",
+  "/portaali/kokoukset", "/portaali/talous", "/portaali/muutostyot", "/portaali/muutostyot/uusi", "/portaali/vastuunjako", "/portaali/oma", "/portaali/profiili",
 ]) await check(p, portalSub);
 
 const bad = results.filter((r) => r.error || r.status >= 400);

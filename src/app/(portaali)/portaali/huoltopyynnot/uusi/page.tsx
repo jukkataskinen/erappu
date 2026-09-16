@@ -35,6 +35,12 @@ export default async function NewPortalRequestPage({ searchParams }: { searchPar
         ← Huoltopyynnöt
       </Link>
       <h1 className="mt-2 text-2xl">Tee huoltopyyntö</h1>
+      <p className="mt-1 text-sm text-ink/70">
+        Kuuluuko vika yhtiölle vai minulle?{" "}
+        <Link href="/portaali/vastuunjako" className="font-semibold text-sky underline-offset-2 hover:underline">
+          Katso vastuunjakotaulukko
+        </Link>
+      </p>
 
       <div className="mt-4">
         <Notice tone="alert" title="Vesivuoto tai muu kiireellinen vaara">

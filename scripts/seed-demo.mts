@@ -228,6 +228,24 @@ async function seedRenovationDemo(tx: Sql, org: string, rinne: string) {
   return true;
 }
 
+/**
+ * Vastuunjakotaulukon esimerkkipoikkeus As Oy Esimerkkirinteelle (0094):
+ * parvekelasit osakkaan vastuulla yhtiöjärjestyksen perusteella. Kuvitteellinen
+ * määräys. Idempotentti: ei korvaa käsin muutettua poikkeusta.
+ */
+async function seedResponsibilityDemo(tx: Sql, org: string, rinne: string) {
+  const [manager] = await tx.query<{ manager_user_id: string | null }>("select manager_user_id from er_housing_companies where id = $1", [rinne]);
+  const rows = await tx.query(
+    `insert into er_responsibility_exceptions (organization_id, company_id, item_key, responsibility, basis, note, decided_on, created_by, updated_by)
+     values ($1, $2, 'parveke-lasit', 'shareholder', 'articles',
+             'Yhtiöjärjestyksen 5 §:n mukaan osakas vastaa huoneistonsa parvekelasien ja niiden tiivisteiden kunnossapidosta. Yhtiö vastaa edelleen parvekelaatasta ja kaiteesta.',
+             '2019-04-25', $3, $3)
+     on conflict (company_id, item_key) do nothing returning id`,
+    [org, rinne, manager?.manager_user_id ?? null],
+  );
+  return rows.length > 0;
+}
+
 await db.asService(async (tx) => {
   const [existing] = await tx.query<{ id: string }>("select id from er_organizations where business_id = '0000001-9'");
   if (existing) {
@@ -235,11 +253,13 @@ await db.asService(async (tx) => {
     const added = rinne ? await seedCertificateDemo(tx, existing.id, rinne.id) : false;
     const rescue = rinne ? await seedRescuePlanDemo(tx, existing.id, rinne.id) : false;
     const renovation = rinne ? await seedRenovationDemo(tx, existing.id, rinne.id) : false;
+    const responsibility = rinne ? await seedResponsibilityDemo(tx, existing.id, rinne.id) : false;
     console.log(
       [
         added ? "Demodata oli jo kannassa; lisättiin isännöitsijäntodistuksen tiedot ja liitteet." : "Demodata on jo kannassa.",
         rescue ? "Lisättiin pelastussuunnitelman demoversio." : null,
         renovation ? "Lisättiin muutostyöohje ja muutostyöilmoitus." : null,
+        responsibility ? "Lisättiin vastuunjaon esimerkkipoikkeus." : null,
       ].filter(Boolean).join(" "),
     );
     return;
@@ -380,6 +400,7 @@ await db.asService(async (tx) => {
   await seedCertificateDemo(tx, org.id, rinne);
   await seedRescuePlanDemo(tx, org.id, rinne);
   await seedRenovationDemo(tx, org.id, rinne);
+  await seedResponsibilityDemo(tx, org.id, rinne);
   console.log("Demodata luotu: Demo Isännöinti Oy, 2 taloyhtiötä, 14 huoneistoa, 6 käyttäjää.");
 });
 

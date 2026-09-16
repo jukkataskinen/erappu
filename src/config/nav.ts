@@ -36,6 +36,7 @@ export const PORTAL_NAV = [
   { href: "/portaali/kokoukset", label: "Kokoukset" },
   { href: "/portaali/talous", label: "Talous" },
   { href: "/portaali/muutostyot", label: "Muutostyöt" },
+  { href: "/portaali/vastuunjako", label: "Vastuunjako" },
   { href: "/portaali/oma", label: "Oma" },
 ];
 
