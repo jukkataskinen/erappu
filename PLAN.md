@@ -112,6 +112,15 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Seuraavan kauden erä (voimassaolo +1 vuosi, edustajat rekisteristä uudelleen)
 - [x] Työpöydän nosto: allekirjoitusta odottavat sopimukset
 
+## Muutostyöt ja portaali (verrokkianalyysi 16.9.2026)
+Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (Jukan toimittamat).
+- [ ] 1. Muutostyöilmoituksen lomake: monta muutostyötä samaan ilmoitukseen, työnsuorittaja työlajeittain, liitteet, pakollinen kuittaus muutostyöohjeen lukemisesta ja linkki ohjeeseen, ilmoitustapa (sähköposti/tekstiviesti), infolaatikko (käsittelyaika 2-4 vk, ei saa aloittaa ennen hyväksyntää)
+- [ ] 2. Etenemisjana portaaliin: vastaanotettu, hyväksytty, työn alla, valmis - sekä muutostöille että huoltopyynnöille
+- [ ] 3. Hyväksyntään valvoja ja valvonnan arvioitu kustannus (osakkaan kustannus; kytkeytyy valvontakone-suunnitelmaan)
+- [ ] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
+- [ ] 5. Muutostyöohjeen generaattori yhtiökohtaisesti (kuten pelastussuunnitelma): vastuunjako, ohjeet työlajeittain, valvontahinnasto
+- [ ] 6. Osakeryhmälle talo-, porras- ja kerroskenttä (DECISIONS 16.9.2026: Torpat säilytti yhdistelmätunnukset, koska talotiedolle ei ole kenttää)
+
 ## Pitkän aikavälin suunta (Jukka 15.9.2026)
 - [ ] Palveluntuottajapuolen oma järjestelmä eRapun pariksi (kiinteistöhuolto, sähkö- ja putkiurakoitsijat). Sama rakenne kuin Kasamaster (toimittaja) ja suunnitteilla oleva KuokkaMaster (urakoitsija) omassa tuotantoketjussaan: kummallekin ketjun puolelle oma järjestelmä, ja yhteinen tieto (kohde, huoltopyyntö tai tilaus, toteuma, kuvat, lasku) kulkee molempiin, jotta ristiinmyynti onnistuu. eRappu ja Kasamaster/KuokkaMaster ovat eri ketjuja eivätkä liity toisiinsa. Ei esteellisyys- tai ohjausmekanismeja. Huomioitavat ennen suunnittelua:
   - Tietomalli: palveluntuottaja omana organisaationaan (nyt er_service_providers on isännöintiorganisaation alla). Yhteinen tieto (kohde, tilaus, työ, kuvat) jaetaan kahden organisaation kesken, omat myyntitiedot (asiakkuudet, tarjoukset, hinnastot) pysyvät kummankin omina.
