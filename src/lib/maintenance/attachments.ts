@@ -46,13 +46,13 @@ export function attachmentFiles(formData: FormData, field = "attachments"): File
     .filter((v): v is File => typeof v === "object" && v !== null && "arrayBuffer" in v && (v as File).size > 0);
 }
 
-interface PreparedAttachment {
+export interface PreparedAttachment {
   bytes: Buffer;
   mimeType: string;
   fileName: string;
 }
 
-async function prepare(files: File[]): Promise<PreparedAttachment[]> {
+export async function prepareAttachments(files: File[]): Promise<PreparedAttachment[]> {
   if (files.length > MAX_NOTICE_ATTACHMENTS) throw new AttachmentError(`Voit lisätä enintään ${MAX_NOTICE_ATTACHMENTS} liitettä.`);
   const total = files.reduce((sum, f) => sum + f.size, 0);
   if (total > MAX_NOTICE_ATTACHMENT_TOTAL) throw new AttachmentError("Liitteet ovat yhteensä liian suuret. Lähetä isot suunnitelmat isännöitsijälle erikseen.");
@@ -83,7 +83,7 @@ export async function saveNoticeAttachments(
   opts: { organizationId: string; companyId: string; shareGroupId: string; noticeId: string; userId: string },
 ): Promise<number> {
   if (files.length === 0) return 0;
-  const prepared = await prepare(files);
+  const prepared = await prepareAttachments(files);
   for (const p of prepared) {
     const stored = await storeFile({ organizationId: opts.organizationId, companyId: opts.companyId, fileName: p.fileName, mimeType: p.mimeType, bytes: p.bytes });
     await tx.query(

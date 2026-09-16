@@ -120,9 +120,14 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [~] Tekstiviesti-ilmoitus tilamuutoksista: valinta tallennetaan, lähetys odottaa kanavaa – BLOCKERS 7
 - [x] 2. Etenemisjana portaaliin: vastaanotettu, hyväksytty, työn alla, valmis - sekä muutostöille että huoltopyynnöille (`src/lib/progress.ts`, `ProgressSteps`; muutostyökortit ja huoltopyynnön sivu)
 - [ ] 3. Hyväksyntään valvoja ja valvonnan arvioitu kustannus (osakkaan kustannus; kytkeytyy valvontakone-suunnitelmaan)
-- [ ] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
+- [x] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
+  - [x] Migraatio 0095: `er_contact_threads`, `er_contact_messages`, tila viestistä triggerillä (avoin/vastattu/käsitelty), liitteet dokumentteina (`internal` + oman ketjun lukusääntö), sähköposti-ilmoitus ilman viestin sisältöä; RLS-testit `tests/db/yhteydenotot.test.ts`
+  - [x] Portaali `/portaali/yhteydenotot` (lista, uusi, ketju), henkilökunta `/yhteydenotot` (postilaatikko suodattimin, vastaus, käsitelty/avaa), työpöydän nosto ja navigaatio
+  - [ ] Henkilökunnan aloittama viesti osakkaalle (nyt ketjun aloittaa aina portaalikäyttäjä)
 - [ ] 5. Muutostyöohjeen generaattori yhtiökohtaisesti (kuten pelastussuunnitelma): vastuunjako, ohjeet työlajeittain, valvontahinnasto
-- [ ] 6. Osakeryhmälle talo-, porras- ja kerroskenttä (DECISIONS 16.9.2026: Torpat säilytti yhdistelmätunnukset, koska talotiedolle ei ole kenttää)
+- [~] 6. Osakeryhmälle talo-, porras- ja kerroskenttä (DECISIONS 16.9.2026: Torpat säilytti yhdistelmätunnukset, koska talotiedolle ei ole kenttää)
+  - [x] Kentät ovat jo olemassa: `er_share_groups.building_id` (huoneistolomake), `floor` ja `staircase` (0091, todistuslomake) – tarkistettu 16.9.2026
+  - [ ] Accessista tuotuja yhtiöitä varten puuttuu rakennusrivit: nyt yksi rivi tunnuksella "N rakennusta". Tarvitaan rakennukset (tunnus, valmistumisvuosi) Jukalta, jonka jälkeen huoneistot voi kytkeä taloihin ja Torppien tunnukset jakaa kenttiin
 - [x] 7. Interaktiivinen vastuunjakotaulukko: 8 tilaa omina SVG-kuvina, 56 kohdetta klikattavina pisteinä (yhtiö / osakas / jaettu), tulkinnat AOYL 4 luvun pohjalta lakiviitteineen, luettelo kuvan alla. Yhtiökohtaiset poikkeukset (migraatio 0094, RLS- ja sisältötestit), `/taloyhtiot/[id]/vastuunjako` (muokkaus), `/portaali/vastuunjako`, linkki portaalin huoltopyyntölomakkeelta, moduulikortti ja portaalin valikko, demopoikkeus
   - [~] Tulkintojen tarkistus (`RESPONSIBILITY_CONTENT_APPROVED`) – BLOCKERS 12
 

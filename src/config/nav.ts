@@ -18,6 +18,8 @@ export interface NavItem {
 export const STAFF_NAV: NavItem[] = [
   { href: "/tyopoyta", label: "Työpöytä", icon: "home" },
   { href: "/taloyhtiot", label: "Taloyhtiöt", icon: "building" },
+  // Kaikkien yhtiöiden portaaliviestit yhdessä postilaatikossa.
+  { href: "/yhteydenotot", label: "Yhteydenotot", icon: "list" },
 ];
 
 /** Alaosa: organisaatiotason asiat, jotka eivät kuulu yhteen yhtiöön. */
@@ -30,6 +32,7 @@ export const STAFF_NAV_ORG: NavItem[] = [
 export const PORTAL_NAV = [
   { href: "/portaali", label: "Etusivu" },
   { href: "/portaali/huoltopyynnot", label: "Huoltopyynnöt" },
+  { href: "/portaali/yhteydenotot", label: "Yhteydenotot" },
   { href: "/portaali/tiedotteet", label: "Tiedotteet" },
   { href: "/portaali/dokumentit", label: "Dokumentit" },
   { href: "/portaali/varaukset", label: "Varaukset" },
