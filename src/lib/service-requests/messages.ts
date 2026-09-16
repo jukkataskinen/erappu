@@ -53,6 +53,32 @@ export function receivedConfirmationMessage(opts: { number: number; category: Ca
 
 export const PROVIDER_LINK_DAYS = 30;
 
+/**
+ * Lyhyt tilausviesti jaettavaksi pikaviestimessä. Viestiin ei tule osoitetta,
+ * huoneistoa eikä asukkaan tietoja, koska ne jäisivät pikaviestimen
+ * keskusteluhistoriaan; ne näkyvät vasta linkin takana.
+ */
+export function providerShareText(opts: { number: number; category: Category; companyName: string; urgent: boolean; token: string; baseUrl?: string }): {
+  link: string;
+  text: string;
+} {
+  const link = `${opts.baseUrl ?? appBaseUrl()}/tehtava/${opts.token}`;
+  const text = [
+    `${opts.urgent ? "KIIREELLINEN työtilaus" : "Työtilaus"} #${opts.number}: ${opts.companyName}, ${CATEGORY_LABEL[opts.category].toLowerCase()}.`,
+    `Tiedot, kuittaus ja kustannus: ${link}`,
+    `Linkki on voimassa ${PROVIDER_LINK_DAYS} päivää. Älä välitä sitä eteenpäin.`,
+  ].join("\n");
+  return { link, text };
+}
+
+/** WhatsApp-jakolinkki. Suomalainen numero muunnetaan kansainväliseen muotoon; ilman numeroa WhatsApp kysyy vastaanottajan. */
+export function whatsappShareUrl(text: string, phone?: string | null): string {
+  const digits = phone ? phone.replace(/[^0-9+]/g, "") : "";
+  const international = digits.startsWith("+") ? digits.slice(1) : digits.startsWith("00") ? digits.slice(2) : digits.startsWith("0") ? `358${digits.slice(1)}` : digits;
+  const target = /^[1-9][0-9]{7,14}$/.test(international) ? international : "";
+  return `https://wa.me/${target}?text=${encodeURIComponent(text)}`;
+}
+
 export function providerOrderMessage(opts: {
   number: number;
   category: Category;

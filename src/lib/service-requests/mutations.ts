@@ -4,7 +4,7 @@ import { audit } from "@/lib/audit";
 import { queueMessage } from "@/lib/messaging";
 import { createAccessLink, revokeAccessLinks } from "@/lib/security/access-links";
 import type { Category, CostResponsibility, EventVisibility, RequestStatus, Urgency } from "./labels";
-import { PROVIDER_LINK_DAYS, providerOrderMessage, receivedConfirmationMessage, statusChangeMessage } from "./messages";
+import { PROVIDER_LINK_DAYS, providerOrderMessage, providerShareText, receivedConfirmationMessage, statusChangeMessage } from "./messages";
 import { canStaffTransition, notifyReporterOfStatus } from "./status";
 
 /**
@@ -203,13 +203,19 @@ export async function updateCost(
 }
 
 /**
- * Tilaus palveluntuottajalle: uusi tehtävälinkki (vanhat mitätöidään),
- * viesti jonoon ja tila "Tilattu", jos pyyntö ei ole jo työn alla.
+ * Tilaus palveluntuottajalle: uusi tehtävälinkki (vanhat mitätöidään) ja tila
+ * "Tilattu", jos pyyntö ei ole jo työn alla. Kanava `email` lisää viestin
+ * jonoon; `share` palauttaa linkin ja lyhyen viestitekstin, jonka isännöitsijä
+ * jakaa itse (WhatsApp, tekstiviesti). Linkkiä ei tallenneta, vain tiiviste.
  */
-export async function orderFromProvider(tx: Sql, opts: { requestId: string; actor: Actor }): Promise<void> {
+export async function orderFromProvider(
+  tx: Sql,
+  opts: { requestId: string; actor: Actor; channel?: "email" | "share" },
+): Promise<{ link: string; shareText: string }> {
+  const channel = opts.channel ?? "email";
   const r = await lockRequest(tx, opts.requestId);
   if (!r.provider_id) throw new RequestError("Valitse ensin palveluntuottaja.");
-  if (!r.provider_email) throw new RequestError("Palveluntuottajalta puuttuu sähköpostiosoite.");
+  if (channel === "email" && !r.provider_email) throw new RequestError("Palveluntuottajalta puuttuu sähköpostiosoite.");
   if (["done", "closed", "rejected"].includes(r.status)) throw new RequestError("Valmista tai suljettua pyyntöä ei voi tilata. Avaa pyyntö ensin uudelleen.");
 
   await revokeAccessLinks(tx, "er_service_requests", r.id, "provider_task");
@@ -217,14 +223,19 @@ export async function orderFromProvider(tx: Sql, opts: { requestId: string; acto
     organizationId: r.organization_id, purpose: "provider_task", subjectTable: "er_service_requests", subjectId: r.id,
     expiresInDays: PROVIDER_LINK_DAYS, createdBy: opts.actor.userId,
   });
-  const msg = providerOrderMessage({
-    number: r.number, category: r.category, companyName: r.company_name, address: r.company_address, urgent: r.urgency === "urgent", token,
-  });
-  await queueMessage(tx, { organizationId: r.organization_id, recipient: r.provider_email, subject: msg.subject, body: msg.body, subjectTable: "er_service_requests", subjectId: r.id });
+  const share = providerShareText({ number: r.number, category: r.category, companyName: r.company_name, urgent: r.urgency === "urgent", token });
+  if (channel === "email") {
+    const msg = providerOrderMessage({
+      number: r.number, category: r.category, companyName: r.company_name, address: r.company_address, urgent: r.urgency === "urgent", token,
+    });
+    await queueMessage(tx, { organizationId: r.organization_id, recipient: r.provider_email!, subject: msg.subject, body: msg.body, subjectTable: "er_service_requests", subjectId: r.id });
+  }
   await tx.query("update er_service_requests set ordered_at = now(), provider_acknowledged_at = null where id = $1", [r.id]);
-  await addEvent(tx, { requestId: r.id, type: "notification", body: `Tilaus lähetetty: ${r.provider_name ?? "palveluntuottaja"}.`, visibility: "internal", actor: opts.actor });
+  const via = channel === "email" ? "sähköpostilla" : "jakolinkkinä (esim. WhatsApp)";
+  await addEvent(tx, { requestId: r.id, type: "notification", body: `Tilaus ${via}: ${r.provider_name ?? "palveluntuottaja"}.`, visibility: "internal", actor: opts.actor });
   if (["new", "received", "waiting"].includes(r.status)) {
     await changeStatus(tx, { requestId: r.id, to: "ordered", actor: opts.actor, mode: "staff" });
   }
-  await audit(tx, { organizationId: r.organization_id, userId: opts.actor.userId, action: "order", entity: "service_request", entityId: r.id, details: { provider_id: r.provider_id } });
+  await audit(tx, { organizationId: r.organization_id, userId: opts.actor.userId, action: "order", entity: "service_request", entityId: r.id, details: { provider_id: r.provider_id, channel } });
+  return { link: share.link, shareText: share.text };
 }

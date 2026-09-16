@@ -247,6 +247,20 @@ describe("huoltopyynnöt: linkit ja kutsurajoitin", () => {
     expect(await db.asService((tx) => resolveProviderTask(tx, token))).toBeNull();
   });
 
+  it("jakolinkkitilaus ei lähetä sähköpostia, palauttaa toimivan linkin ja mitätöi edellisen", async () => {
+    const r = await staffCreate(f.managerA.sub, f.companyA, { providerId: providerA });
+    const first = await db.asUser(f.managerA.sub, (tx) => orderFromProvider(tx, { requestId: r.id, actor: { userId: f.managerA.id }, channel: "share" }));
+    const mails = await db.asService((tx) => tx.query("select id from er_outbound_messages where subject_id = $1", [r.id]));
+    expect(mails).toHaveLength(0);
+    const token = /\/tehtava\/([A-Za-z0-9_-]+)/.exec(first.link)![1];
+    expect(first.shareText).toContain(first.link);
+    const task = await db.asService((tx) => resolveProviderTask(tx, token));
+    expect(task?.status).toBe("ordered");
+
+    await db.asUser(f.managerA.sub, (tx) => orderFromProvider(tx, { requestId: r.id, actor: { userId: f.managerA.id }, channel: "share" }));
+    expect(await db.asService((tx) => resolveProviderTask(tx, token))).toBeNull();
+  });
+
   it("palveluntuottajan kuittaus kirjataan provider_actor-merkinnällä; käyttäjä ei voi väärentää sitä", async () => {
     const r = await staffCreate(f.managerA.sub, f.companyA, { providerId: providerA, reporterEmail: "a@example.test" });
     await db.asService((tx) => changeStatus(tx, { requestId: r.id, to: "in_progress", actor: { userId: null, providerActor: true }, mode: "provider" }));

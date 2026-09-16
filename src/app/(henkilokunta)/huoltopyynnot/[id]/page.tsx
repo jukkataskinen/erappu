@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ProviderShare } from "./ProviderShare";
 import { notFound } from "next/navigation";
 import { FormError } from "@/components/FormError";
 import { Button, DefinitionList, Field, Input, Notice, PageHeader, Panel, SectionTitle, Select, Textarea } from "@/components/ui";
@@ -292,11 +293,16 @@ export default async function ServiceRequestPage({ params, searchParams }: { par
                   </p>
                   <div>
                     <Button type="submit" disabled={!provider.email || finished}>
-                      {request.ordered_at ? "Lähetä tilaus uudelleen" : "Lähetä tilaus"}
+                      {request.ordered_at ? "Lähetä tilaus uudelleen sähköpostilla" : "Lähetä tilaus sähköpostilla"}
                     </Button>
                   </div>
                 </form>
               )}
+              {provider ? (
+                <div className="mt-3 border-t border-line pt-3">
+                  <ProviderShare requestId={id} providerPhone={provider.phone} disabled={finished} ordered={!!request.ordered_at} />
+                </div>
+              ) : null}
             </Panel>
           ) : null}
 

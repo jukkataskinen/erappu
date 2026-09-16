@@ -29,6 +29,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Henkilökunnan työjono: suodattimet, tilat, vastuuhenkilö, tapahtumahistoria
 - [x] Palveluntuottajarekisteri ja yhtiökohtaiset palvelut
 - [x] Tilaus palveluntuottajalle tehtävälinkillä `/tehtava/[token]` (kuittaus, kommentti, kuva, kustannus)
+- [x] Tilauksen jako pikaviestimeen (17.9.2026): "Tilaa jakolinkillä" luo tehtävälinkin ilman sähköpostia ja näyttää lyhyen viestin (ei osoitetta eikä asukkaan tietoja), WhatsApp-painike palveluntuottajan numeroon, kopiointi ja puhelimen jakovalikko
 - [x] Portaali: huoltopyynnön teko ja omat pyynnöt, ilmoittaja voi kuitata tai avata uudelleen
 - [x] Julkinen QR-lomake `/ilmoita/[token]`, kutsurajoitin
 - [x] Ilmoitukset jonoon tilamuutoksista
@@ -135,6 +136,14 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
 - [ ] Palveluntuottajapuolen oma järjestelmä eRapun pariksi (kiinteistöhuolto, sähkö- ja putkiurakoitsijat). Sama rakenne kuin Kasamaster (toimittaja) ja suunnitteilla oleva KuokkaMaster (urakoitsija) omassa tuotantoketjussaan: kummallekin ketjun puolelle oma järjestelmä, ja yhteinen tieto (kohde, huoltopyyntö tai tilaus, toteuma, kuvat, lasku) kulkee molempiin, jotta ristiinmyynti onnistuu. eRappu ja Kasamaster/KuokkaMaster ovat eri ketjuja eivätkä liity toisiinsa. Ei esteellisyys- tai ohjausmekanismeja. Huomioitavat ennen suunnittelua:
   - Tietomalli: palveluntuottaja omana organisaationaan (nyt er_service_providers on isännöintiorganisaation alla). Yhteinen tieto (kohde, tilaus, työ, kuvat) jaetaan kahden organisaation kesken, omat myyntitiedot (asiakkuudet, tarjoukset, hinnastot) pysyvät kummankin omina.
   - Suostumukset: sähköinen suoramarkkinointi kuluttajille (osakkaat, asukkaat) vaatii ennakkosuostumuksen; taloyhtiön rekisteritietoja ei voi käyttää markkinointiin ilman käyttötarkoituksen mukaista perustetta (GDPR 6 ja 21 art.).
+- [ ] Huoltopyyntöjen tori palveluntuottajille (Jukka 17.9.2026): isännöitsijä vie pyynnön torille, hyväksytyt palveluntuottajat näkevät sen ja voivat varata työn itselleen. Luonteva ensimmäinen yhteinen näkymä palveluntuottajajärjestelmälle (edellinen kohta). Rajaukset:
+  - Näkyvyys: vain organisaatiolle tai yhtiölle hyväksytyt palveluntuottajat (nykyinen `er_service_providers` ja portaalin `provider`-rooli), ala- ja aluesuodatus (sähkö, putki, huolto; paikkakunta).
+  - Tietojen minimointi: ennen varausta näkyvät ala, paikkakunta, kiireellisyys ja lyhyt kuvaus; osoite, huoneisto, kuvat ja ilmoittajan yhteystiedot vasta varaajalle (sama tehtävälinkki kuin tilauksessa, `/tehtava/[token]`).
+  - Varaus: ensimmäinen varaaja saa työn (lukitus kannassa, ei kilpatilannetta), pyyntö poistuu muilta, isännöitsijä saa ilmoituksen ja voi perua varauksen. Varaamaton pyyntö palaa isännöitsijälle määräajan jälkeen.
+  - Ei torille: kiireelliset viat (suoraan päivystäjälle) eikä yhtiöt, joilla on voimassa huoltosopimus, joka määrää tekijän.
+  - Hinnat: tori edellyttää sovittua hinnastoa tai tuntihintoja palveluntuottajittain, muuten jokainen työ vaatii tarjouskierroksen.
+  - Taloyhtiön päätös: hallitus hyväksyy toimintatavan ja euro-rajan (esim. alle 500 euron korjaukset hyväksytyiltä tekijöiltä).
+  - Avoimet kysymykset Jukalle ennen toteutusta: näkevätkö tekijät kaikkien yhtiöiden pyynnöt vai vain yhtiökohtaisesti hyväksytyt; hinnaston muoto; varauksen voimassaoloaika; saako asukas tiedon varaajasta.
 
 ## Jatkokehitys (Jukan toiveet)
 - [~] Pelastussuunnitelma-generaattori: taloyhtiön pelastussuunnitelma rekisterin tiedoista (rakennukset, lämmitys, yhteiset tilat, väestönsuoja, vastuuhenkilöt) täytettävänä pohjana ja PDF:nä, vuosipäivitys vuosikelloon (lähtötilanne 15.9.2026)

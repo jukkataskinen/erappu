@@ -109,3 +109,17 @@ describe("lomakkeet", () => {
     expect(publicRequestSchema.safeParse({ ...valid, website: "http://spam" }).success).toBe(false);
   });
 });
+
+describe("tilauksen jako pikaviestimeen", () => {
+  it("viestissä on linkki mutta ei osoitetta, ja WhatsApp-linkki muuntaa suomalaisen numeron", async () => {
+    const { providerShareText, whatsappShareUrl } = await import("@/lib/service-requests/messages");
+    const share = providerShareText({ number: 42, category: "plumbing", companyName: "As Oy Esimerkki", urgent: true, token: "abc123", baseUrl: "https://www.erappu.fi" });
+    expect(share.link).toBe("https://www.erappu.fi/tehtava/abc123");
+    expect(share.text).toContain("KIIREELLINEN työtilaus #42: As Oy Esimerkki");
+    expect(share.text).toContain(share.link);
+    expect(whatsappShareUrl("Hei", "040 123 4567")).toBe("https://wa.me/358401234567?text=Hei");
+    expect(whatsappShareUrl("Hei", "+358 40 123 4567")).toBe("https://wa.me/358401234567?text=Hei");
+    expect(whatsappShareUrl("a b", null)).toBe("https://wa.me/?text=a%20b");
+    expect(whatsappShareUrl("Hei", "puhelin")).toBe("https://wa.me/?text=Hei");
+  });
+});
