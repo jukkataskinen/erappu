@@ -5,7 +5,7 @@ import { ResponsibilityChart } from "@/components/responsibility/ResponsibilityC
 import { Badge, Button, Field, Input, Notice, Panel, SectionTitle, Select, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { DUTY_NOTES, findItem, GENERAL_DISCLAIMER, ITEMS, LEGAL_SOURCES, RESPONSIBILITIES, RESPONSIBILITY_CONTENT_APPROVED, RESPONSIBILITY_LABEL, ROOMS } from "@/lib/responsibility/content";
+import { DUTY_NOTES, findItem, GENERAL_DISCLAIMER, ITEMS, LEGAL_SOURCES, RESPONSIBILITIES, RESPONSIBILITY_CONTENT_APPROVED, RESPONSIBILITY_LABEL, ROOMS, URGENT_REPAIR_NOTES } from "@/lib/responsibility/content";
 import { EXCEPTION_BASES, EXCEPTION_BASIS_LABEL, mergeExceptions, orphanExceptions } from "@/lib/responsibility/merge";
 import { listExceptions } from "@/lib/responsibility/queries";
 import { deleteResponsibilityException, saveResponsibilityException } from "./actions";
@@ -197,6 +197,12 @@ export default async function ResponsibilityPage({
           <SectionTitle>Ilmoitusvelvollisuudet ja lähteet</SectionTitle>
           <ul className="grid list-disc gap-1.5 pl-5 text-sm text-ink/80">
             {DUTY_NOTES.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+          <h3 className="mt-5 text-base font-semibold">Kiireellinen vika tai viivästynyt korjaus</h3>
+          <ul className="mt-2 grid list-disc gap-1.5 pl-5 text-sm text-ink/80">
+            {URGENT_REPAIR_NOTES.map((n) => (
               <li key={n}>{n}</li>
             ))}
           </ul>

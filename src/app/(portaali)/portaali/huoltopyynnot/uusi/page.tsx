@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { URGENT_REPAIR_SHORT } from "@/lib/responsibility/content";
 import { FormError } from "@/components/FormError";
 import { Button, Field, Input, Notice, Panel, Select, Textarea } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
@@ -41,6 +42,7 @@ export default async function NewPortalRequestPage({ searchParams }: { searchPar
           Katso vastuunjakotaulukko
         </Link>
       </p>
+      <p className="mt-1 text-sm text-ink/70">{URGENT_REPAIR_SHORT}</p>
 
       <div className="mt-4">
         <Notice tone="alert" title="Vesivuoto tai muu kiireellinen vaara">

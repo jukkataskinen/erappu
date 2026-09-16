@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ResponsibilityChart } from "@/components/responsibility/ResponsibilityChart";
 import { EmptyState, Notice, Panel } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
-import { DUTY_NOTES, GENERAL_DISCLAIMER, LEGAL_SOURCES, ROOMS, type RoomKey } from "@/lib/responsibility/content";
+import { DUTY_NOTES, GENERAL_DISCLAIMER, LEGAL_SOURCES, ROOMS, URGENT_REPAIR_NOTES, type RoomKey } from "@/lib/responsibility/content";
 import { mergeExceptions } from "@/lib/responsibility/merge";
 import { listExceptions } from "@/lib/responsibility/queries";
 
@@ -70,6 +70,12 @@ export default async function PortalResponsibilityPage({ searchParams }: { searc
           <h2 className="text-lg">Kun huomaat vian</h2>
           <ul className="mt-2 grid list-disc gap-1.5 pl-5 text-sm text-ink/80">
             {DUTY_NOTES.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+          <h3 className="mt-5 text-base font-semibold">Kiireellinen vika tai viivästynyt korjaus</h3>
+          <ul className="mt-2 grid list-disc gap-1.5 pl-5 text-sm text-ink/80">
+            {URGENT_REPAIR_NOTES.map((n) => (
               <li key={n}>{n}</li>
             ))}
           </ul>

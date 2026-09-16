@@ -17,6 +17,10 @@
  *   hallinnassa olevan parvekkeen kohdalla.
  * - AOYL 4:3 §: osakkeenomistaja pitää kunnossa osakehuoneistonsa sisäosat, hoitaa
  *   huoneistoaan huolellisesti eikä vastaa tavanomaisesta kulumisesta.
+ * - L 535/2026 (voimaan 1.10.2026): 4:2 § 2 mom nimeää ikkunat erikseen yhtiön vastuulle;
+ *   4:3 § 3 mom osakkaan käyttämän yhtiön tilan tai alueen huolellinen hoito, kun
+ *   hallintaoikeus ei perustu yhtiöjärjestykseen tai vuokrasopimukseen; 4:3 § 4 mom
+ *   tiedot huoneiston käyttöoikeuden saaneesta; 4:8 § 2 mom ilmoitus tällaisen tilan viasta.
  * - AOYL 1:3 § 2 mom: parveke, jolle on kulkuyhteys vain huoneiston kautta, kuuluu
  *   osakehuoneistoon; yhtiöjärjestyksessä voidaan määrätä toisin.
  *
@@ -86,7 +90,7 @@ export const ROOMS: Room[] = [
   { key: "keittio", label: "Keittiö", intro: "Keittiön kalusteet ovat huoneiston sisäosia, mutta vesi-, viemäri-, sähkö- ja ilmanvaihtojärjestelmä kuuluu yhtiölle myös huoneiston sisällä." },
   { key: "kylpyhuone", label: "Kylpyhuone", intro: "Märkätilassa raja kulkee rakenteen ja pinnan välissä: vedeneristys ja putkisto ovat yhtiön, pintamateriaalit ja altaat osakkaan." },
   { key: "ovet", label: "Ovet", intro: "Huoneiston ulko-ovi on rakennuksen osa, huoneiston sisäovet ovat sisäosia." },
-  { key: "ikkunat", label: "Ikkunat", intro: "Ikkuna on rakenteen osa. Osakkaalle jäävät sisäpuoliset pinnat ja itse hankitut varusteet." },
+  { key: "ikkunat", label: "Ikkunat", intro: "Laki nimeää ikkunat yhtiön vastuulle 1.10.2026 alkaen (aiemmin rakenteena). Osakkaalle jäävät sisäpuoliset pinnat ja itse hankitut varusteet." },
   { key: "sauna", label: "Sauna", intro: "Kuva esittää huoneistokohtaista saunaa. Yhtiön yhteisen saunan kaikesta kunnossapidosta vastaa yhtiö." },
   { key: "olohuone", label: "Olohuone", intro: "Asuinhuoneen pinnat ovat osakkaan, talotekniikan runko ja rasiat yhtiön." },
   { key: "parveke", label: "Parveke", intro: "Parveke kuuluu osakehuoneistoon, mutta rakenne ja rakennuksen ulkopinta ovat yhtiön vastuulla myös parvekkeen kohdalla." },
@@ -389,8 +393,8 @@ const IKKUNAT: ResponsibilityItem[] = [
     room: "ikkunat",
     label: "Karmit ja puitteet",
     responsibility: "company",
-    text: "Ikkuna karmeineen ja puitteineen on rakennuksen rakenne, joten yhtiö vastaa sen kunnossapidosta ja uusimisesta.",
-    law: "AOYL 4:2 § 2 mom",
+    text: "Yhtiö vastaa ikkunoiden kunnossapidosta ja uusimisesta. Laki mainitsee ikkunat erikseen yhtiön vastuulla oleviksi 1.10.2026 alkaen; sitä ennen ne kuuluivat yhtiölle rakenteena.",
+    law: "AOYL 4:2 § 2 mom (ikkunat, muut. 535/2026)",
     x: 500,
     y: 80,
   },
@@ -400,7 +404,7 @@ const IKKUNAT: ResponsibilityItem[] = [
     label: "Ulkopuoliset pinnat ja maalaus",
     responsibility: "company",
     text: "Ikkunan ulkopinnat, vesipelti ja ulkopuolinen maalaus ovat rakennuksen ulkopintaa ja siten yhtiön vastuulla.",
-    law: "AOYL 4:2 § 2 mom",
+    law: "AOYL 4:2 § 2 mom (ikkunat, muut. 535/2026)",
     x: 836,
     y: 400,
   },
@@ -421,7 +425,7 @@ const IKKUNAT: ResponsibilityItem[] = [
     label: "Helat, saranat ja kääntökahva",
     responsibility: "company",
     text: "Helat ja saranat ovat ikkunan kiinteitä osia, joten yhtiö vastaa niiden kunnosta ja säädöstä.",
-    law: "AOYL 4:2 § 2 mom",
+    law: "AOYL 4:2 § 2 mom (ikkunat, muut. 535/2026)",
     note: "Rikkoutuminen väärästä käytöstä voi jäädä osakkaan vastuulle (AOYL 4:3 § 2 mom).",
     x: 530,
     y: 300,
@@ -432,7 +436,7 @@ const IKKUNAT: ResponsibilityItem[] = [
     label: "Ikkunan tiivisteet",
     responsibility: "company",
     text: "Tiivisteet ovat ikkunan kiinteitä osia ja niiden kuluminen on tavanomaista kulumista, joten yhtiö uusii ne.",
-    law: "AOYL 4:2 § 2 mom ja 4:3 § 2 mom",
+    law: "AOYL 4:2 § 2 mom (ikkunat, muut. 535/2026) ja 4:3 § 2 mom",
     x: 680,
     y: 498,
   },
@@ -442,7 +446,7 @@ const IKKUNAT: ResponsibilityItem[] = [
     label: "Ikkunalasit",
     responsibility: "company",
     text: "Lasi on ikkunan eli rakenteen osa, joten yhtiö vastaa rikkoutuneen lasin uusimisesta.",
-    law: "AOYL 4:2 § 2 mom",
+    law: "AOYL 4:2 § 2 mom (ikkunat, muut. 535/2026)",
     note: "Jos lasi rikkoutuu osakkaan tai asukkaan huolimattomuudesta, kustannus voi siirtyä vahingonkorvauksena osakkaalle (AOYL 4:3 § 2 mom ja 24 luku).",
     x: 700,
     y: 220,
@@ -616,7 +620,7 @@ const PARVEKE: ResponsibilityItem[] = [
     responsibility: "shared",
     text: "Yhtiö vastaa lattian ja seinien pinnoitteen kunnosta rakennuksen ulkopintana. Parvekkeen siisteys ja pesu kuuluvat osakkaalle, koska parveke on osa osakehuoneistoa.",
     law: "AOYL 1:3 § 2 mom, 4:2 § 4 mom ja 4:3 § 2 mom",
-    note: "Pesuvettä ei saa valuttaa alempiin parvekkeisiin eikä rakenteisiin.",
+    note: "Pesuvettä ei saa valuttaa alempiin parvekkeisiin eikä rakenteisiin. Jos parvekkeelle on kulku useammasta huoneistosta, osakkaat sopivat sen kunnossapidosta keskenään ja jakavat kulut tasan, ellei yhtiöjärjestys määrää toisin (AOYL 1:3 § 2 mom).",
     x: 280,
     y: 510,
   },
@@ -652,7 +656,7 @@ const PIHA: ResponsibilityItem[] = [
     responsibility: "shared",
     text: "Piha on kiinteistön osa, jonka kunnossapidosta yhtiö vastaa. Osakas saa hallintaoikeuden piha-alueeseen vain, jos yhtiöjärjestyksessä niin määrätään, ja hallinnassaan olevan alueen tavanomainen hoito ja siisteys kuuluvat silloin osakkaalle.",
     law: "AOYL 1:3 § 1 mom, 4:2 § 1 mom ja 4:3 § 2 mom",
-    note: "Rajaus vaihtelee yhtiöittäin eniten juuri piha-alueissa. Tarkista yhtiöjärjestys.",
+    note: "Rajaus vaihtelee yhtiöittäin eniten juuri piha-alueissa. Tarkista yhtiöjärjestys. Jos käytät pihaa ilman yhtiöjärjestykseen tai vuokrasopimukseen perustuvaa hallintaoikeutta, hoida sitä huolellisesti ja ilmoita sen vioista yhtiölle (AOYL 4:3 § 3 mom ja 4:8 § 2 mom, voimaan 1.10.2026).",
     x: 300,
     y: 380,
   },
@@ -747,9 +751,26 @@ export const LEGAL_SOURCES = [
   "Finlexin avoin data: opendata.finlex.fi/finlex/avoindata/v1/akn/fi/act/statute-consolidated/2009/1599",
 ];
 
+/**
+ * Kuka saa tehdä ja kuka maksaa, kun kunnossapito viivästyy (AOYL 4:4–4:5 §).
+ * Näytetään taulukon yhteydessä ja lyhyesti huoltopyyntölomakkeella.
+ */
+export const URGENT_REPAIR_NOTES = [
+  "Kiireellinen vika yhtiön vastuulla: saat teettää huoneistossasi korjauksen yhtiön kustannuksella, jos se on tarpeen lisävahingon välttämiseksi. Ilmoita yhtiölle heti (AOYL 4:4 § 2 mom ja 4:7 § 5 mom).",
+  "Muu yhtiön vastuulla oleva vika, josta on sinulle vähäistä suurempaa haittaa: tee ensin kirjallinen huomautus. Jos yhtiö ei ryhdy viivytyksettä riittäviin toimiin, saat teettää työn yhtiön kustannuksella (AOYL 4:4 § 2 mom).",
+  "Yhtiön hallinnassa olevat tilat: saat teettää yhtiön vastuulla olevan työn yhtiön kustannuksella, jos vika rajoittaa olennaisesti huoneistosi käyttöä ja yhtiö ei kirjallisen huomautuksen jälkeen toimi viivytyksettä (AOYL 4:5 §).",
+  "Osakkaan laiminlyönti: yhtiö voi teettää osakkaan vastuulla olevan työn osakkaan kustannuksella, jos laiminlyönnistä voi aiheutua haittaa yhtiölle tai toiselle osakkaalle (AOYL 4:4 § 1 mom).",
+  "Kustannukset korvataan tarpeellisilta ja kohtuullisilta osin (AOYL 4:4 § 3 mom ja 4:5 § 3 mom).",
+];
+
+/** Lyhyt versio huoltopyyntölomakkeelle. */
+export const URGENT_REPAIR_SHORT =
+  "Jos vika on yhtiön vastuulla ja kiireellinen, saat estää lisävahingon teettämällä korjauksen yhtiön kustannuksella. Ilmoita yhtiölle heti.";
+
 /** Ilmoitusvelvollisuudet, jotka on hyvä kertoa osakkaalle taulukon yhteydessä. */
 export const DUTY_NOTES = [
   "Ilmoita yhtiölle viivytyksettä huoneiston viasta, jonka korjaaminen kuuluu yhtiölle (AOYL 4:8 §).",
   "Tee oma kunnossapitotyö tunnetuksi kirjallisella ilmoituksella etukäteen, jos se voi vaikuttaa yhtiön tai toisen osakkaan vastuulla olevaan osaan (AOYL 4:7 §).",
   "Yhtiöllä on oikeus valvoa osakkaan kunnossapitotyötä, ja osakas vastaa tarpeellisista valvontakuluista (AOYL 4:9 §).",
+  "Jos annat huoneiston toisen käyttöön, pidä tiedot käyttäjästä tallessa ja anna ne yhtiölle sen perustellusta pyynnöstä (AOYL 4:3 § 4 mom, voimaan 1.10.2026).",
 ];
