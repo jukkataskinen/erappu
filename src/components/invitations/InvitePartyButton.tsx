@@ -26,6 +26,24 @@ export function InvitePartyButton({
   const [state, action, pending] = useActionState(invitePartyToPortal, initial);
   if (hasPortal) return null;
   if (!hasEmail) return <span className="text-xs text-ink/50">Ei sähköpostia portaalikutsuun</span>;
+  if (state.status === "sent" && state.link) {
+    return (
+      <div className="flex max-w-xs flex-col items-end gap-1" role="status">
+        <span className="text-right text-xs text-ink/70">{state.message}</span>
+        <input
+          readOnly
+          value={state.link}
+          aria-label="Kutsulinkki"
+          onFocus={(e) => e.currentTarget.select()}
+          className="w-full rounded-lg border border-line bg-cloud px-2 py-1 text-xs"
+        />
+        <button type="button" className="text-xs font-semibold text-sky" onClick={() => void navigator.clipboard?.writeText(state.link!)}>
+          Kopioi linkki
+        </button>
+        <span className="text-right text-xs text-ink/50">Voimassa 14 päivää. Vastaanottaja kirjautuu samalla sähköpostiosoitteella.</span>
+      </div>
+    );
+  }
   if (state.status === "sent" || state.status === "already") {
     return (
       <span className={state.status === "sent" ? "text-xs text-moss" : "text-xs text-ink/60"} role="status">

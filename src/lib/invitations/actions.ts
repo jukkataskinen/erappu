@@ -4,10 +4,17 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth/current-user";
 import { createPortalInvitation } from "@/lib/invitations";
+import { inviteUrl } from "@/lib/invitations/rules";
 
 export interface InvitePartyState {
   status: "idle" | "sent" | "already" | "error";
   message: string | null;
+  /**
+   * Kutsulinkki, kun sähköpostia ei lähetetä oikeasti (EMAIL_MODE ei ole
+   * "resend"). Isännöitsijä toimittaa linkin itse. Linkkiä ei tallenneta
+   * minnekään, vain sen tiiviste on kannassa.
+   */
+  link?: string;
 }
 
 const schema = z.object({
@@ -31,6 +38,9 @@ export async function invitePartyToPortal(_prev: InvitePartyState, formData: For
   switch (res.status) {
     case "sent":
       revalidatePath("/asetukset/portaali");
+      if (process.env.EMAIL_MODE !== "resend") {
+        return { status: "sent", message: "Sähköposti ei ole käytössä. Kopioi kutsulinkki ja lähetä se itse:", link: inviteUrl(res.token) };
+      }
       return { status: "sent", message: "Kutsu lähetetty" };
     case "already_in_portal":
       return { status: "already", message: "On jo portaalissa" };
