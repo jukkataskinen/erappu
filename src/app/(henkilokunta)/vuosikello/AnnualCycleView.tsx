@@ -133,7 +133,7 @@ export async function AnnualCycleView({
 
           {!overdueOnly && tasks.length === 0 ? (
             <EmptyState title="Ei tehtäviä seuraavalle 12 kuukaudelle" action={fixedCompanyId || companies[0] ? null : <LinkButton href="/taloyhtiot">Lisää taloyhtiö</LinkButton>}>
-              Luo yhtiölle vakiovuosikello, niin tilinpäätös, yhtiökokous, HTJ-päivitys ja vakuutusten tarkistus tulevat listalle.
+              Luo yhtiölle vakiovuosikello, niin tilinpäätös, yhtiökokous, hallituksen kokoukset, asukastiedotteet, HTJ-päivitys ja vakuutusten tarkistus tulevat listalle.
             </EmptyState>
           ) : null}
 
@@ -191,9 +191,10 @@ export async function AnnualCycleView({
           <Panel>
             <SectionTitle>Luo yhtiön vakiovuosikello</SectionTitle>
             <p className="mb-4 text-sm text-ink/65">
-              Tehtävät lasketaan yhtiön tilikaudesta: tilinpäätös, tilin- tai toiminnantarkastus, kunnossapitotarveselvitys, varsinainen
-              yhtiökokous (viimeistään 6 kk tilikauden päättymisestä), HTJ-päivitys, vakuutusten tarkistus, talousarvio ja energiatodistus.
-              Jo olemassa olevia ei luoda uudelleen.
+              Tilikaudesta lasketaan tilinpäätös, tilin- tai toiminnantarkastus, kunnossapitotarveselvitys, varsinainen yhtiökokous (viimeistään 6 kk
+              tilikauden päättymisestä), hallituksen kokoukset talvella, keväällä, järjestäytymiskokous, kesällä ja syksyllä, yhtiökokoustiedote,
+              HTJ-päivitys, vakuutusten tarkistus ja energiatodistus. Vuodenaikojen mukaan tulevat asukastiedotteet ja talveen varautuminen. Jo
+              olemassa olevia ei luoda uudelleen, joten napilla voi lisätä myös uudet tehtävät aiemmin luotuun vuosikelloon.
             </p>
             <form action={createAnnualCycleAction} className="grid gap-3">
               <input type="hidden" name="back" value={basePath} />

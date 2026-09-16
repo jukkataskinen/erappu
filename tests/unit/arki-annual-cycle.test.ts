@@ -28,7 +28,15 @@ describe("vakiovuosikello, tilikausi 01-01", () => {
     expect(t.general_meeting.due_on).toBe("2026-06-30");
     expect(t.htj_update.due_on).toBe("2026-07-31");
     expect(t.insurance.due_on).toBe("2026-10-31");
-    expect(t.budget.due_on).toBe("2026-11-30");
+    expect(t.board_winter.due_on).toBe("2026-01-31");
+    expect(t.board_spring.due_on).toBe("2026-03-31");
+    expect(t.board_organizing.due_on).toBe("2026-06-30");
+    expect(t.board_summer.due_on).toBe("2026-08-31");
+    expect(t.board_autumn.due_on).toBe("2026-10-31");
+    expect(t.communication_spring.due_on).toBe("2026-04-30");
+    expect(t.communication_winter.due_on).toBe("2026-11-30");
+    expect(t.board_winter.category).toBe("board_meeting");
+    expect(t.communication_summer.category).toBe("communication");
     expect(t.general_meeting.category).toBe("general_meeting");
     expect(t.general_meeting.recurrence).toEqual({ freq: "yearly", interval: 1, by_month: 6, by_month_day: -1 });
   });
@@ -39,13 +47,19 @@ describe("vakiovuosikello, tilikausi 01-01", () => {
     expect(t.general_meeting.due_on).toBe("2027-06-30");
     expect(t.htj_update.due_on).toBe("2027-07-31");
     expect(t.insurance.due_on).toBe("2026-10-31");
-    expect(t.budget.due_on).toBe("2026-11-30");
+    expect(t.communication_spring.due_on).toBe("2027-04-30");
+    expect(t.communication_autumn.due_on).toBe("2026-09-30");
+    expect(t.winter_preparation.due_on).toBe("2026-10-31");
   });
 
   it("tehtävät ovat eräpäivän mukaan järjestyksessä ja kaikki pohjat mukana", () => {
     const items = buildAnnualCycle({ fiscalYearStart: "01-01", today: "2026-01-10" });
     expect(items.map((i) => i.key).sort()).toEqual(
-      ["audit", "budget", "energy_certificate", "financial_statement", "general_meeting", "htj_update", "insurance", "maintenance_needs"],
+      [
+        "audit", "board_autumn", "board_organizing", "board_spring", "board_summer", "board_winter", "communication_autumn", "communication_spring",
+        "communication_summer", "communication_winter", "energy_certificate", "financial_statement", "general_meeting", "general_meeting_bulletin", "htj_update",
+        "insurance", "maintenance_needs", "winter_preparation",
+      ],
     );
     expect([...items].sort((a, b) => a.due_on.localeCompare(b.due_on)).map((i) => i.due_on)).toEqual(items.map((i) => i.due_on));
   });
@@ -59,7 +73,9 @@ describe("vakiovuosikello, tilikausi 07-01", () => {
     expect(t.general_meeting.due_on).toBe("2026-12-31");
     expect(t.htj_update.due_on).toBe("2027-01-31");
     expect(t.insurance.due_on).toBe("2027-04-30");
-    expect(t.budget.due_on).toBe("2027-05-31");
+    // Asukasviestintä seuraa vuodenaikoja tilikaudesta riippumatta.
+    expect(t.communication_autumn.due_on).toBe("2026-09-30");
+    expect(t.communication_winter.due_on).toBe("2026-11-30");
   });
 
   it("toistuva yhtiökokous pysyy kuun viimeisenä päivänä", () => {

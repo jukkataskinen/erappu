@@ -154,6 +154,9 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [ ] Palveluntuottajan oma järjestelmä ja tunnukset myöhemmin (edellinen kohta); torilinkki on siihen asti väliaikainen ratkaisu
 
 ## Jatkokehitys (Jukan toiveet)
+- [x] Vuosikello Jukan mallikuvan pohjalta (17.9.2026): hallituksen kokoukset (talvi: KPTS, talousarvio ja viestintä; kevät: tilinpäätös ja yhtiökokouksen valmistelu; järjestäytymiskokous; kesä: hankkeet; syksy: kirjanpito), yhtiökokoustiedote, talveen varautuminen (kiinteistö- ja pihakierros) ja asukastiedotteet vuodenajoittain. Migraatio 0098 luokat `board_meeting` ja `communication`; talousarvio siirtyi talven hallituksen kokoukseen (hyväksytään kevään yhtiökokouksessa)
+  - [ ] Asukastiedote-tehtävästä suora linkki tiedoteluonnokseen valmiilla tekstillä
+  - [ ] Vuosikello ympyräkuvana (vuodenajat, hallitus ulkokehällä, asukasviestintä sisällä) yhtiön sivulle ja portaaliin
 - [x] Varsinaisen yhtiökokouksen esityslista yhtiöjärjestyksen mukaan (Jukka 17.9.2026, malli As Oy Paikkalantorpat 2025): migraatio 0097 hallituksen ja tarkastajien määrät (kiinteä tai väli, toiminnantarkastaja / tilintarkastaja / ei pakollinen, lähde), `src/lib/meetings/agenda.ts`, muokkaus Hallitus-välilehdellä. Lain mukaan lisätty hallituksen selvitykset kunnossapitotarpeesta ja tehdyistä töistä (AOYL 6:3 §); lakiviitteet korjattu (äänileikkuri 6:13 §, kutsuaika 6:20 §, kutsutapa 6:21 §). Määrät kirjattu 11 yhtiölle yhtiöjärjestyksistä.
   - [x] Esityslistan PDF mallin mukaan (`src/documents/Agenda.tsx`): yhtiön nimi ja osoite, ESITYSLISTA ja päivä, kokous ja paikka, numeroitu lista, Muut asiat -alakohdat sisennettyinä; kokoussivun asiakirjoissa "Esityslista"
   - [ ] Kiinteistöosakeyhtiön (Säästövakka) esityslista osakeyhtiölain mukaan (nyt AOYL-pohja ilman kunnossapitoselvityksiä)

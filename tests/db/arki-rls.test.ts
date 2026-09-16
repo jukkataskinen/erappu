@@ -237,9 +237,9 @@ describe("vuosikello", () => {
 
   it("vakiovuosikellon voi luoda uudelleen ilman tuplia", async () => {
     const a = await db.asUser(f.managerA.sub, (tx) => createAnnualCycleForCompany(tx, { companyId: f.companyA, userId: f.managerA.id, today: "2026-09-15" }));
-    expect(a).toMatchObject({ created: 8, skipped: 0 });
+    expect(a).toMatchObject({ created: 18, skipped: 0 });
     const b = await db.asUser(f.managerA.sub, (tx) => createAnnualCycleForCompany(tx, { companyId: f.companyA, userId: f.managerA.id, today: "2026-09-15" }));
-    expect(b).toMatchObject({ created: 0, skipped: 8 });
+    expect(b).toMatchObject({ created: 0, skipped: 18 });
     const meeting = await db.asUser(f.managerA.sub, (tx) => listTasks(tx, { organizationId: f.orgA, companyId: f.companyA, category: "general_meeting", today: "2026-09-15" }));
     expect(meeting.map((t) => t.due_on)).toEqual(["2027-06-30"]);
     expect(await db.asUser(f.managerB.sub, (tx) => createAnnualCycleForCompany(tx, { companyId: f.companyA, userId: f.managerB.id, today: "2026-09-15" }))).toBeNull();
