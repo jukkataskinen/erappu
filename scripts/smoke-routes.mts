@@ -65,6 +65,9 @@ if (cid) {
   const rescue = await check(`/taloyhtiot/${cid}/pelastussuunnitelma`, staffSub);
   const rescuePreview = [...rescue.matchAll(/\/pelastussuunnitelma\/([0-9a-f-]{36})\/esikatselu/g)].map((m) => m[1])[0];
   if (rescuePreview) await check(`/taloyhtiot/${cid}/pelastussuunnitelma/${rescuePreview}/esikatselu`, staffSub);
+  const repairs = await check(`/taloyhtiot/${cid}/korjaukset`, staffSub);
+  const noticeId = [...repairs.matchAll(/\/korjaukset\/muutostyot\/([0-9a-f-]{36})/g)].map((m) => m[1])[0];
+  if (noticeId) await check(`/taloyhtiot/${cid}/korjaukset/muutostyot/${noticeId}`, staffSub);
   const buildings = await check(`/taloyhtiot/${cid}/kiinteisto`, staffSub);
   const buildingId = [...buildings.matchAll(/kiinteisto\?muokkaa=([0-9a-f-]{36})/g)].map((m) => m[1])[0];
   if (buildingId) await check(`/taloyhtiot/${cid}/kiinteisto?muokkaa=${buildingId}`, staffSub);

@@ -177,16 +177,69 @@ async function seedRescuePlanDemo(tx: Sql, org: string, rinne: string) {
   return true;
 }
 
+/**
+ * Muutostyöilmoituksen demo As Oy Esimerkkirinteelle (0093): yhtiön
+ * muutostyöohje osakkaille näkyvänä ja Olli Osakkaan ilmoitus kahdella
+ * työllä, urakoitsijatiedoilla, liitteellä ja ohjeen kuittauksella.
+ * Ei tehdä, jos yhtiöllä on jo muutostyöohje.
+ */
+async function seedRenovationDemo(tx: Sql, org: string, rinne: string) {
+  const [done] = await tx.query("select 1 from er_documents where company_id = $1 and category = 'renovation_guide'", [rinne]);
+  if (done) return false;
+  await demoDocument(tx, {
+    org, company: rinne, shareGroup: null, category: "renovation_guide", title: "Muutostyöohje", fileName: "muutostyoohje.pdf",
+    mime: "application/pdf", bytes: await makePdf(2, "Muutostyoohje"), year: 2026, visibility: "owners",
+  });
+  const [owner] = await tx.query<{ share_group_id: string; user_id: string; party_id: string | null }>(
+    `select a.share_group_id, a.user_id, p.id as party_id
+       from er_portal_access a join er_share_groups g on g.id = a.share_group_id
+       left join er_parties p on p.user_id = a.user_id and p.organization_id = a.organization_id
+      where g.company_id = $1 and g.unit_label = 'A 2' and a.role = 'owner' limit 1`,
+    [rinne],
+  );
+  if (!owner) return true;
+  const [guide] = await tx.query<{ id: string }>("select id from er_documents where company_id = $1 and category = 'renovation_guide' limit 1", [rinne]);
+  const [notice] = await tx.query<{ id: string }>(
+    `insert into er_renovation_notices (organization_id, company_id, share_group_id, submitted_by_user_id, submitted_by_party_id, description,
+        guide_acknowledged_at, guide_document_id, notify_email, notify_sms)
+     values ($1,$2,$3,$4,$5,'Kylpyhuoneen remontti: vedeneristys, laatoitus ja sähköt uusitaan.', now() - interval '2 days', $6, true, false) returning id`,
+    [org, rinne, owner.share_group_id, owner.user_id, owner.party_id, guide.id],
+  );
+  await tx.query(
+    `insert into er_renovation_notice_works (organization_id, notice_id, sort_order, work_type, description, planned_start, planned_end,
+        contractor_kind, contractor_name, contractor_business_id, contractor_contact, contractor_qualification)
+     values ($1,$2,1,'Märkätilat','Vanhat laatat ja vedeneristys puretaan, uusi vedeneristys ja laatoitus. Lattiakaivo uusitaan.','2026-10-12','2026-11-06',
+             'contractor','Esimerkkiremontti Oy','3000000-1','Työnjohtaja Rami Remontti, 040 000 0001','Sertifioitu vedeneristäjä (VTT)'),
+            ($1,$2,2,'Sähköjärjestelmä','Kylpyhuoneen valaistus ja pistorasiat uusitaan, lisätään sähköinen lattialämmitys.','2026-10-19','2026-10-23',
+             'contractor','Esimerkkisähkö Oy',null,'040 000 0002','Sähköpätevyys S2')`,
+    [org, notice.id],
+  );
+  const bytes = await makePdf(1, "Kylpyhuoneen suunnitelma");
+  const storagePath = `${org}/${rinne}/${randomUUID()}/kylpyhuoneen-suunnitelma.pdf`;
+  const full = path.join(process.cwd(), ".data", "files", storagePath);
+  await mkdir(path.dirname(full), { recursive: true });
+  await writeFile(full, bytes);
+  await tx.query(
+    `insert into er_documents (organization_id, company_id, share_group_id, category, title, file_name, storage_path, mime_type, size_bytes, sha256,
+        visibility, subject_table, subject_id, uploaded_by)
+     values ($1,$2,$3,'other','Muutostyöilmoituksen liite','kylpyhuoneen-suunnitelma.pdf',$4,'application/pdf',$5,$6,'owners','er_renovation_notices',$7,$8)`,
+    [org, rinne, owner.share_group_id, storagePath, bytes.length, createHash("sha256").update(bytes).digest("hex"), notice.id, owner.user_id],
+  );
+  return true;
+}
+
 await db.asService(async (tx) => {
   const [existing] = await tx.query<{ id: string }>("select id from er_organizations where business_id = '0000001-9'");
   if (existing) {
     const [rinne] = await tx.query<{ id: string }>("select id from er_housing_companies where organization_id = $1 and business_id = '1000000-9'", [existing.id]);
     const added = rinne ? await seedCertificateDemo(tx, existing.id, rinne.id) : false;
     const rescue = rinne ? await seedRescuePlanDemo(tx, existing.id, rinne.id) : false;
+    const renovation = rinne ? await seedRenovationDemo(tx, existing.id, rinne.id) : false;
     console.log(
       [
         added ? "Demodata oli jo kannassa; lisättiin isännöitsijäntodistuksen tiedot ja liitteet." : "Demodata on jo kannassa.",
         rescue ? "Lisättiin pelastussuunnitelman demoversio." : null,
+        renovation ? "Lisättiin muutostyöohje ja muutostyöilmoitus." : null,
       ].filter(Boolean).join(" "),
     );
     return;
@@ -326,6 +379,7 @@ await db.asService(async (tx) => {
   await syncPortalAccessForBoard(tx, rinne);
   await seedCertificateDemo(tx, org.id, rinne);
   await seedRescuePlanDemo(tx, org.id, rinne);
+  await seedRenovationDemo(tx, org.id, rinne);
   console.log("Demodata luotu: Demo Isännöinti Oy, 2 taloyhtiötä, 14 huoneistoa, 6 käyttäjää.");
 });
 

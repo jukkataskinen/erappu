@@ -114,7 +114,10 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 
 ## Muutostyöt ja portaali (verrokkianalyysi 16.9.2026)
 Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (Jukan toimittamat).
-- [ ] 1. Muutostyöilmoituksen lomake: monta muutostyötä samaan ilmoitukseen, työnsuorittaja työlajeittain, liitteet, pakollinen kuittaus muutostyöohjeen lukemisesta ja linkki ohjeeseen, ilmoitustapa (sähköposti/tekstiviesti), infolaatikko (käsittelyaika 2-4 vk, ei saa aloittaa ennen hyväksyntää)
+- [x] 1. Muutostyöilmoituksen lomake: monta muutostyötä samaan ilmoitukseen, työnsuorittaja työlajeittain, liitteet, pakollinen kuittaus muutostyöohjeen lukemisesta ja linkki ohjeeseen, ilmoitustapa (sähköposti/tekstiviesti), infolaatikko (käsittelyaika 2-4 vk, ei saa aloittaa ennen hyväksyntää)
+  - [x] Migraatio 0093: `er_renovation_notice_works`, vanhat ilmoitukset työriveiksi, dokumenttiluokka `renovation_guide`, kuittaus ja ilmoitustapa ilmoitukselle, liitteiden RLS; RLS- ja yhteensopivuustestit
+  - [x] Portaalin lomake (4 työlohkoa, tekijä, liitteet, kuittaus, ilmoitustapa, infolaatikko), lista työrivien määrällä, henkilökunnan käsittelysivu, korjaushistoria työriveittäin ja isännöitsijäntodistus
+  - [~] Tekstiviesti-ilmoitus tilamuutoksista: valinta tallennetaan, lähetys odottaa kanavaa – BLOCKERS 7
 - [ ] 2. Etenemisjana portaaliin: vastaanotettu, hyväksytty, työn alla, valmis - sekä muutostöille että huoltopyynnöille
 - [ ] 3. Hyväksyntään valvoja ja valvonnan arvioitu kustannus (osakkaan kustannus; kytkeytyy valvontakone-suunnitelmaan)
 - [ ] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
