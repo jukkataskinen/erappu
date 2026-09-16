@@ -242,15 +242,30 @@ async function asetaTunnistusprofiili(): Promise<void> {
   if (aja) await kutsu("PATCH", "/prompts", { identifier_first: true });
 }
 
+/**
+ * Sovelluksen grant-tyypit. Passwordless OTP tarvitaan portaalin
+ * sähköpostikoodiin myös Universal Loginissa: ilman sitä Auth0 lähettää koodin,
+ * mutta hylkää sen tarkistuksessa samalla viestillä kuin väärän koodin
+ * (todettu tuotannossa 16.9.2026).
+ */
+const SOVELLUKSEN_GRANTIT = ["authorization_code", "refresh_token", "http://auth0.com/oauth/grant-type/passwordless/otp"];
+
 async function asetaSovellus(clients: TenantClient[]): Promise<string> {
   const osoitteet = sovellusOsoitteet(PERUSTAT);
   const olemassa = clients.find((client) => client.name === SOVELLUS);
 
   if (olemassa) {
-    const nyt = await kutsu<Partial<SovellusOsoitteet>>(
+    const nyt = await kutsu<Partial<SovellusOsoitteet> & { grant_types?: string[] }>(
       "GET",
-      `/clients/${olemassa.client_id}?fields=callbacks,allowed_logout_urls,web_origins&include_fields=true`,
+      `/clients/${olemassa.client_id}?fields=callbacks,allowed_logout_urls,web_origins,grant_types&include_fields=true`,
     );
+    const puuttuvat = SOVELLUKSEN_GRANTIT.filter((g) => !(nyt.grant_types ?? []).includes(g));
+    if (puuttuvat.length) {
+      kerro(`sovellus ${SOVELLUS}: grant-tyypit ${puuttuvat.join(", ")}`);
+      if (aja) await kutsu("PATCH", `/clients/${olemassa.client_id}`, { grant_types: [...new Set([...(nyt.grant_types ?? []), ...SOVELLUKSEN_GRANTIT])] });
+    } else {
+      jo(`sovellus ${SOVELLUS}: grant-tyypit`);
+    }
     if (osoitteetPuuttuvat(nyt, osoitteet)) {
       kerro(`sovellus ${SOVELLUS}: paluu-, uloskirjautumis- ja web origin -osoitteet`);
       if (aja) await kutsu("PATCH", `/clients/${olemassa.client_id}`, osoitteet);
@@ -267,7 +282,7 @@ async function asetaSovellus(clients: TenantClient[]): Promise<string> {
     name: SOVELLUS,
     app_type: "regular_web",
     oidc_conformant: true,
-    grant_types: ["authorization_code", "refresh_token"],
+    grant_types: SOVELLUKSEN_GRANTIT,
     token_endpoint_auth_method: "client_secret_post",
     ...osoitteet,
   });
