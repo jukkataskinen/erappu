@@ -123,6 +123,8 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
 - [ ] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
 - [ ] 5. Muutostyöohjeen generaattori yhtiökohtaisesti (kuten pelastussuunnitelma): vastuunjako, ohjeet työlajeittain, valvontahinnasto
 - [ ] 6. Osakeryhmälle talo-, porras- ja kerroskenttä (DECISIONS 16.9.2026: Torpat säilytti yhdistelmätunnukset, koska talotiedolle ei ole kenttää)
+- [x] 7. Interaktiivinen vastuunjakotaulukko: 8 tilaa omina SVG-kuvina, 56 kohdetta klikattavina pisteinä (yhtiö / osakas / jaettu), tulkinnat AOYL 4 luvun pohjalta lakiviitteineen, luettelo kuvan alla. Yhtiökohtaiset poikkeukset (migraatio 0094, RLS- ja sisältötestit), `/taloyhtiot/[id]/vastuunjako` (muokkaus), `/portaali/vastuunjako`, linkki portaalin huoltopyyntölomakkeelta, moduulikortti ja portaalin valikko, demopoikkeus
+  - [~] Tulkintojen tarkistus (`RESPONSIBILITY_CONTENT_APPROVED`) – BLOCKERS 12
 
 ## Pitkän aikavälin suunta (Jukka 15.9.2026)
 - [ ] Palveluntuottajapuolen oma järjestelmä eRapun pariksi (kiinteistöhuolto, sähkö- ja putkiurakoitsijat). Sama rakenne kuin Kasamaster (toimittaja) ja suunnitteilla oleva KuokkaMaster (urakoitsija) omassa tuotantoketjussaan: kummallekin ketjun puolelle oma järjestelmä, ja yhteinen tieto (kohde, huoltopyyntö tai tilaus, toteuma, kuvat, lasku) kulkee molempiin, jotta ristiinmyynti onnistuu. eRappu ja Kasamaster/KuokkaMaster ovat eri ketjuja eivätkä liity toisiinsa. Ei esteellisyys- tai ohjausmekanismeja. Huomioitavat ennen suunnittelua:
