@@ -10,7 +10,7 @@ import { Agenda } from "@/documents/Agenda";
 import { MeetingNotice, type MeetingDocumentBase } from "@/documents/MeetingNotice";
 import { Minutes } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
-import { computeVotes } from "./votes";
+import { attendanceStatement, computeVotes } from "./votes";
 import { isGeneralMeeting, MEETING_KIND } from "./labels";
 import { getMeeting, listAttendees, listItems, type AttendeeRow, type MeetingRow } from "./queries";
 
@@ -103,6 +103,9 @@ export async function renderMeetingDocument(loaded: LoadedMeeting, kind: Meeting
   }
   if (kind === "minutes") {
     const summary = buildVoteSummary(attendees);
+    const voteById = new Map(summary.voters.map((v) => [v.id, v]));
+    const present = attendees.filter((a) => a.present);
+    const fi = (n: number) => n.toLocaleString("fi-FI").replace(/\u00a0/g, " ");
     return renderDocumentPdf(
       <Minutes
         data={{
@@ -115,7 +118,26 @@ export async function renderMeetingDocument(loaded: LoadedMeeting, kind: Meeting
             representedShares: summary.representedShares,
             totalVotes: summary.totalVotes,
             totalShares: loaded.totalShares,
-            names: attendees.filter((a) => a.present).map((a) => a.display_name),
+            names: present.map((a) => a.display_name),
+            statement: isGeneralMeeting(meeting.kind)
+              ? attendanceStatement({
+                  presentCount: present.length,
+                  representedShares: summary.representedShares,
+                  representedVotes: summary.representedVotes,
+                  votesAfterCap: summary.totalVotes,
+                  cap: summary.cap,
+                  capped: summary.voters.some((v) => v.capped),
+                  totalShares: loaded.totalShares,
+                })
+              : null,
+            rows: present.map((a) => ({
+              name: a.display_name,
+              units: a.unit_labels ?? "",
+              proxy: a.proxy_name ?? "",
+              shares: fi(a.shares),
+              votes: fi(voteById.get(a.id)?.votes ?? 0),
+            })),
+            totals: { shares: fi(summary.representedShares), votes: fi(summary.totalVotes) },
           },
         }}
       />,

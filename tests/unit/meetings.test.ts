@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeVotes } from "@/lib/meetings/votes";
+import { attendanceStatement, computeVotes } from "@/lib/meetings/votes";
 import { DEFAULT_AGENDA_TEMPLATES, noticeWindow, resolveAgenda } from "@/lib/meetings/templates";
 import { groupOwnersForVoting } from "@/lib/meetings/attendees";
 import { buildNoticeMessage, splitNoticeRecipients, type NoticeParty } from "@/lib/meetings/notice";
@@ -180,5 +180,23 @@ describe("isännöitsijäntodistuksen vastikkeet ja tilaukset", () => {
     expect(allowRequest("k", 2, 1000, 10)).toBe(true);
     expect(allowRequest("k", 2, 1000, 20)).toBe(false);
     expect(allowRequest("k", 2, 1000, 1500)).toBe(true);
+  });
+});
+
+describe("pöytäkirjan toteamus edustetuista osakkeista ja äänistä", () => {
+  it("määrät ja prosentit yhtiön kaikista osakkeista ja äänistä", () => {
+    expect(attendanceStatement({ presentCount: 6, representedShares: 290, representedVotes: 290, votesAfterCap: 290, cap: 58, capped: false, totalShares: 372 })).toBe(
+      "Kokouksessa oli läsnä tai valtakirjalla edustettuna 6 osakasta, jotka edustivat 290 osaketta eli 78,0 % yhtiön 372 osakkeesta ja 290 ääntä eli 78,0 % yhtiön kaikista äänistä.",
+    );
+  });
+
+  it("äänileikkuri mainitaan, jos se rajaa ääniä; yksi osakas ja tyhjä kokous", () => {
+    expect(attendanceStatement({ presentCount: 3, representedShares: 2016, representedVotes: 2016, votesAfterCap: 1700, cap: 403, capped: true, totalShares: 2016 })).toContain(
+      "enintään 403, joten kokouksessa voidaan käyttää yhteensä 1 700 ääntä",
+    );
+    expect(attendanceStatement({ presentCount: 1, representedShares: 46, representedVotes: 46, votesAfterCap: 46, cap: 9, capped: false, totalShares: null })).toBe(
+      "Kokouksessa oli läsnä tai valtakirjalla edustettuna 1 osakas, joka edusti 46 osaketta ja 46 ääntä.",
+    );
+    expect(attendanceStatement({ presentCount: 0, representedShares: 0, representedVotes: 0, votesAfterCap: 0, cap: 0, capped: false, totalShares: 100 })).toContain("ei ole merkitty");
   });
 });

@@ -75,3 +75,32 @@ export function computeVotes(voters: VoterInput[], options: VoteOptions = {}): V
     representedShares,
   };
 }
+
+const pct = (part: number, whole: number) => `${(Math.round((part / whole) * 1000) / 10).toLocaleString("fi-FI", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+const int = (n: number) => n.toLocaleString("fi-FI").replace(/\u00a0/g, " ");
+
+/**
+ * Pöytäkirjan toteamus edustetuista osakkeista ja äänistä: määrät ja osuus
+ * yhtiön kaikista osakkeista ja äänistä (osake = yksi ääni). Jos äänileikkuri
+ * rajaa jonkun ääniä, mainitaan enimmäisäänimäärä ja käytettävissä olevat äänet.
+ */
+export function attendanceStatement(input: {
+  presentCount: number;
+  representedShares: number;
+  representedVotes: number;
+  votesAfterCap: number;
+  cap: number | null;
+  capped: boolean;
+  totalShares: number | null;
+}): string {
+  const { presentCount, representedShares, representedVotes, totalShares } = input;
+  if (presentCount === 0) return "Kokouksessa ei ole merkitty läsnä olevia tai edustettuja osakkaita.";
+  const whole = totalShares && totalShares > 0 ? totalShares : null;
+  const shares = whole ? `${int(representedShares)} osaketta eli ${pct(representedShares, whole)} yhtiön ${int(whole)} osakkeesta` : `${int(representedShares)} osaketta`;
+  const votes = whole ? `${int(representedVotes)} ääntä eli ${pct(representedVotes, whole)} yhtiön kaikista äänistä` : `${int(representedVotes)} ääntä`;
+  const who = presentCount === 1 ? "1 osakas, joka edusti" : `${int(presentCount)} osakasta, jotka edustivat`;
+  const cap = input.capped && input.cap !== null
+    ? ` Äänileikkurin (AOYL 6:13 §) mukaan yhden osakkaan äänimäärä on enintään ${int(input.cap)}, joten kokouksessa voidaan käyttää yhteensä ${int(input.votesAfterCap)} ääntä.`
+    : "";
+  return `Kokouksessa oli läsnä tai valtakirjalla edustettuna ${who} ${shares} ja ${votes}.${cap}`;
+}
