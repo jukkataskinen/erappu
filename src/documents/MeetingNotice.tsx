@@ -38,6 +38,74 @@ const TITLE: Record<MeetingDocumentBase["kind"], string> = {
   board: "Kutsu hallituksen kokoukseen",
 };
 
+/** Täytettävä rivi: nimike ja viiva, jolle kirjoitetaan käsin. */
+function FillLine({ label, height = 22 }: { label: string; height?: number }) {
+  return (
+    <View style={{ marginTop: 10 }} wrap={false}>
+      <Text style={{ fontSize: typeScale.small, color: colors.inkSoft }}>{label}</Text>
+      <View style={{ height, borderBottomWidth: 0.75, borderBottomColor: colors.ink }} />
+    </View>
+  );
+}
+
+/**
+ * Valtakirjapohja yhtiökokoukseen (AOYL 6:8 §: valtuutetun on esitettävä
+ * päivätty valtakirja; valtuutus koskee yhtä kokousta, jollei siitä muuta
+ * ilmene). Kokouksen tiedot ovat valmiina, osakas täyttää loput käsin.
+ */
+function ProxyFormPage({ data }: { data: MeetingNoticeData }) {
+  const meetingName = data.kind === "annual_general" ? "varsinaisessa yhtiökokouksessa" : "ylimääräisessä yhtiökokouksessa";
+  return (
+    <Page size="A4" style={pageStyle}>
+      <DocumentHeader right={[data.companyName, data.companyBusinessId].filter(Boolean).join(" · ")} />
+      <Text style={{ fontSize: typeScale.title, fontWeight: weight.bold, lineHeight: 1.25 }}>Valtakirja</Text>
+      <Muted style={{ marginTop: 3 }}>Kokouskutsun liite</Muted>
+
+      <Paragraph style={{ marginTop: 12 }}>
+        Valtuutan alla mainitun henkilön edustamaan minua ja käyttämään puhe- ja äänioikeuttani yhtiön {data.companyName} {meetingName}{" "}
+        {formatMeetingTime(data.startsAt)}
+        {data.location ? `, ${data.location}` : ""}, sekä mahdollisessa jatkokokouksessa.
+      </Paragraph>
+
+      <Heading>Osakkeenomistaja</Heading>
+      <FillLine label="Nimi" />
+      <FillLine label="Huoneisto tai osakkeiden numerot" />
+      <FillLine label="Puhelin tai sähköposti" />
+
+      <Heading>Valtuutettu</Heading>
+      <FillLine label="Nimi" />
+      <FillLine label="Puhelin tai sähköposti (vapaaehtoinen)" />
+
+      <Heading>Allekirjoitus</Heading>
+      <View style={{ flexDirection: "row", gap: 18 }}>
+        <View style={{ flex: 1 }}>
+          <FillLine label="Paikka ja päivämäärä" />
+        </View>
+        <View style={{ flex: 1 }} />
+      </View>
+      <View style={{ flexDirection: "row", gap: 18 }}>
+        <View style={{ flex: 1 }}>
+          <FillLine label="Osakkeenomistajan allekirjoitus" height={30} />
+          <FillLine label="Nimen selvennys" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <FillLine label="Toisen omistajan allekirjoitus (yhteisomistus)" height={30} />
+          <FillLine label="Nimen selvennys" />
+        </View>
+      </View>
+
+      <View style={{ marginTop: 18 }} wrap={false}>
+        <Muted>
+          Valtakirjan on oltava päivätty, ja valtuutettu esittää sen kokouksessa (asunto-osakeyhtiölaki 6:8 §). Valtuutus koskee tätä kokousta. Jos huoneistolla on
+          useampi omistaja, valtakirjan allekirjoittavat kaikki, jotka valtuuttavat. Yhteisön puolesta allekirjoittaa nimenkirjoitusoikeudellinen henkilö. Osakas ja
+          valtuutettu saavat käyttää kokouksessa avustajaa.
+        </Muted>
+      </View>
+      <DocumentFooter left={`${data.organizationName} · ${data.companyName} · valtakirja`} />
+    </Page>
+  );
+}
+
 export function MeetingNotice({ data }: { data: MeetingNoticeData }) {
   const general = data.kind !== "board";
   const intro = general
@@ -88,8 +156,8 @@ export function MeetingNotice({ data }: { data: MeetingNoticeData }) {
           <>
             <Heading>Osallistuminen</Heading>
             <Paragraph>
-              Osakas voi osallistua kokoukseen itse tai asiamiehen välityksellä. Asiamiehen on esitettävä päivätty valtakirja. Osakas voi käyttää
-              kokouksessa avustajaa.
+              Osakas voi osallistua kokoukseen itse tai asiamiehen välityksellä. Asiamiehen on esitettävä päivätty valtakirja. Valtakirjapohja on tämän
+              kutsun liitteenä. Osakas voi käyttää kokouksessa avustajaa.
             </Paragraph>
           </>
         ) : null}
@@ -105,6 +173,7 @@ export function MeetingNotice({ data }: { data: MeetingNoticeData }) {
         </View>
         <DocumentFooter left={`${data.organizationName} · ${data.companyName}`} />
       </Page>
+      {general ? <ProxyFormPage data={data} /> : null}
     </DocumentRoot>
   );
 }

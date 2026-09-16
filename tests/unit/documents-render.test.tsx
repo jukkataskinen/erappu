@@ -167,3 +167,13 @@ describe("esityslista", () => {
     expect(pdf.bytes.byteLength).toBeGreaterThan(1000);
   });
 });
+
+describe("kokouskutsun valtakirjapohja", () => {
+  it("yhtiökokouksen kutsussa on valtakirjasivu, hallituksen kokouksen kutsussa ei", async () => {
+    const { PDFDocument } = await import("pdf-lib");
+    const general = await renderDocumentPdf(<MeetingNotice data={{ ...base, kind: "annual_general", items: [] }} />);
+    const board = await renderDocumentPdf(<MeetingNotice data={{ ...base, kind: "board", items: [] }} />);
+    const pages = async (bytes: Uint8Array) => (await PDFDocument.load(bytes)).getPageCount();
+    expect(await pages(general.bytes)).toBe((await pages(board.bytes)) + 1);
+  });
+});
