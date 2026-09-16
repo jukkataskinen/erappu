@@ -252,7 +252,8 @@ export async function generateDocumentAction(formData: FormData) {
   const kind = z.enum(["notice", "agenda", "shareholders", "votes", "minutes"]).parse(formData.get("kind")) as MeetingDocumentKind;
   const result = await generateMeetingDocument(ctx.run, ctx.user.id, meetingId, kind);
   if (!result) fail(back, "Asiakirjaa ei voitu muodostaa tälle kokoukselle.");
-  done(companyId, meetingId, "#asiakirjat");
+  // Luotu asiakirja avataan esikatseluun kokoussivulle.
+  done(companyId, meetingId, `?asiakirja=${result.documentId}#asiakirjat`);
 }
 
 export async function sendNoticeAction(formData: FormData) {

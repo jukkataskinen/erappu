@@ -4,7 +4,8 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "X-Frame-Options", value: "DENY" },
+  // Omat sivut saavat näyttää PDF:n kehyksessä (kokouksen asiakirjan esikatselu); muut sivustot eivät.
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
   // Kamera sallitaan huoltopyyntöjen kuvia varten. Paikannusta ei tarvita.
   { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=()" },
 ];

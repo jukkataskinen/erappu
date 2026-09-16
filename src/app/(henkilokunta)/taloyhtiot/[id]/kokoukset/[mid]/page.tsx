@@ -61,12 +61,12 @@ const DOC_BUTTONS = [
 
 const VISIBILITY: Record<string, string> = { internal: "Sisäinen", board: "Hallitus", owners: "Osakkaat", residents: "Asukkaat" };
 
-export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string; mid: string }>; searchParams: Promise<{ virhe?: string }> }) {
+export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string; mid: string }>; searchParams: Promise<{ virhe?: string; asiakirja?: string }> }) {
   const ctx = await requireStaff();
   const { id, mid } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(mid)) notFound();
   const company = await loadCompany(ctx, id);
-  const { virhe } = await searchParams;
+  const { virhe, asiakirja } = await searchParams;
 
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
@@ -523,13 +523,32 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 ))}
               </div>
             ) : null}
+            {(() => {
+              const created = asiakirja ? documents.find((d) => d.id === asiakirja) : undefined;
+              return created ? (
+                <div className="mb-4 grid gap-2 rounded-xl border border-moss/25 bg-moss-soft p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-moss">Valmis: {created.title}</p>
+                    <a
+                      href={`/api/dokumentit/${created.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="inline-flex min-h-9 items-center rounded-full bg-ink px-4 text-xs font-semibold text-paper hover:bg-ink-strong"
+                    >
+                      Avaa uuteen välilehteen
+                    </a>
+                  </div>
+                  <iframe src={`/api/dokumentit/${created.id}`} title={created.title} className="h-[32rem] w-full rounded-lg border border-line bg-paper" />
+                </div>
+              ) : null;
+            })()}
             {documents.length === 0 ? (
               <p className="text-sm text-ink/65">Asiakirjoja ei ole vielä tehty.</p>
             ) : (
               <ul className="divide-y divide-line text-sm">
                 {documents.map((d) => (
                   <li key={d.id} className="flex items-start justify-between gap-3 py-2">
-                    <a href={`/api/dokumentit/${d.id}`} className="font-semibold hover:text-sky">
+                    <a href={`/api/dokumentit/${d.id}`} target="_blank" rel="noopener" className="font-semibold text-sky hover:underline">
                       {d.title}
                     </a>
                     <span className="flex shrink-0 flex-col items-end gap-1">
