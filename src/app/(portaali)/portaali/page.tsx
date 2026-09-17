@@ -6,6 +6,7 @@ import * as talous from "@/widgets/talous";
 import * as viestinta from "@/widgets/viestinta";
 import * as kokoukset from "@/widgets/kokoukset";
 import * as arki from "@/widgets/arki";
+import { WaterReadingNotice } from "./WaterReadingNotice";
 
 export const metadata = { title: "Portaali" };
 
@@ -16,6 +17,9 @@ export default async function PortalHome() {
   return (
     <>
       <h1 className="text-2xl">Hei{ctx.user.fullName ? `, ${ctx.user.fullName.split(" ")[0]}` : ""}</h1>
+      <div className="mt-4">
+        <WaterReadingNotice ctx={ctx} />
+      </div>
       <div className="mt-4 grid gap-3">
         {ctx.companies.map((c) => (
           <Panel key={c.id}>

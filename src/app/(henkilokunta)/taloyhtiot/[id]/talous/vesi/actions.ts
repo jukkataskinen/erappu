@@ -8,6 +8,9 @@ import { audit } from "@/lib/audit";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { FinanceError } from "@/lib/finance/billing";
 import { isIsoDate } from "@/lib/finance/dates";
+import { isoDateHelsinki } from "@/lib/format";
+import { dispatchQueued } from "@/lib/messaging";
+import { queueReadingMessages } from "@/lib/water/notifications";
 import {
   addMeter,
   createRound,
@@ -231,20 +234,33 @@ export async function deleteAdvanceAction(formData: FormData) {
 const roundSchema = z.object({
   company_id: uuid,
   read_on: date,
+  report_by: z.preprocess(emptyToNull, date.nullable()),
   portal_open: z.preprocess((v) => v === "on", z.boolean()),
   note: optText(300),
 });
+
+async function dispatchSoon(ctx: Awaited<ReturnType<typeof requireStaff>>, queued: number) {
+  // Lähetetään heti; jäljelle jäävät lähtevät viestijonon ajossa.
+  if (queued === 0) return;
+  try {
+    await ctx.db.asService((tx) => dispatchQueued(tx, Math.min(queued, 200), ctx.org.organizationId));
+  } catch {
+    // Jonoon jääneet viestit lähtevät ajastetussa lähetyksessä.
+  }
+}
 
 export async function createRoundAction(formData: FormData) {
   const companyId = companyFrom(formData);
   const back = base(companyId);
   const ctx = await writer(companyId);
   const d = parseForm(roundSchema, formData, back);
-  const id = await attempt(back, () =>
+  const today = isoDateHelsinki();
+  const { id, queued } = await attempt(back, () =>
     ctx.run(async (tx) => {
       const roundId = await createRound(tx, {
         companyId,
         readOn: d.read_on,
+        reportBy: d.report_by,
         portalOpen: d.portal_open,
         note: d.note,
         userId: ctx.user.id,
@@ -256,10 +272,42 @@ export async function createRoundAction(formData: FormData) {
         entity: "water_reading_round",
         entityId: roundId,
       });
-      return roundId;
+      // Lukemapäivä on jo käsillä: lukupyyntö heti. Muuten päivittäinen ajo lähettää sen lukemapäivänä.
+      const sent = d.portal_open && d.read_on <= today ? await queueReadingMessages(tx, { roundId, kind: "request" }) : null;
+      return { id: roundId, queued: sent?.queued ?? 0 };
     }),
   );
+  await dispatchSoon(ctx, queued);
   done(companyId, `${back}/lukemat/${id}`);
+}
+
+/** Lukupyyntö tai muistutus käsin kierroksen sivulta. */
+export async function sendReadingMessagesAction(formData: FormData) {
+  const companyId = companyFrom(formData);
+  const roundId = uuid.parse(formData.get("round_id"));
+  const back = `${base(companyId)}/lukemat/${roundId}`;
+  const ctx = await writer(companyId);
+  const kind = formData.get("kind") === "reminder" ? "reminder" : "request";
+  const res = await ctx.run(async (tx) => {
+    const [round] = await tx.query("select 1 from er_water_reading_rounds where id = $1 and company_id = $2", [roundId, companyId]);
+    if (!round) return null;
+    const r = await queueReadingMessages(tx, { roundId, kind });
+    if (r) {
+      await audit(tx, {
+        organizationId: ctx.org.organizationId,
+        userId: ctx.user.id,
+        action: "send",
+        entity: "water_reading_round",
+        entityId: roundId,
+        details: { kind, queued: r.queued, without_email: r.withoutEmail },
+      });
+    }
+    return r;
+  });
+  if (!res) fail(back, "Viestejä voi lähettää vain avoimelta lukukierrokselta.");
+  await dispatchSoon(ctx, res.queued);
+  revalidatePath(back);
+  redirect(`${back}?viestit=${res.queued}&ilman=${res.withoutEmail}`);
 }
 
 export async function saveReadingsAction(formData: FormData) {

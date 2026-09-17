@@ -5,11 +5,12 @@ import { queueContractReminders } from "@/lib/contracts/reminders";
 import { isoDateHelsinki } from "@/lib/format";
 import { maintainMarketplace } from "@/lib/marketplace/mutations";
 import { queueTaskReminders } from "@/lib/tasks/reminders";
+import { queueDueReadingMessages } from "@/lib/water/notifications";
 
 /**
  * Päivittäinen muistutusajo (Vercel Cron tai muu ajastin): vuosikellon
  * erääntyvät ja myöhässä olevat tehtävät sekä sopimusten irtisanomis-
- * muistutukset lähtevien viestien jonoon sekä torin varausten raukeaminen. Lähetys tehdään viestijonon
+ * muistutukset ja vesimittarin lukupyynnöt lähtevien viestien jonoon sekä torin varausten raukeaminen. Lähetys tehdään viestijonon
  * omassa ajossa.
  *
  * Suojaus: Authorization: Bearer CRON_SECRET. Kehityksessä ilman
@@ -36,7 +37,9 @@ async function run(request: NextRequest) {
     const contracts = await db.asService((tx) => queueContractReminders(tx, today));
     // Torin rauenneet varaukset takaisin torille ja tehdyt työt valmiiksi (varaus voimassa viikon).
     const marketplace = await db.asService((tx) => maintainMarketplace(tx));
-    return NextResponse.json({ ok: true, date: today, tasks, contracts, marketplace });
+    // Vesimittarin lukupyynnöt lukemapäivänä ja muistutukset ennen ilmoituksen määräpäivää.
+    const water = await db.asService((tx) => queueDueReadingMessages(tx, today));
+    return NextResponse.json({ ok: true, date: today, tasks, contracts, marketplace, water });
   } catch (err) {
     // Ei rakennetta vastaukseen; tarkempi virhe palvelimen lokiin.
     console.error("[cron:muistutukset]", err instanceof Error ? err.message : err);

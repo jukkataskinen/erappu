@@ -32,9 +32,14 @@ export async function listMeters(tx: Sql, companyId: string): Promise<MeterRow[]
 export interface RoundRow {
   id: string;
   read_on: string;
+  report_by: string;
   status: "open" | "closed";
   portal_open: boolean;
   note: string | null;
+  notified_at: string | null;
+  notified_count: number | null;
+  reminded_at: string | null;
+  reminded_count: number | null;
   reading_count: number;
   settlement_run_id: string | null;
   settlement_status: string | null;
@@ -42,7 +47,7 @@ export interface RoundRow {
 
 export async function listRounds(tx: Sql, companyId: string): Promise<RoundRow[]> {
   return tx.query<RoundRow>(
-    `select r.id, r.read_on::text, r.status, r.portal_open, r.note,
+    `select r.id, r.read_on::text, r.report_by::text, r.status, r.portal_open, r.note, r.notified_at, r.notified_count, r.reminded_at, r.reminded_count,
             (select count(*)::int from er_water_readings x where x.round_id = r.id) as reading_count,
             s.id as settlement_run_id, s.status as settlement_status
        from er_water_reading_rounds r

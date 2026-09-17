@@ -69,8 +69,11 @@ export default async function WaterPage({ params, searchParams }: { params: Prom
                 <Field label="Lukemapäivä" htmlFor="read_on">
                   <Input id="read_on" name="read_on" type="date" defaultValue={`${today.slice(0, 4)}-12-31`} required className="w-44" />
                 </Field>
+                <Field label="Ilmoitettava viimeistään" htmlFor="report_by" hint="Tyhjä = viikko lukemapäivästä">
+                  <Input id="report_by" name="report_by" type="date" className="w-44" />
+                </Field>
                 <label className="flex min-h-[var(--size-touch)] items-center gap-2 text-sm">
-                  <input type="checkbox" name="portal_open" defaultChecked /> Osakkaat voivat ilmoittaa lukeman portaalissa
+                  <input type="checkbox" name="portal_open" defaultChecked /> Lukupyyntö sähköpostilla ja ilmoitus portaalissa
                 </label>
                 <Button variant="secondary">Aloita lukukierros</Button>
               </form>

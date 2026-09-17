@@ -154,13 +154,17 @@ export async function createRound(
     portalOpen: boolean;
     note: string | null;
     userId: string;
+    /** Ilmoituksen määräpäivä; oletus lukemapäivä + 7 pv. */
+    reportBy?: string | null;
   },
 ): Promise<string> {
   const org = await companyOrg(tx, opts.companyId);
+  const reportBy = opts.reportBy ?? addDays(opts.readOn, 7);
+  if (reportBy < opts.readOn) throw new FinanceError("Ilmoituksen määräpäivä on ennen lukemapäivää.");
   const [row] = await tx.query<{ id: string }>(
-    `insert into er_water_reading_rounds (organization_id, company_id, read_on, portal_open, note, created_by)
-     values ($1,$2,$3,$4,$5,$6) on conflict (company_id, read_on) do nothing returning id`,
-    [org, opts.companyId, opts.readOn, opts.portalOpen, opts.note, opts.userId],
+    `insert into er_water_reading_rounds (organization_id, company_id, read_on, report_by, portal_open, note, created_by)
+     values ($1,$2,$3,$4,$5,$6,$7) on conflict (company_id, read_on) do nothing returning id`,
+    [org, opts.companyId, opts.readOn, reportBy, opts.portalOpen, opts.note, opts.userId],
   );
   if (!row) throw new FinanceError("Samalle päivälle on jo lukukierros.");
   return row.id;

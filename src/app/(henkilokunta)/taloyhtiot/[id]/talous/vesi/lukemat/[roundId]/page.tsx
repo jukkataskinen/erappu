@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, Field, Input, LinkButton, Notice, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
+import { Badge, Button, DefinitionList, Field, Input, LinkButton, Notice, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { getBillingSettings } from "@/lib/finance/billing";
@@ -12,8 +12,9 @@ import { defaultSettlementPeriod } from "@/lib/water/mutations";
 import { ReadingChecks, ReadingConfirm, ReadingInput } from "@/components/water/ReadingChecks";
 import { issueText, readingIssues } from "@/lib/water/checks";
 import { getRound, lastBilledReadings, listMeters, listRoundReadings, previousReadings } from "@/lib/water/queries";
+import { REMINDER_DAYS_BEFORE } from "@/lib/water/notifications";
 import { METER_KIND, meterSpan } from "@/lib/water/settlement";
-import { createSettlementAction, saveReadingsAction, setRoundStatusAction } from "../../actions";
+import { createSettlementAction, saveReadingsAction, sendReadingMessagesAction, setRoundStatusAction } from "../../actions";
 
 export const metadata = { title: "Lukukierros" };
 
@@ -22,13 +23,13 @@ export default async function ReadingRoundPage({
   searchParams,
 }: {
   params: Promise<{ id: string; roundId: string }>;
-  searchParams: Promise<{ virhe?: string; tallennettu?: string }>;
+  searchParams: Promise<{ virhe?: string; tallennettu?: string; viestit?: string; ilman?: string }>;
 }) {
   const ctx = await requireStaff();
   const { id, roundId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(roundId)) notFound();
   const company = await loadCompany(ctx, id);
-  const { virhe, tallennettu } = await searchParams;
+  const { virhe, tallennettu, viestit, ilman } = await searchParams;
 
   const data = await ctx.run(async (tx) => {
     const round = await getRound(tx, id, roundId);
@@ -105,6 +106,14 @@ export default async function ReadingRoundPage({
         </div>
       </div>
       <FormError message={virhe} />
+      {viestit !== undefined ? (
+        <div className="mb-4">
+          <Notice tone={Number(viestit) > 0 ? "ok" : "warn"}>
+            {Number(viestit) > 0 ? `Viestejä lähetetty ${viestit}.` : "Vastaanottajia ei löytynyt."}
+            {Number(ilman) > 0 ? ` ${ilman} henkilöltä puuttuu sähköpostiosoite.` : ""}
+          </Notice>
+        </div>
+      ) : null}
       {tallennettu !== undefined ? (
         <div className="mb-4">
           <Notice tone="ok">{Number(tallennettu) > 0 ? `Tallennettu ${tallennettu} lukemaa.` : "Ei muutoksia."}</Notice>
@@ -208,6 +217,47 @@ export default async function ReadingRoundPage({
         </Panel>
 
         <div className="grid content-start gap-6">
+          <Panel>
+            <SectionTitle>Lukupyyntö asukkaille</SectionTitle>
+            <DefinitionList
+              items={[
+                { label: "Ilmoitettava viimeistään", value: formatDate(round.report_by) },
+                {
+                  label: "Lukupyyntö",
+                  value: round.notified_at
+                    ? `${formatDateTime(round.notified_at)}, ${round.notified_count ?? 0} viestiä`
+                    : round.portal_open
+                      ? `Lähtee automaattisesti ${formatDate(round.read_on)}`
+                      : "Ei lähetetä (portaali-ilmoitus suljettu)",
+                },
+                {
+                  label: "Muistutus puuttuville",
+                  value: round.reminded_at
+                    ? `${formatDateTime(round.reminded_at)}, ${round.reminded_count ?? 0} viestiä`
+                    : round.portal_open
+                      ? `Lähtee automaattisesti ${formatDate(addDays(round.report_by, -REMINDER_DAYS_BEFORE))}`
+                      : "–",
+                },
+              ]}
+            />
+            <p className="mt-3 text-xs text-ink/55">Viesti menee huoneiston asukkaille, tai osakkaille, jos asukkaita ei ole kirjattu. Linkki vie portaalin lukemalomakkeeseen.</p>
+            {editable && round.status === "open" ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <form action={sendReadingMessagesAction}>
+                  {hidden}
+                  <input type="hidden" name="kind" value="request" />
+                  <Button variant="secondary">{round.notified_at ? "Lähetä pyyntö uudelleen" : "Lähetä pyyntö nyt"}</Button>
+                </form>
+                {readCount < activeCount ? (
+                  <form action={sendReadingMessagesAction}>
+                    {hidden}
+                    <input type="hidden" name="kind" value="reminder" />
+                    <Button variant="ghost">Muistuta puuttuvia ({activeCount - readCount} mittaria)</Button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
+          </Panel>
           <Panel>
             <SectionTitle>Tasauslasku</SectionTitle>
             {locked ? (

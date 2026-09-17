@@ -5,6 +5,7 @@ import { cancelBillingRun, createBillingRun, FinanceError } from "@/lib/finance/
 import { addChargeBasis } from "@/lib/finance/registers";
 import { addMeter, createRound, createWaterSettlement, replaceMeter, reportPortalReading, saveStaffReadings, setAdvance } from "@/lib/water/mutations";
 import { lastBilledReadings, portalWaterUnit } from "@/lib/water/queries";
+import { queueDueReadingMessages } from "@/lib/water/notifications";
 
 let db: Database;
 let f: Fixture;
@@ -181,5 +182,45 @@ describe("tasauslasku", () => {
     const after = await db.asUser(f.accountantA.sub, (tx) => lastBilledReadings(tx, f.companyA));
     expect(after.get(cold1)).toEqual({ value: "221.500", on: "2026-12-31" });
     void runId;
+  });
+});
+
+describe("lukupyyntö ja muistutus", () => {
+  it("pyyntö asukkaalle tai osakkaalle, muistutus vain puuttuville, kumpikin kerran", async () => {
+    await db.asService(async (tx) => {
+      await tx.query("update er_parties set email = 'osakas@example.test' where user_id = $1", [owner1.id]);
+      const t = await one<{ id: string }>(tx, "insert into er_parties (organization_id, last_name, email, user_id) values ($1,'Vuokralainen','asukas@example.test',$2) returning id", [f.orgA, tenant2.id]);
+      await tx.query("insert into er_residencies (organization_id, share_group_id, party_id, role) values ($1,$2,$3,'tenant')", [f.orgA, g2, t.id]);
+      await tx.query("update er_parties set email = 'vuokranantaja@example.test' where last_name = 'Toinen'");
+    });
+    const roundId = await db.asUser(f.accountantA.sub, (tx) =>
+      createRound(tx, { companyId: f.companyA, readOn: "2028-12-31", reportBy: "2029-01-10", portalOpen: true, note: null, userId: f.accountantA.id }),
+    );
+
+    // Ennen lukemapäivää ei lähetetä mitään.
+    expect(await db.asService((tx) => queueDueReadingMessages(tx, "2028-12-30", "https://erappu.test"))).toEqual({ requests: 0, reminders: 0, messages: 0 });
+    expect(await db.asService((tx) => queueDueReadingMessages(tx, "2028-12-31", "https://erappu.test"))).toEqual({ requests: 1, reminders: 0, messages: 2 });
+    expect(await db.asService((tx) => queueDueReadingMessages(tx, "2028-12-31", "https://erappu.test"))).toEqual({ requests: 0, reminders: 0, messages: 0 });
+
+    const sent = await db.asService((tx) =>
+      tx.query<{ recipient: string; subject: string; body: string }>("select recipient, subject, body from er_outbound_messages where subject_id = $1 order by recipient", [roundId]),
+    );
+    expect(sent.map((m) => m.recipient)).toEqual(["asukas@example.test", "osakas@example.test"]);
+    expect(sent[0].subject).toBe("Lue vesimittari: As Oy Testi A");
+    expect(sent[0].body).toContain("huoneiston A 2 vesimittari");
+    expect(sent[0].body).toContain("viimeistään 10.1.2029");
+    expect(sent[0].body).toContain("https://erappu.test/portaali/oma#vesi");
+
+    // A 1:n molemmat mittarit luettu, A 2 puuttuu → muistutus vain asukkaalle kaksi päivää ennen määräpäivää.
+    await db.asUser(f.accountantA.sub, (tx) =>
+      saveStaffReadings(tx, { companyId: f.companyA, roundId, userId: f.accountantA.id, readings: [{ meterId: cold1, value: "300" }, { meterId: hot1, value: "90" }], confirmed: true }),
+    );
+    expect(await db.asService((tx) => queueDueReadingMessages(tx, "2029-01-07", null))).toEqual({ requests: 0, reminders: 0, messages: 0 });
+    expect(await db.asService((tx) => queueDueReadingMessages(tx, "2029-01-08", null))).toEqual({ requests: 0, reminders: 1, messages: 1 });
+    expect(await db.asService((tx) => queueDueReadingMessages(tx, "2029-01-09", null))).toEqual({ requests: 0, reminders: 0, messages: 0 });
+    const reminder = await db.asService((tx) =>
+      one<{ recipient: string; subject: string }>(tx, "select recipient, subject from er_outbound_messages where subject_id = $1 and subject like 'Muistutus%'", [roundId]),
+    );
+    expect(reminder).toEqual({ recipient: "asukas@example.test", subject: "Muistutus: vesimittarin lukema puuttuu, As Oy Testi A" });
   });
 });

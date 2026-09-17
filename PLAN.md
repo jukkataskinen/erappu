@@ -79,7 +79,9 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Sopimusrekisteri ja irtisanomismuistutukset
 - [x] Kulutusseuranta (sähkö, vesi, lämpö) yhtiöittäin (`/kulutus`, linkki vuosikellosta ja sopimuksista)
 - [x] Vesimittarit ja vesilaskutus (Jukka 17.9.2026): huoneistojen kylmän ja lämpimän veden mittarit, lukukierrokset (lukemat henkilökunnalta tai osakkaalta/asukkaalta portaalissa), huoneistokohtainen vesiennakko kuukausilaskulle ja tasauslasku laskutusajona (`/taloyhtiot/[id]/talous/vesi`, 0100). Laskurivillä mittari, vanha ja uusi lukema päivineen, kulutus × €/m³; lämpimällä vedellä voi olla oma hinta; kauden ennakot miinusrivinä. Lukeman kuittaus, jos pienempi kuin edellinen tai kulutus alle 2 tai yli 500 m³. Pohjalukemat 12/2025 Toivakan Asunto Oy:lle ja Kotipesälle Procountorin vesilaskuilta.
-  - [ ] Myöhemmin: lukemien CSV-tuonti (etäluettavat mittarit), kuva mittarista portaalista, lukukierroksen muistutusviesti osakkaille, tasauksen kulutus kulutusseurantaan.
+  - [x] Lukupyyntö sähköpostilla lukemapäivänä ja muistutus puuttuville kaksi päivää ennen määräpäivää (asukkaille, muuten osakkaille), portaalin etusivun nosto (Jukka 17.9.2026, 0101). Sähköposti lähtee vasta, kun Resend on käytössä.
+  - [ ] Push-heräte puhelimeen (portaali PWA:ksi, web push; iPhonessa vaatii kotinäytölle lisäämisen). Jukka 17.9.2026: myöhemmin.
+  - [ ] Myöhemmin: lukemien CSV-tuonti (etäluettavat mittarit), kuva mittarista portaalista, tasauksen kulutus kulutusseurantaan.
 - [x] Muistutusajo `/api/cron/muistutukset`
 - [x] Widgetit ja testit
 
