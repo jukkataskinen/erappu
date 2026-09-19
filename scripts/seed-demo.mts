@@ -12,6 +12,7 @@ import { LEGAL_BASIS, parseContent, RESCUE_PLAN_TEMPLATE_APPROVED } from "../src
 import { buildPrefill } from "../src/lib/rescue-plans/prefill.ts";
 import { finalizeDraft } from "../src/lib/rescue-plans/queries.ts";
 import { loadRegistrySnapshot } from "../src/lib/rescue-plans/registry.ts";
+import { createAnnualCycleForCompany } from "../src/lib/tasks/queries.ts";
 
 /**
  * Kuvitteellinen esimerkkidata kehitykseen ja esittelyyn. Kaikki nimet,
@@ -246,6 +247,113 @@ async function seedResponsibilityDemo(tx: Sql, org: string, rinne: string) {
   return rows.length > 0;
 }
 
+/**
+ * Syyskuun 2026 moduulien esimerkkidata As Oy Esimerkkirinteelle: vesimittarit,
+ * ennakot ja lukukierrokset, turvallisuustiedot, muutostyöohjeen asetukset,
+ * muutostyön valvonta, isännöinnin aloittama viesti ja vakiovuosikello.
+ * Idempotentti: kukin osa lisätään vain, jos sitä ei vielä ole.
+ */
+async function seedSeptemberModulesDemo(tx: Sql, org: string, rinne: string): Promise<string[]> {
+  const added: string[] = [];
+  const groups = new Map(
+    (await tx.query<{ id: string; unit_label: string }>("select id, unit_label from er_share_groups where company_id = $1", [rinne])).map((g) => [g.unit_label, g.id]),
+  );
+  const [owner] = await tx.query<{ user_id: string }>(
+    `select a.user_id from er_portal_access a where a.share_group_id = $1 and a.role = 'owner' limit 1`,
+    [groups.get("A 2") ?? null],
+  );
+  const [manager] = await tx.query<{ manager_user_id: string | null }>("select manager_user_id from er_housing_companies where id = $1", [rinne]);
+
+  const [hasMeters] = await tx.query("select 1 from er_water_meters where company_id = $1", [rinne]);
+  if (!hasMeters && groups.size > 0) {
+    await tx.query(
+      `insert into er_charge_bases (organization_id, company_id, charge_type, label, basis, unit_price, starts_on, decided_on)
+       values ($1,$2,'water','Vesimaksu','meter',5.56,'2025-01-01','2024-11-20'), ($1,$2,'hot_water','Lämmin vesi','meter',10.62,'2025-01-01','2024-11-20')`,
+      [org, rinne],
+    );
+    const meter = async (unit: string, kind: "cold" | "hot", start: number) =>
+      (await tx.query<{ id: string }>(
+        `insert into er_water_meters (organization_id, company_id, share_group_id, kind, meter_number, location, installed_on, start_reading)
+         values ($1,$2,$3,$4,$5,'Kylpyhuone','2024-12-31',$6) returning id`,
+        [org, rinne, groups.get(unit), kind, `${kind === "cold" ? "K" : "L"}-${unit.replace(" ", "")}`, start],
+      ))[0].id;
+    const meters = {
+      a1c: await meter("A 1", "cold", 187), a1h: await meter("A 1", "hot", 57), a2c: await meter("A 2", "cold", 140),
+      a3c: await meter("A 3", "cold", 96), a4c: await meter("A 4", "cold", 211),
+    };
+    await tx.query(
+      `insert into er_water_advances (organization_id, company_id, share_group_id, monthly_eur, starts_on, note)
+       values ($1,$2,$3,25.00,'2025-01-01','Sovittu osakkaan kanssa'), ($1,$2,$4,15.00,'2025-01-01',null)`,
+      [org, rinne, groups.get("A 1"), groups.get("A 2")],
+    );
+    const round = async (readOn: string, reportBy: string, status: string, portalOpen: boolean) =>
+      (await tx.query<{ id: string }>(
+        `insert into er_water_reading_rounds (organization_id, company_id, read_on, report_by, status, portal_open, created_by) values ($1,$2,$3,$4,$5,$6,$7) returning id`,
+        [org, rinne, readOn, reportBy, status, portalOpen, manager?.manager_user_id ?? null],
+      ))[0].id;
+    const closed = await round("2025-12-31", "2026-01-09", "closed", false);
+    const readings: [string, number][] = [[meters.a1c, 221.5], [meters.a1h, 70.25], [meters.a2c, 151], [meters.a3c, 131.2], [meters.a4c, 248.9]];
+    for (const [meterId, value] of readings) {
+      await tx.query(
+        "insert into er_water_readings (organization_id, meter_id, round_id, read_on, reading, source, entered_by) values ($1,$2,$3,'2025-12-31',$4,'staff',$5)",
+        [org, meterId, closed, value, manager?.manager_user_id ?? null],
+      );
+    }
+    const open = await round("2026-09-30", "2026-10-07", "open", true);
+    if (owner) {
+      await tx.query(
+        "insert into er_water_readings (organization_id, meter_id, round_id, read_on, reading, source, entered_by) values ($1,$2,$3,'2026-09-30',159.4,'portal',$4)",
+        [org, meters.a2c, open, owner.user_id],
+      );
+    }
+    added.push("vesimittarit, ennakot ja lukukierrokset");
+  }
+
+  const safety = await tx.query(
+    `update er_housing_companies set shelter = 'own', shelter_location = 'A-rapun kellari, ovi porraskäytävästä', shelter_capacity = 'noin 40 henkilöä',
+            assembly_point = 'Pihan leikkipaikka', assembly_point_alt = 'Rinnetien kääntöpaikka', shutoff_water = 'Lämmönjakohuone, kellari',
+            shutoff_electricity = 'Sähköpääkeskus, A-rapun kellari', shutoff_ventilation = 'IV-konehuone, ullakko', shutoff_heating = 'Lämmönjakohuone, kellari'
+      where id = $1 and shelter is null returning id`,
+    [rinne],
+  );
+  if (safety.length) added.push("turvallisuustiedot");
+
+  const guide = await tx.query(
+    `update er_housing_companies set renovation_guide_settings = $2::jsonb where id = $1 and renovation_guide_settings = '{}'::jsonb returning id`,
+    [rinne, JSON.stringify({ processingFee: "Muutostyöilmoituksen käsittelystä peritään 50 € (hallituksen päätös 12.3.2026).", extra: "Parvekelasitus on sallittu yhtiön hyväksymällä mallilla (yhtiökokous 2025)." })],
+  );
+  if (guide.length) added.push("muutostyöohjeen asetukset");
+
+  const supervision = await tx.query(
+    `update er_renovation_notices set supervisor = 'Esimerkkivalvonta Oy, Ville Valvoja, 040 000 0003', supervision_cost_eur = 240,
+            supervision_cost_basis = '2 tarkastuskäyntiä à 120 € (alv 0 %)'
+      where company_id = $1 and supervisor is null returning id`,
+    [rinne],
+  );
+  if (supervision.length) added.push("muutostyön valvoja ja kustannusarvio");
+
+  const [thread] = await tx.query("select 1 from er_contact_threads where company_id = $1 and started_by_staff", [rinne]);
+  if (!thread && owner && manager?.manager_user_id) {
+    const [t] = await tx.query<{ id: string }>(
+      `insert into er_contact_threads (organization_id, company_id, share_group_id, created_by_user_id, participant_user_id, started_by_staff, topic, subject, status)
+       values ($1,$2,$3,$4,$5,true,'general','Kylpyhuoneen tarkastuskäynti','answered') returning id`,
+      [org, rinne, groups.get("A 2"), manager.manager_user_id, owner.user_id],
+    );
+    await tx.query(
+      "insert into er_contact_messages (organization_id, thread_id, author_user_id, from_staff, body) values ($1,$2,$3,true,$4)",
+      [org, t.id, manager.manager_user_id, "Hei, muutostyön valvoja tekee ensimmäisen tarkastuskäynnin purkutöiden jälkeen. Sopiiko torstai 15.10. klo 9?"],
+    );
+    added.push("isännöinnin aloittama viesti");
+  }
+
+  const [tasks] = await tx.query("select 1 from er_tasks where company_id = $1 and template_key is not null", [rinne]);
+  if (!tasks && manager?.manager_user_id) {
+    const r = await createAnnualCycleForCompany(tx, { companyId: rinne, userId: manager.manager_user_id, today: new Date().toISOString().slice(0, 10) });
+    if (r?.created) added.push("vakiovuosikello");
+  }
+  return added;
+}
+
 await db.asService(async (tx) => {
   const [existing] = await tx.query<{ id: string }>("select id from er_organizations where business_id = '0000001-9'");
   if (existing) {
@@ -254,12 +362,14 @@ await db.asService(async (tx) => {
     const rescue = rinne ? await seedRescuePlanDemo(tx, existing.id, rinne.id) : false;
     const renovation = rinne ? await seedRenovationDemo(tx, existing.id, rinne.id) : false;
     const responsibility = rinne ? await seedResponsibilityDemo(tx, existing.id, rinne.id) : false;
+    const september = rinne ? await seedSeptemberModulesDemo(tx, existing.id, rinne.id) : [];
     console.log(
       [
         added ? "Demodata oli jo kannassa; lisättiin isännöitsijäntodistuksen tiedot ja liitteet." : "Demodata on jo kannassa.",
         rescue ? "Lisättiin pelastussuunnitelman demoversio." : null,
         renovation ? "Lisättiin muutostyöohje ja muutostyöilmoitus." : null,
         responsibility ? "Lisättiin vastuunjaon esimerkkipoikkeus." : null,
+        september.length ? `Lisättiin: ${september.join(", ")}.` : null,
       ].filter(Boolean).join(" "),
     );
     return;
@@ -401,6 +511,7 @@ await db.asService(async (tx) => {
   await seedRescuePlanDemo(tx, org.id, rinne);
   await seedRenovationDemo(tx, org.id, rinne);
   await seedResponsibilityDemo(tx, org.id, rinne);
+  await seedSeptemberModulesDemo(tx, org.id, rinne);
   console.log("Demodata luotu: Demo Isännöinti Oy, 2 taloyhtiötä, 14 huoneistoa, 6 käyttäjää.");
 });
 

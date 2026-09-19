@@ -55,7 +55,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Portaali: osakkaan vastikkeet, lainaosuus ja maksutilanne; hallituksen talousnäkymä
 - [x] Widgetit ja testit
 - [~] Procountorin tarkka myyntilaskujen tuontipohja CSV-vientiin (TODO(Procountor-tuontipohja) `src/lib/finance/accounting/csv.ts`)
-- [ ] Portaalin valikkoon linkki `/portaali/talous` (yhteinen `src/config/nav.ts`; nyt linkki portaalin etusivun nostosta)
+- [x] Portaalin valikkoon linkki `/portaali/talous` (yhteinen `src/config/nav.ts`); puhelimella alapalkin ulkopuoliset osiot Oma-sivulla (19.9.2026)
 
 ## M4 Viestintä ja dokumentit
 - [x] Tiedotteet: kohderyhmät (yhtiö, rakennus, rooli), kanavat, julkaisu, lähetysraportti
@@ -105,7 +105,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Yhteiset valikot (henkilökunta, portaali ja puhelimen alapalkki), Vercel-ajastukset
 - [x] Tuotantokäännös (next build) ja savutesti 48 sivulle (scripts/smoke-routes.mts)
 - [ ] Demodata myös M1–M6-moduuleille (huoltopyynnöt, tiedotteet, kokoukset, varauskohteet)
-- [ ] Tuonti tuotantokantaan Postgres-tilassa (scripts/access/import-access.mts käyttää nyt PGliteä)
+- [x] Demodata syyskuun 2026 moduuleille As Oy Esimerkkirinteelle: vesimittarit, ennakot ja lukukierrokset (avoin kierros portaalilukemalla), turvallisuustiedot, muutostyöohjeen asetukset, muutostyön valvonta, isännöinnin aloittama viesti ja vakiovuosikello (`seedSeptemberModulesDemo`, idempotentti)
 
 ## Sopimuspohjat ja massaluonti
 - [x] Sopimuspohjat koodissa (`src/lib/contract-templates`): kenttämäärittelyt, paikkamerkit, zod-tarkistus, esitäyttö rekisteristä
@@ -124,12 +124,12 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [x] Portaalin lomake (4 työlohkoa, tekijä, liitteet, kuittaus, ilmoitustapa, infolaatikko), lista työrivien määrällä, henkilökunnan käsittelysivu, korjaushistoria työriveittäin ja isännöitsijäntodistus
   - [~] Tekstiviesti-ilmoitus tilamuutoksista: valinta tallennetaan, lähetys odottaa kanavaa – BLOCKERS 7
 - [x] 2. Etenemisjana portaaliin: vastaanotettu, hyväksytty, työn alla, valmis - sekä muutostöille että huoltopyynnöille (`src/lib/progress.ts`, `ProgressSteps`; muutostyökortit ja huoltopyynnön sivu)
-- [ ] 3. Hyväksyntään valvoja ja valvonnan arvioitu kustannus (osakkaan kustannus; kytkeytyy valvontakone-suunnitelmaan)
+- [x] 3. Hyväksyntään valvoja ja valvonnan arvioitu kustannus hakemuksittain (0105, 19.9.2026): arvio euroina ja peruste vapaana tekstinä, näkyy osakkaalle portaalissa ja tilamuutosviestissä
 - [x] 4. Yhteydenotot: kaksisuuntainen viestiketju osakas - isännöitsijä, liitteet, arkisto (nyt vain yksisuuntaiset tiedotteet ja huoltopyynnöt)
   - [x] Migraatio 0095: `er_contact_threads`, `er_contact_messages`, tila viestistä triggerillä (avoin/vastattu/käsitelty), liitteet dokumentteina (`internal` + oman ketjun lukusääntö), sähköposti-ilmoitus ilman viestin sisältöä; RLS-testit `tests/db/yhteydenotot.test.ts`
   - [x] Portaali `/portaali/yhteydenotot` (lista, uusi, ketju), henkilökunta `/yhteydenotot` (postilaatikko suodattimin, vastaus, käsitelty/avaa), työpöydän nosto ja navigaatio
-  - [ ] Henkilökunnan aloittama viesti osakkaalle (nyt ketjun aloittaa aina portaalikäyttäjä)
-- [ ] 5. Muutostyöohjeen generaattori yhtiökohtaisesti (kuten pelastussuunnitelma): vastuunjako, ohjeet työlajeittain, valvontahinnasto
+  - [x] Henkilökunnan aloittama viesti osakkaalle, asukkaalle tai hallituksen jäsenelle (0104, 19.9.2026, `/yhteydenotot/uusi`)
+- [~] 5. Muutostyöohjeen generaattori yhtiökohtaisesti (0106, 19.9.2026): AOYL 5 luvun vakiotekstit, yhdeksän työlajin vaatimukset, asbestiosio, yhtiön asetukset, PDF ja julkaisu; vakiotekstit odottavat Jukan hyväksyntää (BLOCKERS 13)
 - [~] 6. Osakeryhmälle talo-, porras- ja kerroskenttä (DECISIONS 16.9.2026: Torpat säilytti yhdistelmätunnukset, koska talotiedolle ei ole kenttää)
   - [x] Kentät ovat jo olemassa: `er_share_groups.building_id` (huoneistolomake), `floor` ja `staircase` (0091, todistuslomake) – tarkistettu 16.9.2026
   - [ ] Accessista tuotuja yhtiöitä varten puuttuu rakennusrivit: nyt yksi rivi tunnuksella "N rakennusta". Tarvitaan rakennukset (tunnus, valmistumisvuosi) Jukalta, jonka jälkeen huoneistot voi kytkeä taloihin ja Torppien tunnukset jakaa kenttiin
@@ -174,6 +174,6 @@ Lähde: Kiinteistö-Tahkolan portaalin näkymät ja 24-sivuinen Muutostyöohje (
   - [x] Esitäyttö rekisteristä, lomake osioittain (`/taloyhtiot/[id]/pelastussuunnitelma`), vaaratilanteet valintalistana, esikatselu-PDF, "Tallenna valmiina" dokumentiksi ja tarkistustehtävä vuosikelloon, yhtiön moduulikortti
   - [x] PDF `src/documents/RescuePlan.tsx` luonnosmerkinnällä, pohjapiirustukset liitteiksi, demodata ja savutestin reitit
   - [~] Vakiotekstien hyväksyntä (`RESCUE_PLAN_TEMPLATE_APPROVED`) – BLOCKERS 11
-  - [ ] Rekisteriin omat kentät tiedoille, jotka nyt kirjoitetaan suunnitelmaan käsin (väestönsuoja, pääsulkujen sijainnit, kokoontumispaikka), jos niitä tarvitaan muuallakin (esim. isännöitsijäntodistus, huoltopyynnöt)
+  - [x] Rekisteriin omat kentät (väestönsuoja, pääsulkujen sijainnit, kokoontumispaikat; 0108, 19.9.2026), Kiinteistö-sivun Turvallisuustiedot; pelastussuunnitelma esitäyttää ne
   - [x] Asukkaille tiedottaminen: valmiiksi merkitseminen luo tiedoteluonnoksen (osakkaat ja asukkaat suunnitelman näkyvyyden mukaan), jonka isännöitsijä tarkistaa ja julkaisee
   - [x] Isännöitsijäntodistukseen tieto pelastussuunnitelman olemassaolosta ja päiväyksestä (SPEKin opas suosittelee): voimassa oleva versio tai yhtiön asiakirja, myöhästynyt tarkistus mainitaan
