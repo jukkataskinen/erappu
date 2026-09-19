@@ -65,7 +65,15 @@ export default async function RepairsPage({ params, searchParams }: { params: Pr
       ) : null}
 
       <section className="mb-8">
-        <SectionTitle>Muutostyöilmoitukset</SectionTitle>
+        <SectionTitle
+          actions={
+            <Link href={`/taloyhtiot/${id}/korjaukset/muutostyoohje`} className="text-sm font-semibold text-sky">
+              Muutostyöohje
+            </Link>
+          }
+        >
+          Muutostyöilmoitukset
+        </SectionTitle>
         {notices.length === 0 ? (
           <p className="text-sm text-ink/65">Osakkaat tekevät muutostyöilmoitukset portaalissa. Uudesta ilmoituksesta tulee viesti vastuuisännöitsijälle.</p>
         ) : (
