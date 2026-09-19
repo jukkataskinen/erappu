@@ -6,6 +6,7 @@ import { requirePortal } from "@/lib/auth/current-user";
 import { fail } from "@/lib/forms";
 import { FinanceError } from "@/lib/finance/billing";
 import { parseReading, reportPortalReading } from "@/lib/water/mutations";
+import { attachReadingPhoto } from "@/lib/water/photos";
 
 /**
  * Vesimittarin lukeman ilmoitus portaalissa. Kanta tarkistaa, että mittari
@@ -37,6 +38,11 @@ export async function reportReadingAction(formData: FormData) {
           confirmed: formData.get("confirm_readings") === "on",
         });
         if (!ok) throw new FinanceError("Lukeman ilmoitus ei ole enää auki tälle mittarille.");
+      }
+      // Valinnainen kuva mittarista (0110), vain mittareille, joiden lukema ilmoitettiin.
+      for (const e of entries) {
+        const photo = formData.get(`photo_${e.meterId}`);
+        if (photo instanceof File && photo.size > 0) await attachReadingPhoto(tx, { meterId: e.meterId, roundId, userId: ctx.user.id, file: photo });
       }
     });
   } catch (err) {

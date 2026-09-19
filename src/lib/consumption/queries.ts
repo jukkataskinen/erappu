@@ -61,3 +61,34 @@ export async function upsertReading(tx: Sql, r: ReadingInput): Promise<"inserted
   );
   return row.inserted ? "inserted" : "updated";
 }
+
+export interface MeteredWaterRow {
+  billing_run_id: string;
+  period_start: string;
+  period_end: string;
+  units: number;
+  metered_m3: number;
+  metered_eur: number | null;
+  /** Yhtiön päämittarin kulutus jaksoilta, jotka ovat kokonaan tasausjakson sisällä; null = ei rivejä. */
+  main_m3: number | null;
+}
+
+/** Vesitasauksista kirjattu huoneistojen kulutus ja vertailu yhtiön päämittariin (0109). */
+export function listMeteredWater(tx: Sql, companyId: string): Promise<MeteredWaterRow[]> {
+  return tx.query<MeteredWaterRow>(
+    `with runs as (
+       select billing_run_id, min(period_start) as period_start, max(period_end) as period_end, count(*)::int as units,
+              sum(amount)::float8 as metered_m3, sum(cost_eur)::float8 as metered_eur
+         from er_consumption_readings
+        where company_id = $1 and source = 'water_billing' and billing_run_id is not null
+        group by billing_run_id)
+     select r.billing_run_id, r.period_start::text, r.period_end::text, r.units, r.metered_m3, r.metered_eur,
+            (select sum(c.amount)::float8 from er_consumption_readings c
+              where c.company_id = $1 and c.share_group_id is null and c.utility = 'water'
+                and c.period_start >= r.period_start and c.period_end <= r.period_end) as main_m3
+       from runs r
+      order by r.period_end desc
+      limit 10`,
+    [companyId],
+  );
+}

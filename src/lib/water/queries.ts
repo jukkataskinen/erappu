@@ -66,6 +66,7 @@ export async function getRound(tx: Sql, companyId: string, roundId: string): Pro
 }
 
 export interface RoundReadingRow {
+  id: string;
   meter_id: string;
   reading: string;
   read_on: string;
@@ -76,7 +77,7 @@ export interface RoundReadingRow {
 
 export async function listRoundReadings(tx: Sql, roundId: string): Promise<RoundReadingRow[]> {
   return tx.query<RoundReadingRow>(
-    `select x.meter_id, x.reading::text, x.read_on::text, x.source, coalesce(u.full_name, u.email) as entered_by_name, x.updated_at
+    `select x.id, x.meter_id, x.reading::text, x.read_on::text, x.source, coalesce(u.full_name, u.email) as entered_by_name, x.updated_at
        from er_water_readings x left join er_users u on u.id = x.entered_by
       where x.round_id = $1`,
     [roundId],

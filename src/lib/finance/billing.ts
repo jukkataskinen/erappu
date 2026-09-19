@@ -306,6 +306,8 @@ export async function cancelBillingRun(tx: Sql, runId: string, companyId: string
     "update er_billing_runs set status = 'cancelled' where id = $1 and company_id = $2 and status in ('draft', 'approved') returning id",
     [runId, companyId],
   );
+  // Vesitasauksen kulutusrivit kulutusseurannasta (0109).
+  if (rows.length === 1) await tx.query("delete from er_consumption_readings where billing_run_id = $1", [runId]);
   return rows.length === 1;
 }
 

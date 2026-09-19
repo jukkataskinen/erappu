@@ -4,6 +4,7 @@ import { formatDate, formatEur } from "@/lib/format";
 import { trimDecimal } from "@/lib/finance/labels";
 import type { PortalWaterUnit } from "@/lib/water/queries";
 import { METER_KIND } from "@/lib/water/settlement";
+import { PhotoForm } from "@/lib/service-requests/components/PhotoForm";
 import { reportReadingAction } from "./water-actions";
 
 /** Huoneiston vesimittarit portaalissa: lukeman ilmoitus avoimella kierroksella ja vesiennakko osakkaalle. */
@@ -18,7 +19,7 @@ export function WaterMeters({ unit, thanked }: { unit: PortalWaterUnit; thanked:
         </div>
       ) : null}
       {round ? (
-        <form action={reportReadingAction} className="grid gap-3">
+        <PhotoForm action={reportReadingAction} fieldPrefix="photo_" className="grid gap-3">
           <ReadingChecks>
             <input type="hidden" name="round_id" value={round.id} />
             <p className="text-sm">
@@ -47,6 +48,12 @@ export function WaterMeters({ unit, thanked }: { unit: PortalWaterUnit; thanked:
                       <span className="text-sm text-ink/60">m³</span>
                     </div>
                   )}
+                  {m.openReading?.source !== "staff" ? (
+                    <label className="text-xs text-ink/65">
+                      Kuva mittarista (valinnainen){" "}
+                      <input type="file" name={`photo_${m.id}`} accept="image/jpeg,image/png,image/webp" capture="environment" className="mt-1 block text-xs" />
+                    </label>
+                  ) : null}
                   {m.lastReading ? (
                     <p className="text-xs text-ink/55">
                       Edellinen lukema {trimDecimal(m.lastReading.value)} m³ ({formatDate(m.lastReading.on)})
@@ -62,7 +69,7 @@ export function WaterMeters({ unit, thanked }: { unit: PortalWaterUnit; thanked:
               </div>
             ) : null}
           </ReadingChecks>
-        </form>
+        </PhotoForm>
       ) : (
         <ul className="divide-y divide-line text-sm">
           {unit.meters.map((m) => (

@@ -6,7 +6,7 @@ import type { StaffContext } from "@/lib/auth/current-user";
 import { changePercent, monthlyTotals, sum } from "@/lib/consumption/aggregate";
 import { ALLOWED_UNITS, CANONICAL_UNIT, UNIT_LABEL, UTILITIES, UTILITY_LABEL, type Utility } from "@/lib/consumption/labels";
 import { companyHeatingTypes, heatingProfile, HEATING_TYPE_LABEL } from "@/lib/consumption/heating";
-import { companyArea, listReadings } from "@/lib/consumption/queries";
+import { companyArea, listMeteredWater, listReadings } from "@/lib/consumption/queries";
 import { formatDate, formatEur, formatNumber, isoDateHelsinki } from "@/lib/format";
 import { listCompanies } from "@/lib/registry/queries";
 import { addReadingAction, deleteReadingAction, importCsvAction } from "./actions";
@@ -47,12 +47,13 @@ export async function ConsumptionView({
     );
   }
 
-  const [readings, area, heatingTypes, readingUtilities] = await ctx.run((tx) =>
+  const [readings, area, heatingTypes, readingUtilities, metered] = await ctx.run((tx) =>
     Promise.all([
       listReadings(tx, company.id, year - 1, year),
       companyArea(tx, company.id),
       companyHeatingTypes(tx, company.id),
-      tx.query<{ utility: Utility }>("select distinct utility from er_consumption_readings where company_id = $1", [company.id]),
+      tx.query<{ utility: Utility }>("select distinct utility from er_consumption_readings where company_id = $1 and share_group_id is null", [company.id]),
+      listMeteredWater(tx, company.id),
     ]),
   );
   const heating = heatingProfile(heatingTypes, readingUtilities.map((r) => r.utility));
@@ -213,6 +214,47 @@ export async function ConsumptionView({
               </ul>
             )}
           </Panel>
+
+          {utility === "water" && metered.length > 0 ? (
+            <Panel>
+              <SectionTitle>Huoneistojen mittaroitu kulutus</SectionTitle>
+              <p className="mb-3 text-sm text-ink/65">
+                Vesitasauksista laskutettu kulutus verrattuna yhtiön päämittariin samalla jaksolla. Ero on yhteisten tilojen kulutusta, mittausepätarkkuutta tai vuotoa.
+              </p>
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Jakso</Th>
+                    <Th numeric>Huoneistot</Th>
+                    <Th numeric>Laskutettu</Th>
+                    <Th numeric>Päämittari</Th>
+                    <Th numeric>Ero</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metered.map((m) => (
+                    <tr key={m.billing_run_id}>
+                      <Td>
+                        <span className="tabular">
+                          {formatDate(m.period_start)}–{formatDate(m.period_end)}
+                        </span>
+                        <span className="block text-xs text-ink/55">{m.units} huoneistoa</span>
+                      </Td>
+                      <Td numeric>{formatNumber(Math.round(m.metered_m3 * 10) / 10, "m³")}</Td>
+                      <Td numeric>{m.metered_eur !== null ? formatEur(m.metered_eur) : "–"}</Td>
+                      <Td numeric>{m.main_m3 !== null ? formatNumber(Math.round(m.main_m3 * 10) / 10, "m³") : "–"}</Td>
+                      <Td numeric>
+                        {m.main_m3 !== null && m.main_m3 > 0
+                          ? `${formatNumber(Math.round((m.main_m3 - m.metered_m3) * 10) / 10, "m³")} (${Math.round(((m.main_m3 - m.metered_m3) / m.main_m3) * 100)} %)`
+                          : "–"}
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              <p className="mt-2 text-xs text-ink/55">Päämittari: tämän sivun lukemat, joiden jakso on kokonaan tasausjakson sisällä.</p>
+            </Panel>
+          ) : null}
         </div>
 
         <div className="grid content-start gap-6">

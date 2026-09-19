@@ -1,3 +1,4 @@
+import { listMeteredWater } from "@/lib/consumption/queries";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, freshDb, one, seedTwoOrgs, type Fixture } from "../helpers/db";
 import type { Database } from "@/lib/db/types";
@@ -5,6 +6,7 @@ import { cancelBillingRun, createBillingRun, FinanceError } from "@/lib/finance/
 import { addChargeBasis } from "@/lib/finance/registers";
 import { addMeter, createRound, createWaterSettlement, replaceMeter, reportPortalReading, saveStaffReadings, setAdvance } from "@/lib/water/mutations";
 import { lastBilledReadings, portalWaterUnit } from "@/lib/water/queries";
+import { attachReadingPhoto, roundPhotos } from "@/lib/water/photos";
 import { queueDueReadingMessages } from "@/lib/water/notifications";
 
 let db: Database;
@@ -94,6 +96,30 @@ describe("mittarit, ennakot ja lukukierros", () => {
     expect(tenantUnit?.advance).toBeNull();
   });
 
+  it("kuva mittarista liittyy vain omaan portaalista ilmoitettuun lukemaan (0110)", async () => {
+    const photo = (sub: string, userId: string, readingId: string, shareGroupId: string) =>
+      db.asUser(sub, (tx) =>
+        one<{ id: string }>(
+          tx,
+          `insert into er_documents (organization_id, company_id, share_group_id, category, title, file_name, storage_path, mime_type, size_bytes, sha256,
+              visibility, subject_table, subject_id, uploaded_by)
+           values ($1,$2,$3,'photo','Vesimittarin kuva','kuva.jpg',$4,'image/jpeg',100,'sha','internal','er_water_readings',$5,$6) returning id`,
+          [f.orgA, f.companyA, shareGroupId, `polku/${Math.random()}`, readingId, userId],
+        ),
+      );
+    const own = await db.asService((tx) => one<{ id: string }>(tx, "select id from er_water_readings where meter_id = $1 and round_id = $2", [cold1, round1]));
+    const other = await db.asService((tx) => one<{ id: string }>(tx, "select id from er_water_readings where meter_id = $1 and round_id = $2", [cold2, round1]));
+    const doc = await photo(owner1.sub, owner1.id, own.id, g1);
+    await expect(photo(owner1.sub, owner1.id, other.id, g2)).rejects.toThrow(/row-level security/);
+    await expect(photo(tenant2.sub, tenant2.id, own.id, g1)).rejects.toThrow(/row-level security/);
+    expect(await db.asUser(tenant2.sub, (tx) => tx.query("select id from er_documents where id = $1", [doc.id]))).toHaveLength(0);
+    const staff = await db.asUser(f.accountantA.sub, (tx) => roundPhotos(tx, round1));
+    expect(staff.get(own.id)).toBe(doc.id);
+    await expect(
+      db.asUser(tenant2.sub, (tx) => attachReadingPhoto(tx, { meterId: cold1, roundId: round1, userId: tenant2.id, file: new File([new Uint8Array([0xff, 0xd8, 0xff])], "k.jpg", { type: "image/jpeg" }) })),
+    ).rejects.toBeInstanceOf(FinanceError);
+  });
+
   it("henkilökunnan lukema ohittaa portaalin eikä osakas voi muuttaa sitä", async () => {
     const res = await db.asUser(f.accountantA.sub, (tx) =>
       saveStaffReadings(tx, { companyId: f.companyA, roundId: round1, userId: f.accountantA.id, readings: [{ meterId: hot1, value: "70.25" }, { meterId: cold2, value: "151" }] }),
@@ -147,6 +173,21 @@ describe("tasauslasku", () => {
     ]);
     const round = await db.asUser(f.accountantA.sub, (tx) => one<{ status: string }>(tx, "select status from er_water_reading_rounds where id = $1", [round1]));
     expect(round.status).toBe("closed");
+
+    // Kulutus kulutusseurantaan huoneistoittain (0109): kylmä + lämmin, hinta ilman ennakoita.
+    const consumption = await db.asUser(f.accountantA.sub, (tx) =>
+      tx.query<{ unit_label: string; period_start: string; period_end: string; amount: string; cost_eur: string; source: string }>(
+        `select g.unit_label, c.period_start::text, c.period_end::text, c.amount::text, c.cost_eur::text, c.source
+           from er_consumption_readings c join er_share_groups g on g.id = c.share_group_id where c.billing_run_id = $1 order by g.unit_label`,
+        [runId],
+      ),
+    );
+    expect(consumption).toEqual([
+      { unit_label: "A 1", period_start: "2025-12-31", period_end: "2026-12-31", amount: "47.750", cost_eur: "332.54", source: "water_billing" },
+      { unit_label: "A 2", period_start: "2025-12-31", period_end: "2026-12-31", amount: "11.000", cost_eur: "61.16", source: "water_billing" },
+    ]);
+    const metered = await db.asUser(f.accountantA.sub, (tx) => listMeteredWater(tx, f.companyA));
+    expect(metered[0]).toMatchObject({ units: 2, metered_m3: 58.75, main_m3: null });
     await expect(
       db.asUser(f.accountantA.sub, (tx) => saveStaffReadings(tx, { companyId: f.companyA, roundId: round1, userId: f.accountantA.id, readings: [{ meterId: cold2, value: "152" }] })),
     ).rejects.toThrow(/tasauslaskutus/);
@@ -177,8 +218,11 @@ describe("tasauslasku", () => {
       "Kylmä vesi, mittari K2b: lukema 15.3.2027 0 → 31.12.2027 9 = 9 m³ × 5,56 €/m³",
     ]);
 
-    // Peruttu ajo ei ole laskutettu lukema.
+    // Peruttu ajo ei ole laskutettu lukema, eikä sen kulutus jää kulutusseurantaan.
+    const before = await db.asUser(f.accountantA.sub, (tx) => tx.query("select id from er_consumption_readings where billing_run_id = $1", [res.runId]));
+    expect(before.length).toBeGreaterThan(0);
     expect(await db.asUser(f.accountantA.sub, (tx) => cancelBillingRun(tx, res.runId, f.companyA))).toBe(true);
+    expect(await db.asUser(f.accountantA.sub, (tx) => tx.query("select id from er_consumption_readings where billing_run_id = $1", [res.runId]))).toHaveLength(0);
     const after = await db.asUser(f.accountantA.sub, (tx) => lastBilledReadings(tx, f.companyA));
     expect(after.get(cold1)).toEqual({ value: "221.500", on: "2026-12-31" });
     void runId;

@@ -70,7 +70,7 @@ async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Co
        (select min(due_on)::text from er_tasks where company_id = $1 and done_at is null and due_on >= $2::date) as next_task_on,
        (select count(*)::int from er_bookable_resources where company_id = $1 and active) as resources,
        (select count(*)::int from er_bookings where company_id = $1 and cancelled_at is null and starts_at >= now()) as upcoming_bookings,
-       (select max(period_end)::text from er_consumption_readings where company_id = $1) as latest_reading_on,
+       (select max(period_end)::text from er_consumption_readings where company_id = $1 and share_group_id is null) as latest_reading_on,
        (select count(*)::int from er_certificate_orders where company_id = $1 and status in ('new', 'in_progress')) as open_orders,
        (select count(*)::int from er_htj_diffs where company_id = $1 and status = 'pending') as pending_diffs,
        (select max(as_of)::text from er_payment_status where company_id = $1) as payment_as_of,

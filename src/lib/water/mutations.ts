@@ -6,7 +6,7 @@ import { primaryPayer } from "@/lib/finance/payers";
 import { companyReference } from "@/lib/finance/references";
 import { readingIssues } from "./checks";
 import { lastBilledReadings, previousReadings } from "./queries";
-import { buildSettlementLines, type MeterKind, type MeterReading, type WaterAdvance, type WaterMeter } from "./settlement";
+import { buildSettlementLines, type MeterKind, type MeterReading, type SettlementLine, type WaterAdvance, type WaterMeter } from "./settlement";
 
 /**
  * Vesimittareiden, lukemien, ennakoiden ja tasauslaskun muutokset.
@@ -446,7 +446,44 @@ export async function createWaterSettlement(
       ],
     );
   }
+  await recordSettlementConsumption(tx, { organizationId: settings.organization_id, companyId: opts.companyId, runId: run.id, userId: opts.userId, lines: result.lines });
   // Kierros suljetaan: lukemat on laskutettu. Ajon peruminen ei avaa sitä automaattisesti.
   await tx.query("update er_water_reading_rounds set status = 'closed' where id = $1", [opts.roundId]);
   return { runId: run.id, warnings };
+}
+
+/**
+ * Tasauksen kulutus kulutusseurantaan (0109): huoneistokohtainen rivi,
+ * jakso mittarilukemien päivistä, määrä ja hinta kulutusriveiltä
+ * (kylmä ja lämmin yhteensä). Käsin kirjattua riviä ei korvata.
+ */
+export async function recordSettlementConsumption(
+  tx: Sql,
+  opts: { organizationId: string; companyId: string; runId: string; userId: string; lines: SettlementLine[] },
+): Promise<number> {
+  const byGroup = new Map<string, { m3: number; cents: bigint; start: string; end: string }>();
+  for (const l of opts.lines) {
+    if (l.chargeType === "water_advance" || !l.meterId || !l.readingStart || !l.readingEnd) continue;
+    const cur = byGroup.get(l.shareGroupId) ?? { m3: 0, cents: 0n, start: l.readingStart.on, end: l.readingEnd.on };
+    cur.m3 += Number(l.quantity);
+    cur.cents += l.amountCents;
+    if (l.readingStart.on < cur.start) cur.start = l.readingStart.on;
+    if (l.readingEnd.on > cur.end) cur.end = l.readingEnd.on;
+    byGroup.set(l.shareGroupId, cur);
+  }
+  let written = 0;
+  for (const [groupId, c] of byGroup) {
+    if (c.end < c.start) continue;
+    const rows = await tx.query(
+      `insert into er_consumption_readings (organization_id, company_id, share_group_id, utility, period_start, period_end, amount, unit, cost_eur, source, billing_run_id, created_by)
+       values ($1,$2,$3,'water',$4,$5,$6,'m3',$7,'water_billing',$8,$9)
+       on conflict (share_group_id, utility, period_start, period_end) where share_group_id is not null
+       do update set amount = excluded.amount, cost_eur = excluded.cost_eur, billing_run_id = excluded.billing_run_id
+         where er_consumption_readings.source = 'water_billing'
+       returning id`,
+      [opts.organizationId, opts.companyId, groupId, c.start, c.end, c.m3.toFixed(3), centsToDecimal(c.cents < 0n ? 0n : c.cents), opts.runId, opts.userId],
+    );
+    written += rows.length;
+  }
+  return written;
 }

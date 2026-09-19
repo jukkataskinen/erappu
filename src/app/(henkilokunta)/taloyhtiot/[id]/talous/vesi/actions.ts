@@ -10,7 +10,9 @@ import { FinanceError } from "@/lib/finance/billing";
 import { isIsoDate } from "@/lib/finance/dates";
 import { isoDateHelsinki } from "@/lib/format";
 import { dispatchQueued } from "@/lib/messaging";
+import { parseReadingsCsv } from "@/lib/water/csv";
 import { queueReadingMessages } from "@/lib/water/notifications";
+import { listMeters } from "@/lib/water/queries";
 import {
   addMeter,
   createRound,
@@ -353,6 +355,40 @@ export async function saveReadingsAction(formData: FormData) {
   );
   revalidatePath(back);
   redirect(`${back}?tallennettu=${res.saved + res.removed}`);
+}
+
+const MAX_READING_CSV_BYTES = 1024 * 1024;
+
+/** Lukemat CSV-tiedostosta (etäluenta, huoltoyhtiön lukulista). Kaikki tai ei mitään: virheellinen rivi estää tuonnin. */
+export async function importReadingsCsvAction(formData: FormData) {
+  const companyId = companyFrom(formData);
+  const roundId = uuid.parse(formData.get("round_id"));
+  const back = `${base(companyId)}/lukemat/${roundId}`;
+  const ctx = await writer(companyId);
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) fail(back, "Valitse CSV-tiedosto.");
+  if (file.size > MAX_READING_CSV_BYTES) fail(back, "Tiedosto on liian suuri (enintään 1 Mt).");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.includes(0)) fail(back, "Tiedosto ei ole CSV-tekstitiedosto.");
+  let text = new TextDecoder("utf-8").decode(bytes);
+  if (text.includes("�")) text = new TextDecoder("windows-1252").decode(bytes);
+
+  const meters = await ctx.run((tx) => listMeters(tx, companyId));
+  const parsed = parseReadingsCsv(text, meters);
+  if (parsed.errors.length > 0) {
+    const more = parsed.errors.length > 3 ? ` (ja ${parsed.errors.length - 3} muuta)` : "";
+    fail(back, `Tuontia ei tehty. ${parsed.errors.slice(0, 3).join(" ")}${more}`);
+  }
+  if (parsed.readings.length === 0) fail(back, "Tiedostossa ei ollut lukemia.");
+  const res = await attempt(back, () =>
+    ctx.run(async (tx) => {
+      const r = await saveStaffReadings(tx, { companyId, roundId, userId: ctx.user.id, readings: parsed.readings, confirmed: formData.get("confirm_readings") === "on" });
+      await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "import", entity: "water_reading_round", entityId: roundId, details: { ...r, rows: parsed.rows } });
+      return r;
+    }),
+  );
+  revalidatePath(back);
+  redirect(`${back}?tallennettu=${res.saved}`);
 }
 
 export async function setRoundStatusAction(formData: FormData) {

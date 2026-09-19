@@ -11,10 +11,11 @@ import { parseScaled, scaledToDecimal } from "@/lib/finance/money";
 import { defaultSettlementPeriod } from "@/lib/water/mutations";
 import { ReadingChecks, ReadingConfirm, ReadingInput } from "@/components/water/ReadingChecks";
 import { issueText, readingIssues } from "@/lib/water/checks";
+import { roundPhotos } from "@/lib/water/photos";
 import { getRound, lastBilledReadings, listMeters, listRoundReadings, previousReadings } from "@/lib/water/queries";
 import { REMINDER_DAYS_BEFORE } from "@/lib/water/notifications";
 import { METER_KIND, meterSpan } from "@/lib/water/settlement";
-import { createSettlementAction, saveReadingsAction, sendReadingMessagesAction, setRoundStatusAction } from "../../actions";
+import { createSettlementAction, importReadingsCsvAction, saveReadingsAction, sendReadingMessagesAction, setRoundStatusAction } from "../../actions";
 
 export const metadata = { title: "Lukukierros" };
 
@@ -34,18 +35,19 @@ export default async function ReadingRoundPage({
   const data = await ctx.run(async (tx) => {
     const round = await getRound(tx, id, roundId);
     if (!round) return null;
-    const [meters, readings, lastBilled, period, settings, previous] = await Promise.all([
+    const [meters, readings, lastBilled, period, settings, previous, photos] = await Promise.all([
       listMeters(tx, id),
       listRoundReadings(tx, roundId),
       lastBilledReadings(tx, id, round.settlement_run_id ?? undefined),
       defaultSettlementPeriod(tx, id, round.read_on),
       getBillingSettings(tx, id),
       previousReadings(tx, id, round.read_on),
+      roundPhotos(tx, roundId),
     ]);
-    return { round, meters, readings, lastBilled, period, settings, previous };
+    return { round, meters, readings, lastBilled, period, settings, previous, photos };
   });
   if (!data) notFound();
-  const { round, meters, readings, lastBilled, period, settings, previous } = data;
+  const { round, meters, readings, lastBilled, period, settings, previous, photos } = data;
   const canWrite = ctx.can("owner", "manager", "assistant", "accountant");
   const locked = Boolean(round.settlement_run_id);
   const editable = canWrite && !locked;
@@ -177,6 +179,14 @@ export default async function ReadingRoundPage({
                                 <p className="mt-1 text-xs text-ink/55" title={formatDateTime(r.updated_at)}>
                                   {r.source === "portal" ? "portaalista" : "kirjattu"}
                                   {r.entered_by_name ? `, ${r.entered_by_name}` : ""}
+                                  {photos.get(r.id) ? (
+                                    <>
+                                      {" · "}
+                                      <a href={`/api/dokumentit/${photos.get(r.id)}`} target="_blank" rel="noreferrer" className="text-sky underline">
+                                        kuva
+                                      </a>
+                                    </>
+                                  ) : null}
                                 </p>
                               ) : null}
                               {r && previous.get(m.id) && readingIssues(previous.get(m.id)!.value, r.reading).length > 0 ? (
@@ -217,6 +227,27 @@ export default async function ReadingRoundPage({
         </Panel>
 
         <div className="grid content-start gap-6">
+          {editable && rows.length > 0 ? (
+            <Panel>
+              <SectionTitle>Tuo lukemat CSV-tiedostosta</SectionTitle>
+              <p className="mb-3 text-sm text-ink/65">
+                Etäluettavien mittareiden tai huoltoyhtiön lukulista. Otsikkorivillä sarakkeet mittari (numero) tai huoneisto ja tyyppi (kylmä/lämmin) sekä lukema.
+              </p>
+              <pre className="mb-3 overflow-x-auto rounded-lg bg-cloud p-2 text-xs">{"mittari;huoneisto;tyyppi;lukema\n12345678;A 1;kylmä;221,5"}</pre>
+              <form action={importReadingsCsvAction} className="grid gap-3">
+                {hidden}
+                <input type="file" name="file" accept=".csv,text/csv,text/plain" required className="text-sm" aria-label="CSV-tiedosto" />
+                <label className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" name="confirm_readings" className="mt-0.5 size-4" />
+                  Poikkeavat lukemat on tarkistettu (pienempi kuin edellinen tai kulutus alle 2 tai yli 500 m³)
+                </label>
+                <div>
+                  <Button variant="secondary">Tuo lukemat</Button>
+                </div>
+                <p className="text-xs text-ink/55">Virheellinen rivi estää koko tuonnin. Tuotu lukema korvaa kierroksen aiemman lukeman.</p>
+              </form>
+            </Panel>
+          ) : null}
           <Panel>
             <SectionTitle>Lukupyyntö asukkaille</SectionTitle>
             <DefinitionList
