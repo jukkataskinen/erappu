@@ -92,9 +92,9 @@ export default async function WaterPage({ params, searchParams }: { params: Prom
                 </thead>
                 <tbody>
                   {rounds.map((r) => (
-                    <tr key={r.id} className="hover:bg-cloud/50">
+                    <tr key={r.id} className="row-link hover:bg-cloud/50">
                       <Td>
-                        <Link href={`/taloyhtiot/${id}/talous/vesi/lukemat/${r.id}`} className="font-semibold hover:text-sky">
+                        <Link href={`/taloyhtiot/${id}/talous/vesi/lukemat/${r.id}`} className="row-link-main font-semibold hover:text-sky">
                           {formatDate(r.read_on)}
                         </Link>
                       </Td>

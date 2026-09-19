@@ -113,6 +113,7 @@ export interface LoanRow {
   interest_terms: string | null;
   undrawn_eur: string;
   allocated: boolean;
+  applies_to_kinds: string[] | null;
   purpose: string | null;
   source: string;
   loan_type: string | null;
@@ -129,7 +130,7 @@ export interface LoanRow {
 export async function listLoans(tx: Sql, companyId: string): Promise<LoanRow[]> {
   return tx.query<LoanRow>(
     `select l.id, l.name, l.lender, l.principal_eur::text, l.balance_eur::text, l.balance_date::text, l.drawn_on::text, l.due_on::text,
-            l.interest_terms, l.undrawn_eur::text, l.allocated, l.purpose, l.source,
+            l.interest_terms, l.undrawn_eur::text, l.allocated, l.applies_to_kinds, l.purpose, l.source,
             l.loan_type, l.reference_rate, l.margin_percent::text, l.interest_percent::text, l.undrawn_estimated_on::text,
             (select count(*)::int from er_loan_shares s where s.loan_id = l.id) as share_count,
             (select coalesce(sum(s.original_eur), 0)::text from er_loan_shares s where s.loan_id = l.id) as shares_original,

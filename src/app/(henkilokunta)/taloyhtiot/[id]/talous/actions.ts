@@ -22,7 +22,7 @@ import {
   savePaymentImport,
 } from "@/lib/finance/billing";
 import { fiDate, isIsoDate } from "@/lib/finance/dates";
-import { CHARGE_TYPE_TO_HTJ } from "@/lib/finance/labels";
+import { CHARGE_TYPE_TO_HTJ, UNIT_KIND } from "@/lib/finance/labels";
 import { matchPaymentRows } from "@/lib/finance/payment-import";
 import { addChargeBasis, recalculateLoanShares } from "@/lib/finance/registers";
 
@@ -172,14 +172,17 @@ export async function saveLoan(formData: FormData) {
   const d = parseForm(loanSchema, formData, back);
   if (d.balance_eur !== null && !d.balance_date) fail(back, "Anna saldon päivämäärä.");
   const org = await orgOf(ctx, companyId);
+  // Tyhjä valinta = laina koskee kaikkia osakeryhmiä.
+  const kinds = formData.getAll("applies_to_kinds").map(String).filter((k) => k in UNIT_KIND);
   const id = await ctx.run(async (tx) => {
     const values = [d.name, d.lender, d.principal_eur, d.undrawn_eur, d.balance_eur, d.balance_date, d.drawn_on, d.due_on, d.interest_terms, d.purpose, d.allocated,
-      d.loan_type, d.reference_rate, d.margin_percent, d.interest_percent, d.undrawn_estimated_on];
+      d.loan_type, d.reference_rate, d.margin_percent, d.interest_percent, d.undrawn_estimated_on, kinds.length ? kinds : null];
     let rowId = loanId;
     if (rowId) {
       const r = await tx.query(
         `update er_loans set name=$3, lender=$4, principal_eur=$5, undrawn_eur=$6, balance_eur=$7, balance_date=$8, drawn_on=$9, due_on=$10,
-            interest_terms=$11, purpose=$12, allocated=$13, loan_type=$14, reference_rate=$15, margin_percent=$16, interest_percent=$17, undrawn_estimated_on=$18
+            interest_terms=$11, purpose=$12, allocated=$13, loan_type=$14, reference_rate=$15, margin_percent=$16, interest_percent=$17, undrawn_estimated_on=$18,
+            applies_to_kinds=$19
           where id = $1 and company_id = $2 and source <> 'htj' returning id`,
         [rowId, companyId, ...values],
       );
@@ -187,8 +190,8 @@ export async function saveLoan(formData: FormData) {
     } else {
       const [row] = await tx.query<{ id: string }>(
         `insert into er_loans (organization_id, company_id, name, lender, principal_eur, undrawn_eur, balance_eur, balance_date, drawn_on, due_on,
-            interest_terms, purpose, allocated, loan_type, reference_rate, margin_percent, interest_percent, undrawn_estimated_on)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) returning id`,
+            interest_terms, purpose, allocated, loan_type, reference_rate, margin_percent, interest_percent, undrawn_estimated_on, applies_to_kinds)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) returning id`,
         [org, companyId, ...values],
       );
       rowId = row.id;

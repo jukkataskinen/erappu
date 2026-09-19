@@ -4,7 +4,7 @@ import { FormError } from "@/components/FormError";
 import { Badge, Button, Field, Input, LinkButton, Notice, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatEur, formatNumber } from "@/lib/format";
-import { decimalInput } from "@/lib/finance/labels";
+import { decimalInput, UNIT_KIND } from "@/lib/finance/labels";
 import { listLoans, listLoanShares, sumEur } from "@/lib/finance/queries";
 import { recalcLoanShares, saveLoan, updateLoanShare } from "../../actions";
 import { LoanTermsFields } from "../../LoanTermsFields";
@@ -87,6 +87,17 @@ export default async function LoanPage({ params, searchParams }: { params: Promi
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="allocated" defaultChecked={loan.allocated} disabled={!editable} /> Jaettava laina (lainaosuudet osakeryhmille)
             </label>
+            <fieldset>
+              <legend className="text-sm font-semibold">Osallistuvat huoneistotyypit</legend>
+              <p className="text-xs text-ink/55">Jätä kaikki valitsematta, jos laina jaetaan kaikille osakeryhmille. Laske osuudet uudelleen muutoksen jälkeen.</p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                {Object.entries(UNIT_KIND).map(([k, v]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="applies_to_kinds" value={k} defaultChecked={loan.applies_to_kinds?.includes(k) ?? false} disabled={!editable} /> {v}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             {editable ? (
               <div>
                 <Button variant="secondary">Tallenna</Button>

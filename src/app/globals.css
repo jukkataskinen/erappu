@@ -109,3 +109,19 @@ button:disabled:active,
     background: white;
   }
 }
+
+/* Koko taulukkorivi klikattavaksi: rivin päälinkki venytetään rivin yli,
+   muut linkit ja lomakkeen osat pysyvät sen päällä. */
+tr.row-link {
+  position: relative;
+  cursor: pointer;
+}
+tr.row-link .row-link-main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+tr.row-link :is(a, button, form, input, select, textarea):not(.row-link-main) {
+  position: relative;
+  z-index: 1;
+}

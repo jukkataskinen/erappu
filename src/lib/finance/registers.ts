@@ -55,14 +55,20 @@ export async function addChargeBasis(tx: Sql, input: NewChargeBasis): Promise<{ 
  * Kertasuorituksen tehneiden rivit jätetään ennalleen.
  */
 export async function recalculateLoanShares(tx: Sql, loanId: string, companyId: string, today: string): Promise<number> {
-  const [loan] = await tx.query<{ organization_id: string; principal_eur: string; balance_eur: string | null; balance_date: string | null }>(
-    "select organization_id, principal_eur::text, balance_eur::text, balance_date::text from er_loans where id = $1 and company_id = $2",
+  const [loan] = await tx.query<{ organization_id: string; principal_eur: string; balance_eur: string | null; balance_date: string | null; applies_to_kinds: string[] | null }>(
+    "select organization_id, principal_eur::text, balance_eur::text, balance_date::text, applies_to_kinds from er_loans where id = $1 and company_id = $2",
     [loanId, companyId],
   );
   if (!loan) throw new FinanceError("Lainaa ei löytynyt.");
+  // Laina voi koskea vain osaa huoneistotyypeistä (0103); muut eivät saa osuutta.
   const groups = await tx.query<{ id: string; unit_label: string; share_count: number }>(
-    "select id, unit_label, share_count from er_share_groups where company_id = $1 and removed_on is null and share_count > 0",
-    [companyId],
+    `select id, unit_label, share_count from er_share_groups
+      where company_id = $1 and removed_on is null and share_count > 0 and ($2::text[] is null or kind = any($2::text[]))`,
+    [companyId, loan.applies_to_kinds?.length ? loan.applies_to_kinds : null],
+  );
+  await tx.query(
+    "delete from er_loan_shares where loan_id = $1 and paid_off_on is null and not (share_group_id = any($2::uuid[]))",
+    [loanId, groups.map((g) => g.id)],
   );
   if (groups.length === 0) throw new FinanceError("Yhtiön osakeryhmiltä puuttuvat osakenumerot, joten osuuksia ei voi laskea.");
   const paidOff = new Set(

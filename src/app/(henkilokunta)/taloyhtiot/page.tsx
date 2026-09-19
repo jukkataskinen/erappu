@@ -38,9 +38,9 @@ export default async function CompaniesPage() {
             {companies.map((c) => {
               const sharesOk = !hasShareIssues(c);
               return (
-                <tr key={c.id} className="hover:bg-cloud/50">
+                <tr key={c.id} className="row-link hover:bg-cloud/50">
                   <Td>
-                    <Link href={`/taloyhtiot/${c.id}`} className="font-semibold hover:text-sky">
+                    <Link href={`/taloyhtiot/${c.id}`} className="row-link-main font-semibold hover:text-sky">
                       {c.name}
                     </Link>
                     <p className="text-xs text-ink/55">{c.business_id}</p>

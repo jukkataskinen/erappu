@@ -56,8 +56,8 @@ export async function loadStatementData(tx: Sql, companyId: string, endYear: num
   if (!c) return null;
   const period = fiscalPeriod(c.fiscal_year_start, endYear);
 
-  const loans = await tx.query<{ id: string; name: string; lender: string | null; due_on: string | null; allocated: boolean; principal_eur: string; drawn_on: string | null }>(
-    `select id, name, lender, due_on::text, allocated, principal_eur::text, drawn_on::text from er_loans
+  const loans = await tx.query<{ id: string; name: string; lender: string | null; due_on: string | null; allocated: boolean; principal_eur: string; drawn_on: string | null; applies_to_kinds: string[] | null }>(
+    `select id, name, lender, due_on::text, allocated, principal_eur::text, drawn_on::text, applies_to_kinds from er_loans
       where company_id = $1 and (drawn_on is null or drawn_on <= $2::date) order by name`,
     [companyId, period.end],
   );
@@ -70,8 +70,8 @@ export async function loadStatementData(tx: Sql, companyId: string, endYear: num
        from er_loan_periods where company_id = $1 and period_start <= $2::date`,
     [companyId, period.start],
   );
-  const groups = await tx.query<{ id: string; unit_label: string; share_count: number }>(
-    "select id, unit_label, share_count from er_share_groups where company_id = $1 and (removed_on is null or removed_on > $2::date)",
+  const groups = await tx.query<{ id: string; unit_label: string; share_count: number; kind: string }>(
+    "select id, unit_label, share_count, kind from er_share_groups where company_id = $1 and (removed_on is null or removed_on > $2::date)",
     [companyId, period.start],
   );
   const shares = await tx.query<{ loan_id: string; share_group_id: string; paid_off_on: string | null; paid_off_eur: string | null }>(
@@ -98,7 +98,7 @@ export async function loadStatementData(tx: Sql, companyId: string, endYear: num
           closingBalanceEur: current.closing_balance_eur, interestEur: current.interest_eur,
         }
       : { ...blank(), openingBalanceEur: prefill.opening ?? "0", lumpSumEur: prefill.lumpSum ?? "0" };
-    const holders: LoanShareHolder[] = groups.map((g) => {
+    const holders: LoanShareHolder[] = groups.filter((g) => !l.applies_to_kinds?.length || l.applies_to_kinds.includes(g.kind)).map((g) => {
       const s = own.find((x) => x.share_group_id === g.id);
       return { shareGroupId: g.id, unitLabel: g.unit_label, shareCount: g.share_count, paidOffOn: s?.paid_off_on ?? null, paidOffEur: s?.paid_off_eur ?? null };
     });

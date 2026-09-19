@@ -42,9 +42,9 @@ export default async function BatchesPage() {
           </thead>
           <tbody>
             {batches.map((b) => (
-              <tr key={b.id} className="hover:bg-cloud/50">
+              <tr key={b.id} className="row-link hover:bg-cloud/50">
                 <Td>
-                  <Link href={`/sopimukset/erat/${b.id}`} className="font-semibold hover:text-sky">{b.title}</Link>
+                  <Link href={`/sopimukset/erat/${b.id}`} className="row-link-main font-semibold hover:text-sky">{b.title}</Link>
                   <span className="block text-xs text-ink/55">{getTemplate(b.template_key)?.name ?? b.template_key}</span>
                 </Td>
                 <Td>{b.provider_name ?? <span className="text-ink/55">–</span>}</Td>

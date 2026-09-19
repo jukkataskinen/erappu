@@ -119,9 +119,9 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
                 </thead>
                 <tbody>
                   {runs.map((r) => (
-                    <tr key={r.id} className="hover:bg-cloud/50">
+                    <tr key={r.id} className="row-link hover:bg-cloud/50">
                       <Td>
-                        <Link href={`/taloyhtiot/${id}/talous/ajot/${r.id}`} className="font-semibold hover:text-sky">
+                        <Link href={`/taloyhtiot/${id}/talous/ajot/${r.id}`} className="row-link-main font-semibold hover:text-sky">
                           {r.kind === "water_settlement" ? `${formatDate(r.period_start)}–${formatDate(r.period_end)}` : `${Number(r.period_start.slice(5, 7))}/${r.period_start.slice(0, 4)}`}
                         </Link>
                         {r.kind === "water_settlement" ? <p className="text-xs text-ink/55">{RUN_KIND.water_settlement}</p> : null}
@@ -237,9 +237,9 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
                 </thead>
                 <tbody>
                   {units.map((u) => (
-                    <tr key={u.id} className="hover:bg-cloud/50">
+                    <tr key={u.id} className="row-link hover:bg-cloud/50">
                       <Td>
-                        <Link href={`/taloyhtiot/${id}/talous/huoneisto/${u.id}`} className="font-semibold hover:text-sky">
+                        <Link href={`/taloyhtiot/${id}/talous/huoneisto/${u.id}`} className="row-link-main font-semibold hover:text-sky">
                           {u.unit_label}
                         </Link>
                         <p className="text-xs text-ink/55">{UNIT_KIND[u.kind] ?? u.kind}</p>

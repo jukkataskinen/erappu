@@ -121,10 +121,10 @@ export default async function ServiceRequestsPage({ searchParams }: { searchPara
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-cloud/50">
+              <tr key={r.id} className="row-link hover:bg-cloud/50">
                 <Td className="tabular text-ink/60">#{r.number}</Td>
                 <Td>
-                  <Link href={`/huoltopyynnot/${r.id}`} className="font-semibold hover:text-sky">
+                  <Link href={`/huoltopyynnot/${r.id}`} className="row-link-main font-semibold hover:text-sky">
                     {r.title}
                   </Link>
                   <p className="text-xs text-ink/55">{CATEGORY_LABEL[r.category]}</p>

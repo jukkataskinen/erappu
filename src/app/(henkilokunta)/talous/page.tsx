@@ -44,9 +44,9 @@ export default async function FinanceOverviewPage() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-cloud/50">
+                <tr key={r.id} className="row-link hover:bg-cloud/50">
                   <Td>
-                    <Link href={`/taloyhtiot/${r.id}/talous`} className="font-semibold hover:text-sky">
+                    <Link href={`/taloyhtiot/${r.id}/talous`} className="row-link-main font-semibold hover:text-sky">
                       {r.name}
                     </Link>
                     {!r.hasSettings ? <p className="text-xs text-amber">Laskutusasetukset puuttuvat</p> : null}

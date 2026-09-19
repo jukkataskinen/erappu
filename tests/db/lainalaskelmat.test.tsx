@@ -112,4 +112,22 @@ describe("tilinpäätöksen laskelmat", () => {
     const pdf = await renderDocumentPdf(<LoanShareCalculation data={calc!} />);
     expect(pdf.sizeBytes).toBeGreaterThan(2000);
   });
+
+  it("laina voi koskea vain osaa huoneistotyypeistä; muiden osuudet poistuvat uudelleenlaskennassa", async () => {
+    const ids = await db.asService(async (tx) => {
+      const garage = (await one<{ id: string }>(tx, "insert into er_share_groups (organization_id, company_id, unit_label, share_count, kind) values ($1,$2,'AT 1',4,'garage') returning id", [f.orgA, f.companyA])).id;
+      const loan = (await one<{ id: string }>(tx, "insert into er_loans (organization_id, company_id, name, principal_eur) values ($1,$2,'Kattolaina',4000) returning id", [f.orgA, f.companyA])).id;
+      return { garage, loan };
+    });
+    await db.asUser(f.accountantA.sub, (tx) => recalculateLoanShares(tx, ids.loan, f.companyA, "2026-01-01"));
+    const count = async () => (await db.asUser(f.accountantA.sub, (tx) => tx.query<{ share_group_id: string }>("select share_group_id from er_loan_shares where loan_id = $1", [ids.loan]))).map((r) => r.share_group_id);
+    expect(await count()).toContain(ids.garage);
+    await db.asService((tx) => tx.query("update er_loans set applies_to_kinds = '{apartment}' where id = $1", [ids.loan]));
+    await db.asUser(f.accountantA.sub, (tx) => recalculateLoanShares(tx, ids.loan, f.companyA, "2026-01-01"));
+    const after = await count();
+    expect(after).not.toContain(ids.garage);
+    expect(after).toHaveLength(3);
+    const sum = await db.asUser(f.accountantA.sub, (tx) => one<{ s: string }>(tx, "select sum(original_eur)::text as s from er_loan_shares where loan_id = $1", [ids.loan]));
+    expect(sum.s).toBe("4000.00");
+  });
 });

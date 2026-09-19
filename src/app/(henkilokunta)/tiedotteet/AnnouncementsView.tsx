@@ -80,9 +80,9 @@ export async function AnnouncementsView({
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-cloud/50">
+              <tr key={r.id} className="row-link hover:bg-cloud/50">
                 <Td>
-                  <Link href={`/tiedotteet/${r.id}`} className="font-semibold hover:text-sky">
+                  <Link href={`/tiedotteet/${r.id}`} className="row-link-main font-semibold hover:text-sky">
                     {r.title}
                   </Link>
                   <p className="text-xs text-ink/55">{audienceText(r.audience_roles)}</p>

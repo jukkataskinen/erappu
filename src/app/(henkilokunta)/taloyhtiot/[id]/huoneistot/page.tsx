@@ -54,9 +54,9 @@ export default async function ShareGroupsPage({ params }: { params: Promise<{ id
           </thead>
           <tbody>
             {groups.map((g) => (
-              <tr key={g.id} className="hover:bg-cloud/50">
+              <tr key={g.id} className="row-link hover:bg-cloud/50">
                 <Td>
-                  <Link href={`/taloyhtiot/${id}/huoneistot/${g.id}`} className="font-semibold hover:text-sky">
+                  <Link href={`/taloyhtiot/${id}/huoneistot/${g.id}`} className="row-link-main font-semibold hover:text-sky">
                     {g.building_label ? `${g.building_label} ` : ""}
                     {g.unit_label}
                   </Link>

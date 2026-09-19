@@ -35,9 +35,9 @@ export default async function ProvidersPage({ searchParams }: { searchParams: Pr
               </thead>
               <tbody>
                 {providers.map((p) => (
-                  <tr key={p.id} className="hover:bg-cloud/50">
+                  <tr key={p.id} className="row-link hover:bg-cloud/50">
                     <Td>
-                      <Link href={`/palveluntuottajat/${p.id}`} className="font-semibold hover:text-sky">
+                      <Link href={`/palveluntuottajat/${p.id}`} className="row-link-main font-semibold hover:text-sky">
                         {p.name}
                       </Link>
                       {p.business_id ? <p className="text-xs text-ink/55">{p.business_id}</p> : null}
