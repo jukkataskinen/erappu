@@ -19,6 +19,7 @@
     "access:import": "tsx scripts/access/import-access.mts",
     "access:finance": "tsx scripts/access/import-finance.mts",
     "auth0:asetukset": "tsx scripts/auth0-asetukset.mts",
+    "htj:yhteystesti": "tsx scripts/htj-yhteystesti.mts",
     "deploy:migrate-org": "tsx scripts/deploy/migrate-org-to-production.mts"
   },
   "dependencies": {
