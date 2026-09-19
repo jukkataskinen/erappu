@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { Badge, EmptyState, LinkButton, Notice, Panel } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatEur } from "@/lib/format";
 import { CONTRACTOR_KIND_LABEL, workSummary, type ContractorKind } from "@/lib/maintenance/notice-form";
 import { listNoticeWorksFor, listPortalNotices, type NoticeRow, type NoticeWorkRow } from "@/lib/maintenance/queries";
 import { RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
@@ -57,6 +57,12 @@ function NoticeCard({ n, works, showCompany }: { n: NoticeRow; works: NoticeWork
         </div>
       ) : null}
       {n.supervisor ? <p className="mt-2 text-xs text-ink/60">Valvoja: {n.supervisor}</p> : null}
+      {n.supervision_cost_eur != null || n.supervision_cost_basis ? (
+        <p className="mt-1 text-xs text-ink/60">
+          {n.supervision_cost_eur != null ? `Valvonnan kustannusarvio ${formatEur(n.supervision_cost_eur)}, laskutetaan osakkaalta` : "Valvonnan kustannukset"}
+          {n.supervision_cost_basis ? `: ${n.supervision_cost_basis}` : ""}
+        </p>
+      ) : null}
       {n.decided_on || n.completed_on ? (
         <p className="mt-1 text-xs text-ink/60">
           {n.decided_on ? `Päätös ${formatDate(n.decided_on)}` : ""}

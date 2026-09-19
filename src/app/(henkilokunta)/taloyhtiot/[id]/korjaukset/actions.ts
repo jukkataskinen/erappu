@@ -142,6 +142,8 @@ const noticeSchema = z.object({
   status: z.enum(["received", "info_requested", "approved", "approved_with_conditions", "denied", "in_progress", "completed", "cancelled"]),
   conditions: optText(4000),
   supervisor: optText(200),
+  supervision_cost_eur: optMoney,
+  supervision_cost_basis: optText(500),
   decided_on: optDate,
   completed_on: optDate,
 });
@@ -155,7 +157,7 @@ export async function processRenovationNotice(formData: FormData) {
   const d = parseForm(noticeSchema, formData, back);
   await guarded(back, () =>
     ctx.run((tx) =>
-      processNotice(tx, { id, userId: ctx.user.id, today: isoDateHelsinki(), update: { status: d.status, conditions: d.conditions, supervisor: d.supervisor, decidedOn: d.decided_on, completedOn: d.completed_on } }),
+      processNotice(tx, { id, userId: ctx.user.id, today: isoDateHelsinki(), update: { status: d.status, conditions: d.conditions, supervisor: d.supervisor, supervisionCostEur: d.supervision_cost_eur, supervisionCostBasis: d.supervision_cost_basis, decidedOn: d.decided_on, completedOn: d.completed_on } }),
     ),
   );
   revalidatePath(page(companyId));

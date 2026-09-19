@@ -131,10 +131,10 @@ describe("muutostyöilmoitukset portaalissa", () => {
 
   it("valmistunut muutostyö siirtyy korjaushistoriaan osakkaan tekemänä", async () => {
     await db.asUser(f.managerA.sub, (tx) =>
-      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-09-15", update: { status: "approved_with_conditions", conditions: "Vedeneristys sertifioidulla tekijällä", supervisor: "Esimerkkivalvonta Oy", decidedOn: null, completedOn: null } }),
+      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-09-15", update: { status: "approved_with_conditions", conditions: "Vedeneristys sertifioidulla tekijällä", supervisor: "Esimerkkivalvonta Oy", supervisionCostEur: null, supervisionCostBasis: null, decidedOn: null, completedOn: null } }),
     );
     await db.asUser(f.managerA.sub, (tx) =>
-      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-11-20", update: { status: "completed", conditions: "Vedeneristys sertifioidulla tekijällä", supervisor: "Esimerkkivalvonta Oy", decidedOn: null, completedOn: "2026-11-20" } }),
+      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-11-20", update: { status: "completed", conditions: "Vedeneristys sertifioidulla tekijällä", supervisor: "Esimerkkivalvonta Oy", supervisionCostEur: null, supervisionCostBasis: null, decidedOn: null, completedOn: "2026-11-20" } }),
     );
     const [dates] = await db.asService((tx) => tx.query<{ decided_on: string; completed_on: string }>("select decided_on::text, completed_on::text from er_renovation_notices where id = $1", [noticeId]));
     expect(dates).toEqual({ decided_on: "2026-09-15", completed_on: "2026-11-20" });
@@ -152,7 +152,7 @@ describe("muutostyöilmoitukset portaalissa", () => {
 
   it("valmista ilmoitusta ei voi palauttaa käsittelyyn", async () => {
     await expect(
-      db.asUser(f.managerA.sub, (tx) => processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-11-21", update: { status: "received", conditions: null, supervisor: null, decidedOn: null, completedOn: null } })),
+      db.asUser(f.managerA.sub, (tx) => processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-11-21", update: { status: "received", conditions: null, supervisor: null, supervisionCostEur: null, supervisionCostBasis: null, decidedOn: null, completedOn: null } })),
     ).rejects.toThrow(/ei voi siirtyä/);
   });
 });

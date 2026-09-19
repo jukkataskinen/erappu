@@ -61,6 +61,9 @@ export interface RenovationUpdate {
   status: RenovationStatus;
   conditions: string | null;
   supervisor: string | null;
+  /** Valvonnan kustannusarvio osakkaalle (0105). */
+  supervisionCostEur: number | null;
+  supervisionCostBasis: string | null;
   decidedOn: string | null;
   completedOn: string | null;
 }
@@ -80,4 +83,17 @@ export function validateRenovationUpdate(from: RenovationStatus, u: RenovationUp
   if (u.status === "completed" && !value.completedOn) value.completedOn = today;
   if (value.decidedOn && value.completedOn && value.completedOn < value.decidedOn) return { error: "Valmistumispäivä ei voi olla ennen päätöspäivää." };
   return { value };
+}
+
+/** Valvonnan kuvaus osakkaan viestiin: valvoja ja kustannusarvio (0105). Tyhjä, jos kumpaakaan ei ole kirjattu. */
+export function supervisionText(u: Pick<RenovationUpdate, "supervisor" | "supervisionCostEur" | "supervisionCostBasis">): string {
+  const lines: string[] = [];
+  if (u.supervisor) lines.push(`Valvoja: ${u.supervisor}`);
+  if (u.supervisionCostEur != null) {
+    const eur = u.supervisionCostEur.toLocaleString("fi-FI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    lines.push(`Valvonnan kustannusarvio: ${eur} € (${u.supervisionCostBasis ?? "laskutetaan osakkaalta toteutuneen mukaan"})`);
+  } else if (u.supervisionCostBasis) {
+    lines.push(`Valvonnan kustannukset: ${u.supervisionCostBasis}`);
+  }
+  return lines.length ? `\n\n${lines.join("\n")}` : "";
 }

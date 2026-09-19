@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { queueMessage } from "@/lib/messaging";
 import { MAX_NOTICE_WORKS, type NoticeWorkInput } from "./notice-form";
-import { RENOVATION_STATUS_LABEL, validateRenovationUpdate, type RenovationStatus, type RenovationUpdate } from "./renovation";
+import { RENOVATION_STATUS_LABEL, supervisionText, validateRenovationUpdate, type RenovationStatus, type RenovationUpdate } from "./renovation";
 import { isKnownWorkType } from "./work-types";
 import type { NeedStatus } from "./labels";
 
@@ -130,9 +130,10 @@ export async function processNotice(tx: Sql, opts: { id: string; userId: string;
   }
 
   const rows = await tx.query(
-    `update er_renovation_notices set status = $2, conditions = $3, supervisor = $4, decided_on = $5, completed_on = $6, maintenance_work_id = $7
+    `update er_renovation_notices set status = $2, conditions = $3, supervisor = $4, decided_on = $5, completed_on = $6, maintenance_work_id = $7,
+            supervision_cost_eur = $8, supervision_cost_basis = $9
       where id = $1 returning id`,
-    [cur.id, u.status, u.conditions, u.supervisor, u.decidedOn, u.completedOn, workId],
+    [cur.id, u.status, u.conditions, u.supervisor, u.decidedOn, u.completedOn, workId, u.supervisionCostEur, u.supervisionCostBasis],
   );
   if (rows.length === 0) throw new MaintenanceError("Roolillasi ei voi käsitellä ilmoitusta.");
 
@@ -141,7 +142,7 @@ export async function processNotice(tx: Sql, opts: { id: string; userId: string;
   if (u.status !== cur.status && cur.submitted_by_party_id && cur.notify_email) {
     const [p] = await tx.query<{ email: string | null }>("select email from er_parties where id = $1", [cur.submitted_by_party_id]);
     if (p?.email) {
-      const extra = u.status === "approved_with_conditions" && u.conditions ? `\n\nEhdot:\n${u.conditions}` : "";
+      const extra = (u.status === "approved_with_conditions" && u.conditions ? `\n\nEhdot:\n${u.conditions}` : "") + supervisionText(u);
       await queueMessage(tx, {
         organizationId: cur.organization_id,
         recipient: p.email,

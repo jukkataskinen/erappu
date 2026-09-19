@@ -174,10 +174,20 @@ describe("muutostyöilmoituksen liitteet", () => {
 describe("muutostyön valmistuminen", () => {
   it("jokaisesta työrivistä tulee oma rivi korjaushistoriaan", async () => {
     await db.asUser(f.managerA.sub, (tx) =>
-      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-09-20", update: { status: "approved", conditions: null, supervisor: null, decidedOn: null, completedOn: null } }),
+      processNotice(tx, {
+        id: noticeId, userId: f.managerA.id, today: "2026-09-20",
+        update: { status: "approved", conditions: null, supervisor: "Esimerkkivalvonta Oy", supervisionCostEur: 240, supervisionCostBasis: "2 käyntiä à 120 € + alv", decidedOn: null, completedOn: null },
+      }),
     );
+    const [mail] = await db.asService((tx) =>
+      tx.query<{ body: string }>("select body from er_outbound_messages where subject_id = $1 order by created_at desc limit 1", [noticeId]),
+    );
+    expect(mail.body).toContain("Valvoja: Esimerkkivalvonta Oy");
+    expect(mail.body).toContain("Valvonnan kustannusarvio: 240,00 € (2 käyntiä à 120 € + alv)");
+    const [own] = (await db.asUser(r.users.owner.sub, (tx) => listPortalNotices(tx))).filter((n) => n.id === noticeId);
+    expect(own).toMatchObject({ supervision_cost_eur: 240, supervision_cost_basis: "2 käyntiä à 120 € + alv" });
     await db.asUser(f.managerA.sub, (tx) =>
-      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-11-20", update: { status: "completed", conditions: null, supervisor: null, decidedOn: null, completedOn: "2026-11-20" } }),
+      processNotice(tx, { id: noticeId, userId: f.managerA.id, today: "2026-11-20", update: { status: "completed", conditions: null, supervisor: null, supervisionCostEur: null, supervisionCostBasis: null, decidedOn: null, completedOn: "2026-11-20" } }),
     );
     const history = await db.asService((tx) =>
       tx.query<{ work_type: string; performed_by: string; source: string; completed_year: number }>(
@@ -215,7 +225,7 @@ describe("ilmoitustapa", () => {
       }),
     );
     await db.asUser(f.managerA.sub, (tx) =>
-      processNotice(tx, { id: submitted.id, userId: f.managerA.id, today: "2026-09-20", update: { status: "approved", conditions: null, supervisor: null, decidedOn: null, completedOn: null } }),
+      processNotice(tx, { id: submitted.id, userId: f.managerA.id, today: "2026-09-20", update: { status: "approved", conditions: null, supervisor: null, supervisionCostEur: null, supervisionCostBasis: null, decidedOn: null, completedOn: null } }),
     );
     const msgs = await db.asService((tx) =>
       tx.query<{ recipient: string }>("select recipient from er_outbound_messages where subject_id = $1", [submitted.id]),

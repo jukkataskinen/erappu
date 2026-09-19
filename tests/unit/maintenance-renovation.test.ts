@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { canTransition, nextStatuses, validateRenovationUpdate } from "@/lib/maintenance/renovation";
 import { isKnownWorkType, WORK_TYPE_LABELS } from "@/lib/maintenance/work-types";
 
-const base = { conditions: null, supervisor: null, decidedOn: null, completedOn: null };
+const base = { conditions: null, supervisor: null, supervisionCostEur: null, supervisionCostBasis: null, decidedOn: null, completedOn: null };
 
 describe("muutostyöilmoituksen käsittely", () => {
   it("sallitut siirtymät", () => {

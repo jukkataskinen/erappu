@@ -78,6 +78,8 @@ export interface NoticeRow {
   status: RenovationStatus;
   conditions: string | null;
   supervisor: string | null;
+  supervision_cost_eur: number | null;
+  supervision_cost_basis: string | null;
   decided_on: string | null;
   completed_on: string | null;
   maintenance_work_id: string | null;
@@ -100,7 +102,7 @@ export interface NoticeRow {
 
 const NOTICE_SELECT = `
   select n.id, n.company_id, c.name as company_name, n.share_group_id, g.unit_label, n.description, n.work_type,
-         n.planned_start::text, n.planned_end::text, n.status, n.conditions, n.supervisor, n.decided_on::text, n.completed_on::text,
+         n.planned_start::text, n.planned_end::text, n.status, n.conditions, n.supervisor, n.supervision_cost_eur::float8 as supervision_cost_eur, n.supervision_cost_basis, n.decided_on::text, n.completed_on::text,
          n.maintenance_work_id, p.display_name as submitted_by_name, n.submitted_by_user_id,
          n.guide_acknowledged_at::text, n.guide_document_id, n.notify_email, n.notify_sms,
          coalesce(w.work_count, 0) as work_count, w.work_types, w.works_start::text, w.works_end::text,

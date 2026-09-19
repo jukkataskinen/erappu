@@ -4,7 +4,7 @@ import { FormError } from "@/components/FormError";
 import { Badge, Button, DefinitionList, Field, Input, Notice, Panel, SectionTitle, Select, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatBytes } from "@/lib/documents/labels";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, formatEur } from "@/lib/format";
 import { CONTRACTOR_KIND_LABEL, type ContractorKind } from "@/lib/maintenance/notice-form";
 import { getNotice, listNoticeAttachments, listNoticeWorks } from "@/lib/maintenance/queries";
 import { nextStatuses, RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
@@ -56,6 +56,13 @@ export default async function NoticePage({ params, searchParams }: { params: Pro
               { label: "Päätös", value: formatDate(notice.decided_on) },
               { label: "Valmistui", value: formatDate(notice.completed_on) },
               { label: "Valvoja", value: notice.supervisor ?? "–" },
+              {
+                label: "Valvonnan kustannusarvio",
+                value:
+                  notice.supervision_cost_eur != null
+                    ? `${formatEur(notice.supervision_cost_eur)}${notice.supervision_cost_basis ? ` (${notice.supervision_cost_basis})` : ""}`
+                    : (notice.supervision_cost_basis ?? "–"),
+              },
               { label: "Korjaushistoriassa", value: notice.maintenance_work_id ? "Kyllä" : "Ei" },
               {
                 label: "Muutostyöohje kuitattu",
@@ -152,7 +159,7 @@ export default async function NoticePage({ params, searchParams }: { params: Pro
           <Panel>
             <SectionTitle>Käsittely</SectionTitle>
             <p className="mb-4 text-sm text-ink/65">
-              Yhtiö voi asettaa muutostyölle ehtoja ja valvoa työtä osakkaan kustannuksella (asunto-osakeyhtiölain 5 luku). Valmistunut työ kirjataan korjaushistoriaan osakkaan tekemänä.
+              Yhtiö voi asettaa muutostyölle ehtoja ja valvoa työtä osakkaan kustannuksella (asunto-osakeyhtiölain 5 luku). Valvoja ja kustannusarvio näkyvät osakkaalle portaalissa ja tilamuutosviestissä. Valmistunut työ kirjataan korjaushistoriaan osakkaan tekemänä.
             </p>
             <form action={processRenovationNotice} className="grid gap-4">
               <input type="hidden" name="company_id" value={id} />
@@ -169,9 +176,17 @@ export default async function NoticePage({ params, searchParams }: { params: Pro
               <Field label="Ehdot" htmlFor="conditions" hint="Pakollinen, kun hyväksytään ehdoin">
                 <Textarea id="conditions" name="conditions" maxLength={4000} defaultValue={notice.conditions ?? ""} />
               </Field>
-              <Field label="Valvoja" htmlFor="supervisor">
+              <Field label="Valvoja" htmlFor="supervisor" hint="Esimerkiksi palveluntuottaja tai valvojan nimi ja yhteystieto">
                 <Input id="supervisor" name="supervisor" maxLength={200} defaultValue={notice.supervisor ?? ""} />
               </Field>
+              <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+                <Field label="Valvonnan arvio, €" htmlFor="supervision_cost_eur">
+                  <Input id="supervision_cost_eur" name="supervision_cost_eur" inputMode="decimal" defaultValue={notice.supervision_cost_eur != null ? String(notice.supervision_cost_eur).replace(".", ",") : ""} />
+                </Field>
+                <Field label="Arvion peruste" htmlFor="supervision_cost_basis" hint="Näkyy osakkaalle, esim. 2 käyntiä à 120 € + alv">
+                  <Input id="supervision_cost_basis" name="supervision_cost_basis" maxLength={500} defaultValue={notice.supervision_cost_basis ?? ""} />
+                </Field>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Päätöspäivä" htmlFor="decided_on" hint="Tyhjä = tänään">
                   <Input id="decided_on" name="decided_on" type="date" defaultValue={notice.decided_on ?? ""} />
