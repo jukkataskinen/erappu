@@ -87,7 +87,15 @@ export async function publishAnnouncementAction(formData: FormData) {
   const back = `/tiedotteet/${id}`;
   const ctx = await publisher(back);
   const result = await ctx.run((tx) => publishAnnouncement(tx, { id, userId: ctx.user.id, appBaseUrl: process.env.APP_BASE_URL ?? null }));
-  if (!result.ok) fail(back, result.reason === "not_draft" ? "Tiedote on jo julkaistu." : "Tiedotetta ei löytynyt.");
+  if (!result.ok)
+    fail(
+      back,
+      result.reason === "not_draft"
+        ? "Tiedote on jo julkaistu."
+        : result.reason === "placeholders"
+          ? "Tiedotteessa on vielä täydentämättömiä [hakasulkeissa olevia] kohtia. Täydennä tai poista ne ennen julkaisua."
+          : "Tiedotetta ei löytynyt.",
+    );
 
   // Lähetys heti julkaisun jälkeen; jos se epäonnistuu, viestit jäävät jonoon ajastettua lähetystä varten.
   if (result.report.queued > 0) {

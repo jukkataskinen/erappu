@@ -2,6 +2,7 @@ import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { queueMessage } from "@/lib/messaging";
 import { composeAnnouncementEmail } from "./content";
+import { hasPlaceholders } from "./drafts";
 import { resolveRecipients } from "./recipients";
 
 export interface PublishReport {
@@ -11,7 +12,7 @@ export interface PublishReport {
   portalUserCount: number;
 }
 
-export type PublishResult = { ok: true; report: PublishReport } | { ok: false; reason: "not_found" | "not_draft" };
+export type PublishResult = { ok: true; report: PublishReport } | { ok: false; reason: "not_found" | "not_draft" | "placeholders" };
 
 /**
  * Julkaisee luonnoksen ja kirjaa sähköpostit jonoon samassa transaktiossa.
@@ -34,6 +35,9 @@ export async function publishAnnouncement(
   );
   if (!a) return { ok: false, reason: "not_found" };
   if (a.status !== "draft") return { ok: false, reason: "not_draft" };
+  // Valmiin pohjan täydentämättömät kohdat (src/lib/announcements/drafts.ts).
+  if (hasPlaceholders(`${a.title}
+${a.body}`)) return { ok: false, reason: "placeholders" };
 
   const recipients = await resolveRecipients(tx, { companyId: a.company_id, audienceRoles: a.audience_roles, buildingIds: a.building_ids });
   const sendEmail = a.channels.includes("email");

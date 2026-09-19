@@ -9,6 +9,7 @@ import { resolveRecipients } from "@/lib/announcements/recipients";
 import { composeAnnouncementEmail } from "@/lib/announcements/content";
 import { ANNOUNCEMENT_STATUS, CHANNEL_LABEL, audienceText } from "@/lib/announcements/labels";
 import { archiveAnnouncement, deleteDraft, publishAnnouncementAction } from "../actions";
+import { hasPlaceholders } from "@/lib/announcements/drafts";
 
 export const metadata = { title: "Tiedote" };
 
@@ -114,6 +115,14 @@ export default async function AnnouncementPage({ params, searchParams }: { param
                 <div className="mt-3">
                   <Notice tone="warn" title="Kohderyhmässä ei ole ketään">
                     Tarkista kohderyhmät ja rakennusrajaus sekä yhtiön osakas- ja asukastiedot.
+                  </Notice>
+                </div>
+              ) : null}
+              {hasPlaceholders(`${a.title}
+${a.body}`) ? (
+                <div className="mt-3">
+                  <Notice tone="warn" title="Täydennä hakasulkeissa olevat kohdat">
+                    Tiedotteessa on vielä pohjan täydennettäviä kohtia. Muokkaa luonnosta ennen julkaisua.
                   </Notice>
                 </div>
               ) : null}

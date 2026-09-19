@@ -279,6 +279,14 @@ describe("vastaanottajat ja julkaisu", () => {
     expect(denied).toEqual({ ok: false, reason: "not_found" });
   });
 
+  it("pohjan täydentämättömät kohdat estävät julkaisun", async () => {
+    const id = await announce({ status: "draft" });
+    await db.asService((tx) => tx.query("update er_announcements set body = 'Kevättalkoot pidetään [päivä].' where id = $1", [id]));
+    expect(await db.asUser(f.managerA.sub, (tx) => publishAnnouncement(tx, { id, userId: f.managerA.id }))).toEqual({ ok: false, reason: "placeholders" });
+    await db.asService((tx) => tx.query("update er_announcements set body = 'Kevättalkoot pidetään la 3.5.' where id = $1", [id]));
+    expect((await db.asUser(f.managerA.sub, (tx) => publishAnnouncement(tx, { id, userId: f.managerA.id }))).ok).toBe(true);
+  });
+
   it("portaalikanava ilman sähköpostia ei kirjaa viestejä", async () => {
     const id = await announce({ status: "draft", audience: ["resident"], channels: ["portal"] });
     const res = await db.asUser(f.managerA.sub, (tx) => publishAnnouncement(tx, { id, userId: f.managerA.id }));

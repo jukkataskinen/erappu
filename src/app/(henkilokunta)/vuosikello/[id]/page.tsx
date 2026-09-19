@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, DefinitionList, PageHeader, Panel } from "@/components/ui";
+import { Badge, Button, DefinitionList, LinkButton, Notice, PageHeader, Panel } from "@/components/ui";
+import { isDraftKey } from "@/lib/announcements/drafts";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { listCompanies, listStaff } from "@/lib/registry/queries";
@@ -58,6 +59,14 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
         </Panel>
       ) : (
         <div className="grid max-w-3xl gap-6">
+          {task.company_id && isDraftKey(task.template_key) ? (
+            <Notice tone="info" title="Tiedoteluonnos valmiina">
+              <p>Tehtävään on valmis tiedotepohja. Täydennä yhtiökohtaiset kohdat, tallenna luonnos ja julkaise, sitten kuittaa tehtävä.</p>
+              <p className="mt-3">
+                <LinkButton href={`/tiedotteet/uusi?yhtio=${task.company_id}&pohja=${task.template_key}`}>Laadi tiedote pohjasta</LinkButton>
+              </p>
+            </Notice>
+          ) : null}
           <TaskForm task={task} companies={companies} staff={staff} />
           <form action={deleteTaskAction}>
             <input type="hidden" name="id" value={task.id} />
