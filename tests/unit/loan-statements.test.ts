@@ -64,3 +64,16 @@ describe("jälkilaskelma", () => {
     expect(chargeUsageText(r, period).at(-1)).toBe("Rahoitusvastikkeet eivät riittäneet lainojen hoitoon; vaje 31.12.2025 on 500,00 €.");
   });
 });
+
+describe("kertasuorituksen arvio maksupäivälle", () => {
+  it("täydet kuukaudet ja tasalyhennys eräpäivään", async () => {
+    const { fullMonthsBetween, estimatedRemainingCents } = await import("@/lib/finance/loans");
+    expect(fullMonthsBetween("2025-12-31", "2026-02-28")).toBe(1);
+    expect(fullMonthsBetween("2025-12-31", "2026-03-31")).toBe(3);
+    expect(fullMonthsBetween("2026-01-15", "2026-01-10")).toBe(0);
+    // 22 666,66 € / 121 kk (joulukuu 2025 – joulukuu 2035) ≈ 187,33 € kuussa; kaksi täyttä kuukautta.
+    expect(estimatedRemainingCents(2266666n, "2025-12-31", "2026-03-15", "2035-12-31")).toEqual({ cents: 2266666n - 2n * 18733n, months: 2, estimated: true });
+    expect(estimatedRemainingCents(2266666n, "2025-12-31", "2025-12-31", "2035-12-31")).toEqual({ cents: 2266666n, months: 0, estimated: false });
+    expect(estimatedRemainingCents(2266666n, "2025-12-31", "2026-06-01", null).estimated).toBe(false);
+  });
+});

@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
-import { Badge, DefinitionList, LinkButton, Notice, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
+import { Badge, Button, DefinitionList, Field, Input, LinkButton, Notice, Panel, SectionTitle, Table, Td, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { formatDate, formatEur, formatFraction, formatNumber, isoDateHelsinki } from "@/lib/format";
 import { formatReference, rfReference } from "@/lib/validation/finnish";
 import { getBillingSettings, loadBillableGroups, loadChargeBases, loadOwnershipsForBilling } from "@/lib/finance/billing";
 import { chargesForGroup } from "@/lib/finance/charges";
-import { monthPeriod } from "@/lib/finance/dates";
+import { addDays, monthPeriod } from "@/lib/finance/dates";
+import { FormError } from "@/components/FormError";
+import { generateLoanShareCalculationAction } from "./actions";
 import { CHARGE_TYPE, RUN_STATUS, UNIT_KIND } from "@/lib/finance/labels";
 import { centsToDecimal } from "@/lib/finance/money";
 import { activeOn, primaryPayer } from "@/lib/finance/payers";
@@ -18,12 +20,13 @@ export const metadata = { title: "Huoneiston talous" };
  * Osakeryhmän talouserittely: vastikkeet, lainaosuudet ja maksutilanne.
  * Isännöitsijäntodistuksen talousosan lähde.
  */
-export default async function UnitFinancePage({ params }: { params: Promise<{ id: string; gid: string }> }) {
+export default async function UnitFinancePage({ params, searchParams }: { params: Promise<{ id: string; gid: string }>; searchParams: Promise<{ virhe?: string; laskelma?: string }> }) {
   const ctx = await requireStaff();
   const { id, gid } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(gid)) notFound();
   const company = await loadCompany(ctx, id);
   const today = isoDateHelsinki();
+  const { virhe, laskelma } = await searchParams;
 
   const data = await ctx.run(async (tx) => {
     const group = (await loadBillableGroups(tx, id, today)).find((g) => g.id === gid);
@@ -158,6 +161,45 @@ export default async function UnitFinancePage({ params }: { params: Promise<{ id
                 </tbody>
               </Table>
             )}
+            {loanShares.length > 0 && ctx.can("owner", "manager", "assistant", "accountant") ? (
+              <div id="lainaosuuslaskelma" className="mt-5 border-t border-line pt-4">
+                <p className="font-semibold">Lainaosuuslaskelma osakkaalle</p>
+                <p className="mb-3 text-sm text-ink/65">
+                  PDF huoneiston lainaosuuksista ja kertasuorituksen määrästä maksupäivänä maksuohjeineen, esimerkiksi kertasuoritusta tai asunnon myyntiä varten.
+                </p>
+                <FormError message={virhe} />
+                {laskelma && /^[0-9a-f-]{36}$/i.test(laskelma) ? (
+                  <div className="mb-3">
+                    <Notice tone="ok" title="Laskelma tallennettu huoneiston dokumentteihin">
+                      <a className="text-sky underline" href={`/api/dokumentit/${laskelma}`} target="_blank" rel="noreferrer">
+                        Avaa PDF
+                      </a>
+                    </Notice>
+                  </div>
+                ) : null}
+                <form action={generateLoanShareCalculationAction} className="grid gap-3">
+                  <input type="hidden" name="company_id" value={id} />
+                  <input type="hidden" name="share_group_id" value={gid} />
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Field label="Laskelman päivä" htmlFor="issued_on">
+                      <Input id="issued_on" name="issued_on" type="date" defaultValue={today} required />
+                    </Field>
+                    <Field label="Kertasuorituksen maksupäivä" htmlFor="pay_on">
+                      <Input id="pay_on" name="pay_on" type="date" defaultValue={addDays(today, 30)} required />
+                    </Field>
+                    <Field label="Käsittelymaksu (€)" htmlFor="fee_eur" hint="Valinnainen">
+                      <Input id="fee_eur" name="fee_eur" inputMode="decimal" />
+                    </Field>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="visible" /> Näytä osakkaalle portaalissa (huoneiston dokumentit)
+                  </label>
+                  <div>
+                    <Button variant="secondary">Laadi lainaosuuslaskelma</Button>
+                  </div>
+                </form>
+              </div>
+            ) : null}
           </Panel>
         </div>
 

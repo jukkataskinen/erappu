@@ -8,6 +8,8 @@ import { applyClosingBalances, loadStatementData, saveChargeStatement, saveLoanP
 import { buildLoanStatementsData } from "@/lib/finance/statement-document";
 import { renderDocumentPdf } from "@/documents/render";
 import { LoanStatements } from "@/documents/LoanStatements";
+import { LoanShareCalculation } from "@/documents/LoanShareCalculation";
+import { loadLoanShareCalculation } from "@/lib/finance/loan-share-calculation";
 
 let db: Database;
 let f: Fixture;
@@ -90,5 +92,24 @@ describe("tilinpäätöksen laskelmat", () => {
     // Toinen organisaatio ei näe laskelmia.
     expect(await db.asUser(f.managerB.sub, (tx) => tx.query("select id from er_loan_periods"))).toHaveLength(0);
     expect(await db.asUser(f.managerB.sub, (tx) => loadStatementData(tx, f.companyA, 2025))).toBeNull();
+  });
+
+  it("osakkaan lainaosuuslaskelma: osuus, arvio maksupäivälle, maksuohje ja kertasuorittaja", async () => {
+    await db.asService(async (tx) => {
+      await tx.query("update er_loans set due_on = '2035-12-31' where id = $1", [loanId]);
+      await tx.query("insert into er_company_billing_settings (organization_id, company_id, company_number, bank_iban) values ($1,$2,77,'FI2112345600000785')", [f.orgA, f.companyA]);
+      await tx.query("insert into er_billing_unit_numbers (organization_id, company_id, share_group_id, seq_no) values ($1,$2,$3,1)", [f.orgA, f.companyA, g["A 1"]]);
+    });
+    const calc = await db.asUser(f.accountantA.sub, (tx) => loadLoanShareCalculation(tx, f.companyA, g["A 1"], { issuedOn: "2026-02-15", payOn: "2026-03-15", feeEur: "50" }));
+    expect(calc!.loans).toHaveLength(1);
+    expect(calc!.loans[0]).toMatchObject({ original: "30 000,00 €", remaining: "22 666,66 €", balanceDate: "2025-12-31", estimated: true });
+    expect(calc!.fee).toBe("50,00 €");
+    expect(calc!.payment).toMatchObject({ iban: "FI21 1234 5600 0007 85" });
+    expect(calc!.payment!.reference!.replace(/\s/g, "")).toMatch(/^77/);
+    const paid = await db.asUser(f.accountantA.sub, (tx) => loadLoanShareCalculation(tx, f.companyA, g["A 2"], { issuedOn: "2026-02-15", payOn: "2026-03-15", feeEur: null }));
+    expect(paid!.loans[0].paidOff).toBe("Maksettu 15.6.2025, 24 500,00 €");
+    expect(paid!.total).toBe("0,00 €");
+    const pdf = await renderDocumentPdf(<LoanShareCalculation data={calc!} />);
+    expect(pdf.sizeBytes).toBeGreaterThan(2000);
   });
 });

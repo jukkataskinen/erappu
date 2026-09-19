@@ -60,3 +60,25 @@ export function remainingAfterPayment(remainingCents: bigint, paymentCents: bigi
   const r = remainingCents - paymentCents;
   return r < 0n ? 0n : r;
 }
+
+/** Täydet kuukaudet päivästä `from` päivään `to` (0, jos `to` ei ole myöhemmin). */
+export function fullMonthsBetween(from: string, to: string): number {
+  if (to <= from) return 0;
+  let months = (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + (Number(to.slice(5, 7)) - Number(from.slice(5, 7)));
+  if (Number(to.slice(8, 10)) < Number(from.slice(8, 10))) months -= 1;
+  return Math.max(0, months);
+}
+
+/**
+ * Arvio lainaosuudesta maksupäivänä: saldopäivän osuudesta vähennetään
+ * tasalyhennys jokaiselta täydeltä kuukaudelta ennen maksupäivää. Pankin
+ * maksuohjelmaa ei ole eRapussa, joten lopullinen kertasuoritus
+ * tarkistetaan maksupäivän saldosta.
+ */
+export function estimatedRemainingCents(remainingCents: bigint, balanceDate: string, payDate: string, loanDueOn: string | null): { cents: bigint; months: number; estimated: boolean } {
+  const months = fullMonthsBetween(balanceDate, payDate);
+  if (months === 0 || !loanDueOn || remainingCents <= 0n) return { cents: remainingCents, months: 0, estimated: false };
+  const monthly = financingChargeCents(remainingCents, balanceDate, loanDueOn);
+  const left = remainingCents - monthly * BigInt(months);
+  return { cents: left < 0n ? 0n : left, months, estimated: true };
+}
