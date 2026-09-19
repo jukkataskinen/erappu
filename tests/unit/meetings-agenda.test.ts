@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { annualGeneralAgenda, auditorElectionTitle, boardElectionTitle, type CompanyGovernance } from "@/lib/meetings/agenda";
+import { resolveGoverningAct } from "@/lib/meetings/governing-act";
 
 const base: CompanyGovernance = {
   boardMembersMin: 3, boardMembersMax: 3, boardDeputiesMin: 1, boardDeputiesMax: 1,
-  auditorKind: "operations_auditor", auditorsCount: 1, deputyAuditorsCount: 1, isHousingCompany: true,
+  auditorKind: "operations_auditor", auditorsCount: 1, deputyAuditorsCount: 1, act: "aoyl",
 };
 
 describe("varsinaisen yhtiökokouksen esityslista yhtiöjärjestyksen mukaan", () => {
@@ -35,7 +36,50 @@ describe("varsinaisen yhtiökokouksen esityslista yhtiöjärjestyksen mukaan", (
     expect(titles.indexOf("Päätetään vastuuvapauden myöntämisestä hallitukselle ja isännöitsijälle päättyneen vuoden tileistä ja hallinnosta.")).toBeLessThan(
       titles.indexOf("Päätetään tilikauden tuloksen käsittelystä."),
     );
-    const koy = annualGeneralAgenda({ ...base, isHousingCompany: false });
-    expect(koy.some((i) => i.title.includes("kunnossapitotarpeesta"))).toBe(false);
+  });
+
+  it("osakeyhtiölain alainen kiinteistöosakeyhtiö: OYL 5:3 §:n asiat, ei selvityksiä eikä äänileikkuria", () => {
+    const items = annualGeneralAgenda({ ...base, act: "oyl" }, { chairName: "Olavi Esimerkki" });
+    const titles = items.map((i) => i.title);
+    const text = JSON.stringify(items);
+    expect(titles.some((t) => t.includes("kunnossapitotarpeesta"))).toBe(false);
+    expect(text).not.toContain("AOYL");
+    expect(text).not.toContain("viidesosa");
+    expect(text).toContain("OYL 5:12 §");
+    expect(titles).toContain("Päätetään taseen osoittaman voiton käyttämisestä tai tappion käsittelystä.");
+    expect(titles).toContain("Päätetään vastuuvapauden myöntämisestä hallituksen jäsenille ja toimitusjohtajalle tai isännöitsijälle.");
+    expect(titles.indexOf("Päätetään tilinpäätöksen vahvistamisesta.")).toBeLessThan(titles.indexOf("Päätetään taseen osoittaman voiton käyttämisestä tai tappion käsittelystä."));
+    expect(titles[0]).toBe("Kokouksen avaus: hallituksen puheenjohtaja Olavi Esimerkki");
+    expect(titles.at(-1)).toBe("Kokouksen päättäminen");
+  });
+
+  it("sovellettava laki yhtiömuodosta ja valinnasta (AOYL 28:1 §)", () => {
+    expect(resolveGoverningAct("asunto_oy", null)).toBe("aoyl");
+    expect(resolveGoverningAct("koy", null)).toBe("aoyl");
+    expect(resolveGoverningAct("koy", "oyl")).toBe("oyl");
+    expect(resolveGoverningAct("other", null)).toBe("oyl");
+    expect(resolveGoverningAct("other", "aoyl")).toBe("aoyl");
+  });
+});
+
+describe("osakeyhtiölain alainen yhtiö muissa kokouksissa", () => {
+  it("vakiopohjan ääniluettelo ilman äänileikkuria, oma pohja ennallaan", async () => {
+    const { resolveAgenda } = await import("@/lib/meetings/templates");
+    const oyl = JSON.stringify(resolveAgenda("extraordinary_general", null, "oyl"));
+    expect(oyl).not.toContain("viidesosa");
+    expect(oyl).toContain("osakeyhtiölain mukaisesti");
+    expect(JSON.stringify(resolveAgenda("extraordinary_general", null))).toContain("asunto-osakeyhtiölain");
+    const custom = [{ title: "Oma", proposal: "Kukaan ei voi äänestää yli viidesosalla" }];
+    expect(resolveAgenda("extraordinary_general", custom, "oyl")).toEqual(custom);
+  });
+
+  it("äänileikkuri vain asunto-osakeyhtiölain alaisessa yhtiössä", async () => {
+    const { computeVotes } = await import("@/lib/meetings/votes");
+    const voters = [
+      { id: "a", shares: 800, present: true },
+      { id: "b", shares: 200, present: true },
+    ];
+    expect(computeVotes(voters).voters.find((v) => v.id === "a")?.capped).toBe(true);
+    expect(computeVotes(voters, { capFraction: null }).voters.find((v) => v.id === "a")?.votes).toBe(800);
   });
 });

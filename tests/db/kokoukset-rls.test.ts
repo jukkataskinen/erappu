@@ -271,3 +271,18 @@ describe("asian lisäys asialistalle", () => {
     expect(titles.slice(-4)).toEqual(["Muut asiat:", "Katon pinnoitus", "Sähköinen osakeluettelo", "Kokouksen päättäminen"]);
   });
 });
+
+describe("osakeyhtiölain alainen kiinteistöosakeyhtiö (0107)", () => {
+  it("varsinaisen yhtiökokouksen esityslista osakeyhtiölain mukaan", async () => {
+    await db.asService((tx) => tx.query("update er_housing_companies set company_form = 'koy', governing_act = 'oyl' where id = $1", [f.companyB]));
+    const meeting = await db.asUser(f.managerB.sub, (tx) =>
+      createMeeting(tx, { companyId: f.companyB, kind: "annual_general", startsAt: new Date(Date.now() + 30 * 86400000).toISOString(), location: "Toimisto", remoteParticipation: false, remoteUrl: null, fiscalYear: "2025", createdBy: f.managerB.id }),
+    );
+    const items = await db.asUser(f.managerB.sub, (tx) => listItems(tx, meeting!.id));
+    const text = JSON.stringify(items.map((i) => [i.title, i.proposal]));
+    expect(text).toContain("OYL 5:3 §");
+    expect(text).not.toContain("AOYL");
+    expect(items.some((i) => i.title.includes("kunnossapitotarpeesta"))).toBe(false);
+    await db.asService((tx) => tx.query("update er_housing_companies set company_form = 'asunto_oy', governing_act = null where id = $1", [f.companyB]));
+  });
+});

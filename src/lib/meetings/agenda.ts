@@ -1,3 +1,4 @@
+import type { GoverningAct } from "./governing-act";
 import type { AgendaItemTemplate } from "./templates";
 
 /**
@@ -6,6 +7,11 @@ import type { AgendaItemTemplate } from "./templates";
  * (As Oy Paikkalantorpat 2025), täydennettynä laissa esitettäväksi
  * vaadituilla hallituksen selvityksillä. Hallituksen ja tarkastajien määrät
  * vaihtelevat yhtiöittäin (0097).
+ *
+ * Osakeyhtiölain alainen kiinteistöosakeyhtiö (0107): OYL 5:3 §:n
+ * pakolliset asiat, ei kunnossapitoselvityksiä eikä äänileikkuria
+ * (OYL 5:12 §: koko äänimäärä, jollei yhtiöjärjestyksessä toisin määrätä).
+ * Pykälät tarkistettu Finlexin avoimesta datasta 19.9.2026.
  */
 
 export type AuditorKind = "operations_auditor" | "auditor" | "optional";
@@ -18,8 +24,8 @@ export interface CompanyGovernance {
   auditorKind: AuditorKind | null;
   auditorsCount: number | null;
   deputyAuditorsCount: number | null;
-  /** Kiinteistöosakeyhtiö: kunnossapitotarveselvitys ei ole lakisääteinen (osakeyhtiölaki). */
-  isHousingCompany: boolean;
+  /** Sovellettava laki. OYL: ei kunnossapitoselvityksiä eikä äänileikkuria. */
+  act: GoverningAct;
 }
 
 const WORDS = ["nolla", "yksi", "kaksi", "kolme", "neljä", "viisi", "kuusi", "seitsemän", "kahdeksan", "yhdeksän", "kymmenen"];
@@ -95,6 +101,7 @@ function feeTitle(g: CompanyGovernance): string {
  * Muut asiat -kohtaan isännöitsijä lisää kokouskohtaiset asiat.
  */
 export function annualGeneralAgenda(g: CompanyGovernance, opts: { chairName?: string | null } = {}): AgendaItemTemplate[] {
+  if (g.act === "oyl") return oylAgenda(g, opts);
   const items: AgendaItemTemplate[] = [
     {
       title: opts.chairName ? `Kokouksen avaus: hallituksen puheenjohtaja ${opts.chairName}` : "Kokouksen avaus",
@@ -111,13 +118,11 @@ export function annualGeneralAgenda(g: CompanyGovernance, opts: { chairName?: st
       title: `Käsitellään päättyneen vuoden tilinpäätös ja toimintakertomus sekä ${reportName(g)}.`,
       proposal: "",
     },
-  ];
-  if (g.isHousingCompany) {
-    items.push({
+    {
       title: "Käsitellään hallituksen selvitykset kunnossapitotarpeesta ja yhtiössä tehdyistä kunnossapito- ja muutostöistä.",
       proposal: "Esitetään hallituksen kirjallinen selvitys kunnossapitotarpeesta seuraavan viiden vuoden aikana sekä selvitys yhtiössä suoritetuista huomattavista kunnossapito- ja muutostöistä ja niiden tekoajankohdista (AOYL 6:3 §).",
-    });
-  }
+    },
+  ];
   items.push(
     { title: "Päätetään tilinpäätöksen vahvistamisesta.", proposal: "" },
     { title: "Päätetään vastuuvapauden myöntämisestä hallitukselle ja isännöitsijälle päättyneen vuoden tileistä ja hallinnosta.", proposal: "" },
@@ -130,4 +135,32 @@ export function annualGeneralAgenda(g: CompanyGovernance, opts: { chairName?: st
     { title: "Kokouksen päättäminen", proposal: "" },
   );
   return items;
+}
+
+/** Osakeyhtiölain mukainen varsinainen yhtiökokous (OYL 5:3 §). */
+function oylAgenda(g: CompanyGovernance, opts: { chairName?: string | null }): AgendaItemTemplate[] {
+  return [
+    {
+      title: opts.chairName ? `Kokouksen avaus: hallituksen puheenjohtaja ${opts.chairName}` : "Kokouksen avaus",
+      proposal: "Kokouksen avaa kokouksen koolle kutsuneen hallituksen nimeämä henkilö (OYL 5:23 §).",
+    },
+    { title: "Valitaan kokoukselle puheenjohtaja ja sihteeri.", proposal: "Yhtiökokous valitsee puheenjohtajan, jollei yhtiöjärjestyksessä määrätä toisin (OYL 5:23 §)." },
+    {
+      title: "Todetaan kokouksen läsnäolijat ja vahvistetaan ääniluettelo.",
+      proposal:
+        "Laaditaan luettelo läsnä olevista osakkeenomistajista, asiamiehistä ja avustajista sekä osakkeenomistajien osake- ja äänimääristä (OYL 5:23 §). Jokainen saa äänestää edustamiensa osakkeiden koko äänimäärällä, jollei yhtiöjärjestyksessä määrätä toisin (OYL 5:12 §).",
+    },
+    { title: "Todetaan kokouksen laillisuus ja päätösvaltaisuus.", proposal: "" },
+    { title: "Valitaan pöytäkirjantarkastajat.", proposal: "Valitaan pöytäkirjantarkastaja, joka allekirjoittaa pöytäkirjan puheenjohtajan kanssa (OYL 5:23 §), ja tarvittaessa ääntenlaskijat." },
+    { title: `Käsitellään päättyneen tilikauden tilinpäätös ja toimintakertomus sekä ${reportName(g)}.`, proposal: "" },
+    { title: "Päätetään tilinpäätöksen vahvistamisesta.", proposal: "OYL 5:3 § 1 kohta." },
+    { title: "Päätetään taseen osoittaman voiton käyttämisestä tai tappion käsittelystä.", proposal: "OYL 5:3 § 2 kohta." },
+    { title: "Päätetään vastuuvapauden myöntämisestä hallituksen jäsenille ja toimitusjohtajalle tai isännöitsijälle.", proposal: "OYL 5:3 § 3 kohta." },
+    { title: "Käsitellään kuluvan tilikauden talousarvio ja päätetään yhtiövastikkeesta yhtiöjärjestyksen mukaisesti.", proposal: "" },
+    { title: feeTitle(g), proposal: "" },
+    { title: boardElectionTitle(g), proposal: "Hallituksen jäsenten valinnasta päätetään, jollei yhtiöjärjestyksessä määrätä toimikaudesta toisin (OYL 5:3 § 4 kohta)." },
+    { title: auditorElectionTitle(g), proposal: "" },
+    { title: "Muut asiat:", proposal: "Kokouskutsussa mainitut ja yhtiöjärjestyksen mukaan käsiteltävät asiat. Muista asioista ei voida tehdä päätöksiä (OYL 5:11 §)." },
+    { title: "Kokouksen päättäminen", proposal: "" },
+  ];
 }

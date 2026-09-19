@@ -1,3 +1,4 @@
+import type { GoverningAct } from "./governing-act";
 import type { MeetingKind } from "./labels";
 
 /**
@@ -150,10 +151,23 @@ export const DEFAULT_AGENDA_TEMPLATES: Record<MeetingKind, AgendaTemplate> = {
   },
 };
 
-/** Pohja: organisaation oma, jos sellainen on, muuten vakio. */
-export function resolveAgenda(kind: MeetingKind, custom?: AgendaItemTemplate[] | null): AgendaItemTemplate[] {
-  const source = custom && custom.length > 0 ? custom : DEFAULT_AGENDA_TEMPLATES[kind].items;
-  return source.map((i) => ({ title: i.title.trim(), proposal: (i.proposal ?? "").trim() })).filter((i) => i.title);
+/**
+ * Osakeyhtiölain alainen yhtiö (0107): vakiopohjan ääniluettelo ilman
+ * äänileikkuria (OYL 5:12 §) ja laillisuus osakeyhtiölain mukaan.
+ */
+const OYL_PROPOSALS: Record<string, string> = {
+  [ATTENDANCE.title]:
+    "Todetaan läsnä ja edustettuina olevat osakkaat, tarkastetaan valtakirjat ja vahvistetaan ääniluettelo. Jokainen saa äänestää edustamiensa osakkeiden koko äänimäärällä, jollei yhtiöjärjestyksessä määrätä toisin (OYL 5:12 §).",
+  [LEGALITY.title]: "Todetaan, että kokous on kutsuttu koolle yhtiöjärjestyksen ja osakeyhtiölain mukaisesti ja on laillinen ja päätösvaltainen.",
+};
+
+/** Pohja: organisaation oma, jos sellainen on, muuten vakio (OYL-yhtiölle vakiopohjan tekstit osakeyhtiölain mukaan). */
+export function resolveAgenda(kind: MeetingKind, custom?: AgendaItemTemplate[] | null, act: GoverningAct = "aoyl"): AgendaItemTemplate[] {
+  const useDefault = !(custom && custom.length > 0);
+  const source = useDefault ? DEFAULT_AGENDA_TEMPLATES[kind].items : custom;
+  return source
+    .map((i) => ({ title: i.title.trim(), proposal: (useDefault && act === "oyl" ? (OYL_PROPOSALS[i.title] ?? i.proposal) : (i.proposal ?? "")).trim() }))
+    .filter((i) => i.title);
 }
 
 /**

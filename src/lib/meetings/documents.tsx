@@ -11,6 +11,7 @@ import { MeetingNotice, type MeetingDocumentBase } from "@/documents/MeetingNoti
 import { Minutes } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
 import { attendanceStatement, computeVotes } from "./votes";
+import { resolveGoverningAct, type GoverningAct } from "./governing-act";
 import { isGeneralMeeting, MEETING_KIND } from "./labels";
 import { getMeeting, listAttendees, listItems, type AttendeeRow, type MeetingRow } from "./queries";
 
@@ -38,6 +39,7 @@ interface LoadedMeeting {
   base: MeetingDocumentBase;
   attendees: AttendeeRow[];
   totalShares: number | null;
+  act: GoverningAct;
 }
 
 export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promise<LoadedMeeting | null> {
@@ -45,9 +47,9 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
   if (!meeting) return null;
   const [company] = await tx.query<{
     name: string; business_id: string; street_address: string | null; postal_code: string | null; city: string | null;
-    total_shares: number | null; org_name: string; manager_name: string | null; manager_email: string | null; manager_phone: string | null;
+    total_shares: number | null; company_form: string; governing_act: string | null; org_name: string; manager_name: string | null; manager_email: string | null; manager_phone: string | null;
   }>(
-    `select c.name, c.business_id, c.street_address, c.postal_code, c.city, c.total_shares, o.name as org_name,
+    `select c.name, c.business_id, c.street_address, c.postal_code, c.city, c.total_shares, c.company_form, c.governing_act, o.name as org_name,
             coalesce(u.full_name, u.email) as manager_name, u.email as manager_email, u.phone as manager_phone
        from er_housing_companies c
        join er_organizations o on o.id = c.organization_id
@@ -57,12 +59,15 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
   );
   if (!company) return null;
   const [items, attendees] = await Promise.all([listItems(tx, meetingId), listAttendees(tx, meetingId)]);
+  const act = resolveGoverningAct(company.company_form, company.governing_act);
   const address = [company.street_address, [company.postal_code, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null;
   return {
     meeting,
     attendees,
     totalShares: company.total_shares,
+    act,
     base: {
+      governingAct: act,
       organizationName: company.org_name,
       companyName: company.name,
       companyBusinessId: company.business_id,
@@ -80,8 +85,12 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
   };
 }
 
-export function buildVoteSummary(attendees: AttendeeRow[]) {
-  return computeVotes(attendees.map((a) => ({ id: a.id, shares: a.shares, present: a.present })));
+/** OYL 5:12 §: ei äänileikkuria, jollei yhtiöjärjestyksessä määrätä toisin. AOYL 6:13 §: viidesosa. */
+export function buildVoteSummary(attendees: AttendeeRow[], act: GoverningAct = "aoyl") {
+  return computeVotes(
+    attendees.map((a) => ({ id: a.id, shares: a.shares, present: a.present })),
+    act === "oyl" ? { capFraction: null } : {},
+  );
 }
 
 export async function renderMeetingDocument(loaded: LoadedMeeting, kind: MeetingDocumentKind) {
@@ -102,7 +111,7 @@ export async function renderMeetingDocument(loaded: LoadedMeeting, kind: Meeting
     );
   }
   if (kind === "minutes") {
-    const summary = buildVoteSummary(attendees);
+    const summary = buildVoteSummary(attendees, loaded.act);
     const voteById = new Map(summary.voters.map((v) => [v.id, v]));
     const present = attendees.filter((a) => a.present);
     const fi = (n: number) => n.toLocaleString("fi-FI").replace(/\u00a0/g, " ");
@@ -143,7 +152,7 @@ export async function renderMeetingDocument(loaded: LoadedMeeting, kind: Meeting
       />,
     );
   }
-  const summary = buildVoteSummary(attendees);
+  const summary = buildVoteSummary(attendees, loaded.act);
   const byId = new Map(summary.voters.map((v) => [v.id, v]));
   return renderDocumentPdf(
     <VotingList

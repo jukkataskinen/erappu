@@ -6,6 +6,7 @@
  * kertoo kuka allekirjoittaa.
  */
 
+import { cite } from "@/lib/meetings/governing-act";
 import { Page, Text, View } from "@react-pdf/renderer";
 import { DataTable, DocumentFooter, DocumentHeader, DocumentRoot, Heading, KeyValues, Muted, Paragraph, Signatures, pageStyle } from "./components";
 import { formatDate, formatInteger, formatMeetingTime, orDash } from "./format";
@@ -120,7 +121,7 @@ export function Minutes({ data }: { data: MinutesData }) {
           <DocumentHeader right={[data.companyName, data.companyBusinessId].filter(Boolean).join(" · ")} />
           <Text style={{ fontSize: typeScale.title, fontWeight: weight.bold, lineHeight: 1.25 }}>Liite: ääniluettelo</Text>
           <Muted style={{ marginTop: 3 }}>
-            {TITLE[data.kind]} {formatDate(data.startsAt)} · läsnä ja valtakirjalla edustetut osakkaat (AOYL 6:23 §)
+            {TITLE[data.kind]} {formatDate(data.startsAt)} · läsnä ja valtakirjalla edustetut osakkaat ({cite(data.governingAct ?? "aoyl", "6:23", "5:23")})
           </Muted>
           <View style={{ marginTop: 10 }}>
             <DataTable

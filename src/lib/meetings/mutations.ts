@@ -4,6 +4,7 @@ import { insertTask } from "@/lib/tasks/queries";
 import { groupOwnersForVoting, type OwnershipInput } from "./attendees";
 import { isGeneralMeeting, MEETING_KIND, type MeetingKind } from "./labels";
 import { annualGeneralAgenda, type AuditorKind } from "./agenda";
+import { resolveGoverningAct } from "./governing-act";
 import { resolveAgenda, type AgendaItemTemplate } from "./templates";
 
 /**
@@ -23,7 +24,10 @@ export interface NewMeeting {
 }
 
 export async function createMeeting(tx: Sql, m: NewMeeting): Promise<{ id: string; organizationId: string } | null> {
-  const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [m.companyId]);
+  const [company] = await tx.query<{ organization_id: string; company_form: string; governing_act: string | null }>(
+    "select organization_id, company_form, governing_act from er_housing_companies where id = $1",
+    [m.companyId],
+  );
   if (!company) return null;
   const [row] = await tx.query<{ id: string }>(
     `insert into er_meetings (organization_id, company_id, kind, starts_at, location, remote_participation, remote_url, fiscal_year, created_by)
@@ -39,7 +43,7 @@ export async function createMeeting(tx: Sql, m: NewMeeting): Promise<{ id: strin
   // yhtiön yhtiöjärjestyksen hallitus- ja tarkastajamääristä (0097).
   const items = m.kind === "annual_general" && !(custom?.items?.length)
     ? await companyAnnualAgenda(tx, m.companyId)
-    : resolveAgenda(m.kind, custom?.items);
+    : resolveAgenda(m.kind, custom?.items, resolveGoverningAct(company.company_form, company.governing_act));
   for (const [index, item] of items.entries()) {
     await tx.query("insert into er_meeting_items (organization_id, meeting_id, position, title, proposal) values ($1,$2,$3,$4,$5)", [
       company.organization_id, row.id, index + 1, item.title, item.proposal || null,
@@ -50,10 +54,10 @@ export async function createMeeting(tx: Sql, m: NewMeeting): Promise<{ id: strin
 
 async function companyAnnualAgenda(tx: Sql, companyId: string): Promise<AgendaItemTemplate[]> {
   const [c] = await tx.query<{
-    company_form: string; board_members_min: number | null; board_members_max: number | null; board_deputies_min: number | null; board_deputies_max: number | null;
+    company_form: string; governing_act: string | null; board_members_min: number | null; board_members_max: number | null; board_deputies_min: number | null; board_deputies_max: number | null;
     auditor_kind: AuditorKind | null; auditors_count: number | null; deputy_auditors_count: number | null; chair_name: string | null;
   }>(
-    `select c.company_form, c.board_members_min, c.board_members_max, c.board_deputies_min, c.board_deputies_max, c.auditor_kind, c.auditors_count,
+    `select c.company_form, c.governing_act, c.board_members_min, c.board_members_max, c.board_deputies_min, c.board_deputies_max, c.auditor_kind, c.auditors_count,
             c.deputy_auditors_count,
             (select p.display_name from er_board_memberships b join er_parties p on p.id = b.party_id
               where b.company_id = c.id and b.role = 'chair' and b.starts_on <= current_date and (b.ends_on is null or b.ends_on >= current_date)
@@ -64,7 +68,7 @@ async function companyAnnualAgenda(tx: Sql, companyId: string): Promise<AgendaIt
   return annualGeneralAgenda(
     {
       boardMembersMin: c.board_members_min, boardMembersMax: c.board_members_max, boardDeputiesMin: c.board_deputies_min, boardDeputiesMax: c.board_deputies_max,
-      auditorKind: c.auditor_kind, auditorsCount: c.auditors_count, deputyAuditorsCount: c.deputy_auditors_count, isHousingCompany: c.company_form !== "koy",
+      auditorKind: c.auditor_kind, auditorsCount: c.auditors_count, deputyAuditorsCount: c.deputy_auditors_count, act: resolveGoverningAct(c.company_form, c.governing_act),
     },
     { chairName: c.chair_name },
   );

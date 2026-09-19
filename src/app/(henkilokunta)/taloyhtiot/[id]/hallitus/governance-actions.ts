@@ -20,6 +20,7 @@ const schema = z
     auditor_kind: z.preprocess((v) => (v === "" ? null : v), z.enum(["operations_auditor", "auditor", "optional"]).nullable()),
     auditors_count: count(5),
     deputy_auditors_count: count(5),
+    governing_act: z.preprocess((v) => (v === "" || v === undefined ? null : v), z.enum(["aoyl", "oyl"]).nullable()),
     governance_source: z.preprocess((v) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null), z.string().max(300).nullable()),
   })
   .refine((d) => d.board_members_min === null || d.board_members_min >= 1, "Hallituksessa on oltava vähintään yksi varsinainen jäsen.")
@@ -41,9 +42,9 @@ export async function saveGovernance(formData: FormData) {
   const rows = await ctx.run(async (tx) => {
     const r = await tx.query(
       `update er_housing_companies set board_members_min = $2, board_members_max = $3, board_deputies_min = $4, board_deputies_max = $5, auditor_kind = $6,
-              auditors_count = $7, deputy_auditors_count = $8, governance_source = $9
+              auditors_count = $7, deputy_auditors_count = $8, governance_source = $9, governing_act = $10
         where id = $1 returning id`,
-      [d.company_id, d.board_members_min, membersMax, d.board_deputies_min, deputiesMax, d.auditor_kind, d.auditors_count, d.deputy_auditors_count, d.governance_source],
+      [d.company_id, d.board_members_min, membersMax, d.board_deputies_min, deputiesMax, d.auditor_kind, d.auditors_count, d.deputy_auditors_count, d.governance_source, d.governing_act],
     );
     if (r.length) {
       await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "update", entity: "housing_company", entityId: d.company_id, details: { governance: true } });

@@ -53,6 +53,8 @@ export interface Company {
   name: string;
   business_id: string;
   company_form: "asunto_oy" | "koy" | "other";
+  /** Sovellettava laki (0107); tyhjä = yhtiömuodon mukaan. */
+  governing_act: string | null;
   street_address: string | null;
   postal_code: string | null;
   city: string | null;

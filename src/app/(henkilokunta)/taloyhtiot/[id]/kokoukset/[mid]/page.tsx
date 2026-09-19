@@ -7,6 +7,7 @@ import { requireStaff } from "@/lib/auth/current-user";
 import { canSimulateSigning, isUsingMockEsinetti } from "@/lib/esinetti";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { buildVoteSummary } from "@/lib/meetings/documents";
+import { resolveGoverningAct } from "@/lib/meetings/governing-act";
 import { isGeneralMeeting, MEETING_KIND, MEETING_STATUS, MEETING_STATUS_TONE, SIGNING_STATUS } from "@/lib/meetings/labels";
 import { splitNoticeRecipients } from "@/lib/meetings/notice";
 import { getMeeting, listAttendees, listItems, listMeetingDocuments, listSigningRounds } from "@/lib/meetings/queries";
@@ -86,10 +87,12 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const general = isGeneralMeeting(meeting.kind);
   const canWrite = ctx.can("owner", "manager", "assistant");
   const local = isoToHelsinkiLocal(meeting.starts_at);
-  const summary = buildVoteSummary(attendees);
+  const act = resolveGoverningAct(company.company_form, company.governing_act);
+  const summary = buildVoteSummary(attendees, act);
   const votesById = new Map(summary.voters.map((v) => [v.id, v]));
   const recipients = splitNoticeRecipients(parties, general);
-  const noticeDates = noticeWindow(new Date(meeting.starts_at).toISOString());
+  // Kutsuaika: AOYL 6:20 § viimeistään kaksi viikkoa, OYL 5:19 § viimeistään viikkoa ennen.
+  const noticeDates = noticeWindow(new Date(meeting.starts_at).toISOString(), act === "oyl" ? 7 : 14);
   const activeRound = rounds.find((r) => ["draft", "sent", "partially_signed"].includes(r.status));
   const checkers = meeting.minutes_checkers ?? [];
   const hidden = (

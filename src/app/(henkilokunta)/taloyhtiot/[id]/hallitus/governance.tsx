@@ -1,10 +1,12 @@
 import { Button, Field, Input, Panel, SectionTitle, Select } from "@/components/ui";
 import type { Sql } from "@/lib/db";
 import { auditorElectionTitle, boardElectionTitle, type AuditorKind, type CompanyGovernance } from "@/lib/meetings/agenda";
+import { GOVERNING_ACT_LABEL, resolveGoverningAct } from "@/lib/meetings/governing-act";
 import { saveGovernance } from "./governance-actions";
 
 export interface GovernanceRow {
   company_form: string;
+  governing_act: string | null;
   board_members_min: number | null;
   board_members_max: number | null;
   board_deputies_min: number | null;
@@ -17,7 +19,7 @@ export interface GovernanceRow {
 
 export async function loadGovernance(tx: Sql, companyId: string): Promise<GovernanceRow | null> {
   const [row] = await tx.query<GovernanceRow>(
-    `select company_form, board_members_min, board_members_max, board_deputies_min, board_deputies_max, auditor_kind, auditors_count, deputy_auditors_count,
+    `select company_form, governing_act, board_members_min, board_members_max, board_deputies_min, board_deputies_max, auditor_kind, auditors_count, deputy_auditors_count,
             governance_source
        from er_housing_companies where id = $1`,
     [companyId],
@@ -28,7 +30,7 @@ export async function loadGovernance(tx: Sql, companyId: string): Promise<Govern
 export function toGovernance(g: GovernanceRow): CompanyGovernance {
   return {
     boardMembersMin: g.board_members_min, boardMembersMax: g.board_members_max, boardDeputiesMin: g.board_deputies_min, boardDeputiesMax: g.board_deputies_max,
-    auditorKind: g.auditor_kind, auditorsCount: g.auditors_count, deputyAuditorsCount: g.deputy_auditors_count, isHousingCompany: g.company_form !== "koy",
+    auditorKind: g.auditor_kind, auditorsCount: g.auditors_count, deputyAuditorsCount: g.deputy_auditors_count, act: resolveGoverningAct(g.company_form, g.governing_act),
   };
 }
 
@@ -44,6 +46,7 @@ export function GovernancePanel({ companyId, row, canWrite }: { companyId: strin
       {filled ? (
         <div className="mb-4 grid gap-1 rounded-xl bg-cloud/60 p-3 text-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Yhtiökokouksen esityslistalla</p>
+          <p className="text-xs text-ink/55">{GOVERNING_ACT_LABEL[g.act]}</p>
           <p>{boardElectionTitle(g)}</p>
           <p>{auditorElectionTitle(g)}</p>
           {row.governance_source ? <p className="text-xs text-ink/55">Lähde: {row.governance_source}</p> : null}
@@ -68,6 +71,17 @@ export function GovernancePanel({ companyId, row, canWrite }: { companyId: strin
               <Input id="board_deputies_max" name="board_deputies_max" inputMode="numeric" defaultValue={num(row.board_deputies_max)} />
             </Field>
           </div>
+          <Field
+            label="Sovellettava laki"
+            htmlFor="governing_act"
+            hint="Keskinäiseen kiinteistöosakeyhtiöön sovelletaan asunto-osakeyhtiölakia, jollei yhtiöjärjestyksessä määrätä toisin tai perusilmoitus ole tehty ennen 1.1.1992 (AOYL 28:1 §). Silloin sovelletaan osakeyhtiölakia."
+          >
+            <Select id="governing_act" name="governing_act" defaultValue={row.governing_act ?? ""}>
+              <option value="">Yhtiömuodon mukaan ({GOVERNING_ACT_LABEL[resolveGoverningAct(row.company_form, null)]})</option>
+              <option value="aoyl">{GOVERNING_ACT_LABEL.aoyl}</option>
+              <option value="oyl">{GOVERNING_ACT_LABEL.oyl}</option>
+            </Select>
+          </Field>
           <Field
             label="Tarkastaja"
             htmlFor="auditor_kind"

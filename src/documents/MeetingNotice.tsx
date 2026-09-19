@@ -5,6 +5,7 @@
  * (BLOCKERS 4).
  */
 
+import type { GoverningAct } from "@/lib/meetings/governing-act";
 import { Page, Text, View } from "@react-pdf/renderer";
 import { DocumentFooter, DocumentHeader, DocumentRoot, Heading, KeyValues, Muted, Paragraph, pageStyle } from "./components";
 import { PageDecoration } from "./decorations";
@@ -12,6 +13,8 @@ import { formatDate, formatMeetingTime, orDash } from "./format";
 import { colors, type as typeScale, weight } from "./theme";
 
 export interface MeetingDocumentBase {
+  /** Sovellettava laki pykäläviittauksiin (0107). Oletus AOYL. */
+  governingAct?: GoverningAct;
   organizationName: string;
   companyName: string;
   companyBusinessId: string | null;
