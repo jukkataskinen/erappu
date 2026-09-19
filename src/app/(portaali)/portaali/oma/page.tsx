@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge, DefinitionList, EmptyState, Panel, SectionTitle } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
 import { FormError } from "@/components/FormError";
+import { PORTAL_NAV, PORTAL_TABBAR } from "@/config/nav";
 import { formatNumber, isoDateHelsinki } from "@/lib/format";
 import { BOARD_ROLE, SHARE_GROUP_KIND } from "@/lib/registry/labels";
 import { loadPortalHome } from "@/lib/settings/portal-home";
@@ -35,6 +36,19 @@ export default async function OwnHomePage({ searchParams }: { searchParams: Prom
         </Link>
       </div>
       <FormError message={virhe} />
+
+      {/* Puhelimella alapalkissa on viisi kohtaa; loput portaalin osiot täältä. */}
+      <nav aria-label="Portaalin muut osiot" className="mb-8 lg:hidden">
+        <ul className="grid grid-cols-2 gap-2">
+          {PORTAL_NAV.filter((n) => !PORTAL_TABBAR.some((t) => t.href === n.href)).map((n) => (
+            <li key={n.href}>
+              <Link href={n.href} className="flex min-h-[var(--size-touch)] items-center rounded-xl border border-line bg-paper px-4 text-sm font-semibold hover:border-sky">
+                {n.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       <section className="mb-8">
         <SectionTitle>Huoneistot</SectionTitle>

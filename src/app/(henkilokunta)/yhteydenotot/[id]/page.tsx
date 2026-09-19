@@ -16,6 +16,7 @@ const MESSAGES: Record<string, string> = {
   "vastattu-suljettu": "Vastaus lähetettiin ja yhteydenotto merkittiin käsitellyksi.",
   suljettu: "Yhteydenotto merkittiin käsitellyksi.",
   avattu: "Yhteydenotto avattiin uudelleen.",
+  lahetetty: "Viesti lähetettiin. Vastaanottaja saa ilmoituksen sähköpostiin ja näkee viestin portaalissa.",
 };
 
 export default async function StaffContactPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; tila?: string }> }) {
@@ -25,7 +26,7 @@ export default async function StaffContactPage({ params, searchParams }: { param
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const thread = await ctx.run((tx) => getThread(tx, id));
   if (!thread || thread.organization_id !== ctx.org.organizationId) notFound();
-  const entries = await ctx.run((tx) => listThreadEntries(tx, id, thread.created_by_user_id));
+  const entries = await ctx.run((tx) => listThreadEntries(tx, id, thread.participant_user_id));
   const canWrite = ctx.can("owner", "manager", "assistant", "accountant");
 
   return (

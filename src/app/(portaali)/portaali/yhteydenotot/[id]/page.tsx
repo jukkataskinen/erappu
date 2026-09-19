@@ -17,7 +17,7 @@ export default async function PortalContactPage({ params, searchParams }: { para
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const thread = await ctx.run((tx) => getThread(tx, id));
   // RLS näyttää portaalissa vain omat ketjut; henkilökuntaan kuuluva näkisi muitakin.
-  if (!thread || thread.created_by_user_id !== ctx.user.id) notFound();
+  if (!thread || thread.participant_user_id !== ctx.user.id) notFound();
   const entries = await ctx.run((tx) => listThreadEntries(tx, id, ctx.user.id));
 
   return (

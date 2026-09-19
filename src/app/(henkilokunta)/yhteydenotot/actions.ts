@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth/current-user";
-import { replySchema } from "@/lib/contacts/labels";
-import { ContactError, postMessage, setThreadClosed } from "@/lib/contacts/mutations";
+import { CONTACT_TOPICS, MAX_CONTACT_BODY, replySchema } from "@/lib/contacts/labels";
+import { ContactError, createStaffThread, postMessage, setThreadClosed } from "@/lib/contacts/mutations";
 import { fail, parseForm } from "@/lib/forms";
 import { attachmentFiles } from "@/lib/maintenance/attachments";
 
@@ -52,4 +52,33 @@ export async function staffSetClosed(formData: FormData) {
   await guarded(back, () => ctx.run((tx) => setThreadClosed(tx, { threadId: d.thread_id, userId: ctx.user.id, closed: d.closed === "1" })));
   revalidatePath("/yhteydenotot");
   redirect(`${back}?tila=${d.closed === "1" ? "suljettu" : "avattu"}`);
+}
+
+const startSchema = z.object({
+  company_id: z.string().uuid(),
+  recipient: z.string().regex(/^[0-9a-f-]{36}\|([0-9a-f-]{36})?$/i, "Valitse vastaanottaja."),
+  topic: z.enum(CONTACT_TOPICS, { message: "Valitse aihe." }),
+  subject: z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().min(3, "Kirjoita otsikko (vähintään 3 merkkiä).").max(200)),
+  body: z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().min(1, "Kirjoita viesti.").max(MAX_CONTACT_BODY)),
+});
+
+/** Henkilökunnan aloittama viesti portaalikäyttäjälle (0104). */
+export async function staffStartThread(formData: FormData) {
+  const ctx = await requireStaff();
+  const companyId = String(formData.get("company_id") ?? "");
+  const back = /^[0-9a-f-]{36}$/i.test(companyId) ? `/yhteydenotot/uusi?yhtio=${companyId}` : "/yhteydenotot/uusi";
+  if (!ctx.can(...WRITE_ROLES)) fail(back, "Roolillasi ei voi lähettää viestejä.");
+  const d = parseForm(startSchema, formData, back);
+  const [participantUserId, shareGroupId] = d.recipient.split("|");
+  let id: string | null = null;
+  await guarded(back, async () => {
+    id = await ctx.run((tx) =>
+      createStaffThread(tx, {
+        userId: ctx.user.id, companyId: d.company_id, shareGroupId: shareGroupId || null, participantUserId, topic: d.topic, subject: d.subject, body: d.body,
+        files: attachmentFiles(formData),
+      }),
+    );
+  });
+  revalidatePath("/yhteydenotot");
+  redirect(`/yhteydenotot/${id}?tila=lahetetty`);
 }

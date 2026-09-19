@@ -39,7 +39,11 @@ export default async function PortalContactsPage() {
                   <Link href={`/portaali/yhteydenotot/${t.id}`} className="flex min-h-[var(--size-touch)] flex-col gap-1 py-3 hover:text-sky">
                     <span className="flex items-start justify-between gap-3">
                       <span className="font-semibold">{t.subject}</span>
-                      <Badge tone={CONTACT_STATUS_TONE_PORTAL[t.status]}>{CONTACT_STATUS_LABEL_PORTAL[t.status]}</Badge>
+                      {t.started_by_staff && t.message_count === 1 && t.status === "answered" ? (
+                        <Badge tone="ok">Viesti isännöinniltä</Badge>
+                      ) : (
+                        <Badge tone={CONTACT_STATUS_TONE_PORTAL[t.status]}>{CONTACT_STATUS_LABEL_PORTAL[t.status]}</Badge>
+                      )}
                     </span>
                     <span className="flex flex-wrap gap-x-2 text-sm text-ink/60">
                       <span>{CONTACT_TOPIC_LABEL[t.topic]}</span>

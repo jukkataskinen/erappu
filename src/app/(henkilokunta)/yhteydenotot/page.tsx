@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, EmptyState, PageHeader, Select, Table, Td, Th, Button } from "@/components/ui";
+import { Badge, EmptyState, LinkButton, PageHeader, Select, Table, Td, Th, Button } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { CONTACT_STATUS_LABEL, CONTACT_STATUS_TONE, CONTACT_TOPIC_LABEL } from "@/lib/contacts/labels";
 import { listStaffThreads, type StaffThreadFilter } from "@/lib/contacts/queries";
@@ -29,6 +29,11 @@ export default async function StaffContactsPage({ searchParams }: { searchParams
       <PageHeader
         title="Yhteydenotot"
         subtitle={`Osakkaiden ja asukkaiden viestit portaalista${waiting ? ` · ${waiting} odottaa vastausta` : ""}`}
+        actions={
+          ctx.can("owner", "manager", "assistant", "accountant") ? (
+            <LinkButton href={companyId ? `/yhteydenotot/uusi?yhtio=${companyId}` : "/yhteydenotot/uusi"}>Uusi viesti</LinkButton>
+          ) : null
+        }
       />
 
       <form method="get" className="mb-5 grid gap-3 rounded-[var(--radius-panel)] border border-line bg-paper p-4 sm:grid-cols-3">
@@ -89,7 +94,10 @@ export default async function StaffContactsPage({ searchParams }: { searchParams
                   {t.company_name}
                   {t.unit_label ? <span className="block text-xs text-ink/55">huoneisto {t.unit_label}</span> : null}
                 </Td>
-                <Td>{t.creator_name ?? "–"}</Td>
+                <Td>
+                  {t.creator_name ?? "–"}
+                  {t.started_by_staff ? <span className="block text-xs text-ink/55">isännöinnin aloittama</span> : null}
+                </Td>
                 <Td>
                   <span className="tabular text-sm">{formatDateTime(t.last_message_at)}</span>
                 </Td>

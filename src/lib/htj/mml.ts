@@ -5,7 +5,6 @@ import { randomUUID, createHash } from "node:crypto";
 import { stripPersonalIds, type HtjClient } from "./client";
 import {
   HtjError,
-  type HtjCallMeta,
   type HtjCompany,
   type HtjOwner,
   type HtjRestriction,

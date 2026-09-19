@@ -24,7 +24,7 @@ interface ThreadKey {
   organization_id: string;
   company_id: string;
   share_group_id: string | null;
-  created_by_user_id: string;
+  participant_user_id: string;
   status: string;
 }
 
@@ -65,7 +65,7 @@ async function saveAttachments(tx: Sql, files: File[], thread: ThreadKey, userId
 
 async function loadThread(tx: Sql, threadId: string): Promise<ThreadKey> {
   const [t] = await tx.query<ThreadKey>(
-    "select id, organization_id, company_id, share_group_id, created_by_user_id, status from er_contact_threads where id = $1",
+    "select id, organization_id, company_id, share_group_id, participant_user_id, status from er_contact_threads where id = $1",
     [threadId],
   );
   if (!t) throw new ContactError("Yhteydenottoa ei löytynyt.");
@@ -87,8 +87,8 @@ export async function createThread(tx: Sql, n: NewThread): Promise<string> {
   const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [n.companyId]);
   if (!company) throw new ContactError("Taloyhtiötä ei löytynyt.");
   const [thread] = await tx.query<ThreadKey>(
-    `insert into er_contact_threads (organization_id, company_id, share_group_id, created_by_user_id, topic, subject)
-     values ($1,$2,$3,$4,$5,$6) returning id, organization_id, company_id, share_group_id, created_by_user_id, status`,
+    `insert into er_contact_threads (organization_id, company_id, share_group_id, created_by_user_id, participant_user_id, topic, subject)
+     values ($1,$2,$3,$4,$4,$5,$6) returning id, organization_id, company_id, share_group_id, participant_user_id, status`,
     [company.organization_id, n.companyId, n.shareGroupId, n.userId, n.topic, n.subject],
   );
   await addMessage(tx, thread, n.userId, false, n.body);
@@ -97,10 +97,34 @@ export async function createThread(tx: Sql, n: NewThread): Promise<string> {
   return thread.id;
 }
 
+/**
+ * Henkilökunnan aloittama ketju valitulle portaalikäyttäjälle (0104). Kanta
+ * tarkistaa, että vastaanottajalla on portaalioikeus yhtiöön ja huoneistoon.
+ */
+export async function createStaffThread(tx: Sql, n: NewThread & { participantUserId: string }): Promise<string> {
+  const [company] = await tx.query<{ organization_id: string }>("select organization_id from er_housing_companies where id = $1", [n.companyId]);
+  if (!company) throw new ContactError("Taloyhtiötä ei löytynyt.");
+  let thread: ThreadKey;
+  try {
+    [thread] = await tx.query<ThreadKey>(
+      `insert into er_contact_threads (organization_id, company_id, share_group_id, created_by_user_id, participant_user_id, started_by_staff, topic, subject)
+       values ($1,$2,$3,$4,$5,true,$6,$7) returning id, organization_id, company_id, share_group_id, participant_user_id, status`,
+      [company.organization_id, n.companyId, n.shareGroupId, n.userId, n.participantUserId, n.topic, n.subject],
+    );
+  } catch (err) {
+    if (err instanceof Error && /row-level security/.test(err.message)) throw new ContactError("Vastaanottajalla ei ole portaalioikeutta tähän yhtiöön tai huoneistoon.");
+    throw err;
+  }
+  await addMessage(tx, thread, n.userId, true, n.body);
+  await saveAttachments(tx, n.files ?? [], thread, n.userId);
+  await audit(tx, { organizationId: thread.organization_id, userId: n.userId, action: "create", entity: "contact_thread", entityId: thread.id, details: { topic: n.topic, started_by_staff: true } });
+  return thread.id;
+}
+
 /** Viesti ketjuun. Portaalista vain ketjun aloittaja; henkilökunnan vastaus `fromStaff`-lipulla. */
 export async function postMessage(tx: Sql, opts: { threadId: string; userId: string; fromStaff: boolean; body: string; files?: File[] }): Promise<string> {
   const thread = await loadThread(tx, opts.threadId);
-  if (!opts.fromStaff && thread.created_by_user_id !== opts.userId) throw new ContactError("Voit kirjoittaa vain omaan yhteydenottoosi.");
+  if (!opts.fromStaff && thread.participant_user_id !== opts.userId) throw new ContactError("Voit kirjoittaa vain omaan yhteydenottoosi.");
   const id = await addMessage(tx, thread, opts.userId, opts.fromStaff, opts.body);
   await saveAttachments(tx, opts.files ?? [], thread, opts.userId);
   if (opts.fromStaff) {

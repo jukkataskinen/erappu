@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ContactError, createThread, postMessage, setThreadClosed } from "@/lib/contacts/mutations";
-import { countOpenThreads, getThread, listPortalThreads, listStaffThreads, listThreadEntries } from "@/lib/contacts/queries";
+import { ContactError, createStaffThread, createThread, postMessage, setThreadClosed } from "@/lib/contacts/mutations";
+import { countOpenThreads, getThread, listContactRecipients, listPortalThreads, listStaffThreads, listThreadEntries } from "@/lib/contacts/queries";
 import type { Database } from "@/lib/db/types";
 import { createUser, freshDb, one, seedTwoOrgs, type Fixture } from "../helpers/db";
 import { seedRinne, type RinneFixture } from "./htj-helpers";
@@ -183,5 +183,77 @@ describe("kysyjän nimi henkilökunnalle", () => {
     expect(thread?.creator_name).toBe("Olli Osakas");
     const entries = await db.asUser(f.managerA.sub, (tx) => listThreadEntries(tx, threadId, r.users.owner.id));
     expect(entries.find((e) => e.type === "message" && !e.fromStaff)?.authorName).toBe("Olli Osakas");
+  });
+});
+
+describe("henkilökunnan aloittama viesti (0104)", () => {
+  let staffThread: string;
+
+  it("vastaanottajiksi tarjotaan yhtiön portaalikäyttäjät nimineen", async () => {
+    const recipients = await db.asUser(f.managerA.sub, (tx) => listContactRecipients(tx, f.companyA));
+    const olli = recipients.find((x) => x.userId === r.users.owner.id && x.shareGroupId === r.groups["A 2"]);
+    expect(olli?.name).toBe("Olli Osakas");
+    expect(recipients.some((x) => x.userId === r.users.chair.id && x.role === "board" && x.shareGroupId === null)).toBe(true);
+  });
+
+  it("isännöitsijä aloittaa ketjun osakkaalle, osakas näkee sen ja saa ilmoituksen", async () => {
+    staffThread = await db.asUser(f.managerA.sub, (tx) =>
+      createStaffThread(tx, {
+        userId: f.managerA.id, companyId: f.companyA, shareGroupId: r.groups["A 2"], participantUserId: r.users.owner.id,
+        topic: "general", subject: "Kylpyhuoneen vesivuoto", body: "Alakerrasta on ilmoitettu kosteusjäljestä. Sopisiko tarkastus torstaina?",
+      }),
+    );
+    const mine = await db.asUser(r.users.owner.sub, (tx) => listPortalThreads(tx, r.users.owner.id));
+    const t = mine.find((x) => x.id === staffThread);
+    expect(t?.started_by_staff).toBe(true);
+    expect(t?.status).toBe("answered");
+
+    const [message] = await db.asService((tx) => tx.query<{ id: string }>("select id from er_contact_messages where thread_id = $1", [staffThread]));
+    const mails = await outbox(message.id);
+    expect(mails).toHaveLength(1);
+    expect(mails[0].subject).toContain("Viesti isännöinniltä");
+    expect(mails[0].body).not.toContain("torstaina");
+  });
+
+  it("osakas vastaa, muut eivät näe eivätkä voi kirjoittaa", async () => {
+    await db.asUser(r.users.owner.sub, (tx) => postMessage(tx, { threadId: staffThread, userId: r.users.owner.id, fromStaff: false, body: "Torstai käy." }));
+    expect((await db.asUser(f.managerA.sub, (tx) => getThread(tx, staffThread)))?.status).toBe("open");
+    expect(await db.asUser(r.users.veera.sub, (tx) => getThread(tx, staffThread))).toBeNull();
+    await expect(
+      db.asUser(r.users.veera.sub, (tx) => postMessage(tx, { threadId: staffThread, userId: r.users.veera.id, fromStaff: false, body: "Hei" })),
+    ).rejects.toBeInstanceOf(ContactError);
+    const entries = await db.asUser(r.users.owner.sub, (tx) => listThreadEntries(tx, staffThread, r.users.owner.id));
+    expect(entries.filter((e) => e.type === "message").map((e) => e.fromStaff)).toEqual([true, false]);
+  });
+
+  it("vastaanottajalla on oltava oikeus huoneistoon, eikä portaalikäyttäjä voi esiintyä henkilökuntana", async () => {
+    await expect(
+      db.asUser(f.managerA.sub, (tx) =>
+        createStaffThread(tx, { userId: f.managerA.id, companyId: f.companyA, shareGroupId: r.groups["A 3"], participantUserId: r.users.owner.id, topic: "general", subject: "Väärä huoneisto", body: "Testi" }),
+      ),
+    ).rejects.toBeInstanceOf(ContactError);
+    const outsider = await createUser(db);
+    await expect(
+      db.asUser(f.managerA.sub, (tx) =>
+        createStaffThread(tx, { userId: f.managerA.id, companyId: f.companyA, shareGroupId: null, participantUserId: outsider.id, topic: "general", subject: "Ulkopuolinen", body: "Testi" }),
+      ),
+    ).rejects.toBeInstanceOf(ContactError);
+    await expect(
+      db.asUser(r.users.owner.sub, (tx) =>
+        createStaffThread(tx, { userId: r.users.owner.id, companyId: f.companyA, shareGroupId: r.groups["A 2"], participantUserId: r.users.veera.id, topic: "general", subject: "Naapurille", body: "Testi" }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.asUser(f.managerB.sub, (tx) =>
+        createStaffThread(tx, { userId: f.managerB.id, companyId: f.companyA, shareGroupId: null, participantUserId: r.users.owner.id, topic: "general", subject: "Vieras", body: "Testi" }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("hallituksen jäsenelle voi aloittaa yhtiötason ketjun", async () => {
+    const id = await db.asUser(f.managerA.sub, (tx) =>
+      createStaffThread(tx, { userId: f.managerA.id, companyId: f.companyA, shareGroupId: null, participantUserId: r.users.chair.id, topic: "general", subject: "Kokouskutsu", body: "Luonnos liitteenä." }),
+    );
+    expect((await db.asUser(r.users.chair.sub, (tx) => getThread(tx, id)))?.started_by_staff).toBe(true);
   });
 });
