@@ -108,16 +108,19 @@ export interface PendingApproval {
   id: string;
   request_id: string;
   request_number: number;
+  company_id: string;
   company_name: string;
   provider_name: string;
   estimated_hours: string;
   hourly_rate_eur: string;
   limit_eur: string;
+  reserved_at: string | null;
 }
 
 export async function listPendingApprovals(tx: Sql, organizationId: string): Promise<PendingApproval[]> {
   return tx.query<PendingApproval>(
-    `select l.id, l.request_id, r.number as request_number, c.name as company_name, p.name as provider_name, l.estimated_hours::text, l.hourly_rate_eur::text,
+    `select l.id, l.request_id, r.number as request_number, c.id as company_id, c.name as company_name, p.name as provider_name, l.estimated_hours::text, l.hourly_rate_eur::text,
+            l.reserved_at::text,
             c.marketplace_limit_eur::text as limit_eur
        from er_marketplace_listings l
        join er_service_requests r on r.id = l.request_id

@@ -5,10 +5,11 @@ import { listMyUpcomingBookings } from "@/lib/bookings/queries";
 import { utcToHelsinki } from "@/lib/bookings/slots";
 import { contractTiming } from "@/lib/contracts/deadlines";
 import { listContracts } from "@/lib/contracts/queries";
-import { countAwaitingSignature } from "@/lib/contract-templates/queries";
-import { formatDate, isoDateHelsinki } from "@/lib/format";
-import { addDays, diffDays, finnishWeekdayShort, shortFinnishDate, startOfWeek } from "@/lib/tasks/dates";
+import { isoDateHelsinki } from "@/lib/format";
+import { addDays, diffDays, finnishWeekdayShort, shortFinnishDate } from "@/lib/tasks/dates";
 import { listTasks, type TaskRow } from "@/lib/tasks/queries";
+import type { DashboardItem, DashboardSource } from "@/lib/dashboard/items";
+import { isDraftKey } from "@/lib/announcements/drafts";
 
 /**
  * Vuosikello, varaukset ja sopimukset (moduuli M6): työpöydän, taloyhtiön yleissivun ja portaalin etusivun
@@ -35,66 +36,42 @@ function TaskLines({ tasks, today }: { tasks: TaskRow[]; today: string }) {
   );
 }
 
-export async function StaffDashboardWidget({ ctx }: { ctx: StaffContext }) {
+/** Työpöydän rivit: vuosikellon tehtävät (myöhässä ja 60 päivää eteenpäin) ja sopimusten irtisanomisajat. */
+export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource> {
   const today = isoDateHelsinki();
-  const nextWeekEnd = addDays(startOfWeek(today), 13);
-  const [tasks, contracts, awaitingSignature] = await ctx.run((tx) =>
+  const [tasks, contracts] = await ctx.run((tx) =>
     Promise.all([
-      listTasks(tx, { organizationId: ctx.org.organizationId, today, until: nextWeekEnd, limit: 50 }),
+      listTasks(tx, { organizationId: ctx.org.organizationId, today, until: addDays(today, 60), limit: 300 }),
       listContracts(tx, { organizationId: ctx.org.organizationId }),
-      countAwaitingSignature(tx, ctx.org.organizationId),
     ]),
   );
-  const overdue = tasks.filter((t) => t.due_on < today);
-  const upcoming = tasks.filter((t) => t.due_on >= today);
-  const ending = contracts.map((c) => ({ c, t: contractTiming(c, today) })).filter((x) => x.t.endingSoon);
-
-  return (
-    <Panel>
-      <SectionTitle actions={<Link href="/vuosikello" className="text-sm text-sky">Vuosikello</Link>}>Tehtävät ja määräajat</SectionTitle>
-      {overdue.length === 0 && upcoming.length === 0 ? (
-        <p className="text-sm text-ink/65">Ei tehtäviä tälle eikä ensi viikolle.</p>
-      ) : null}
-      {overdue.length > 0 ? (
-        <div className="mb-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-coral">Myöhässä {overdue.length}</p>
-          <TaskLines tasks={overdue.slice(0, 5)} today={today} />
-          {overdue.length > 5 ? <Link href="/vuosikello?myohassa=1" className="text-sm text-sky">Kaikki myöhässä olevat</Link> : null}
-        </div>
-      ) : null}
-      {upcoming.length > 0 ? (
-        <div className="mb-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Tämä ja ensi viikko</p>
-          <TaskLines tasks={upcoming.slice(0, 8)} today={today} />
-        </div>
-      ) : null}
-      {ending.length > 0 ? (
-        <div className="mt-2 border-t border-line pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber">Päättyvät sopimukset</p>
-          <ul className="divide-y divide-line">
-            {ending.slice(0, 5).map(({ c, t }) => (
-              <li key={c.id} className="flex items-baseline justify-between gap-3 py-2 text-sm">
-                <span className="min-w-0">
-                  <Link href={`/sopimukset/${c.id}`} className="font-semibold hover:text-sky">{c.counterparty}</Link>
-                  <span className="block truncate text-ink/55">{c.company_name}</span>
-                </span>
-                <span className="shrink-0 text-right text-ink/70">
-                  {t.deadline && t.daysToDeadline !== null && t.daysToDeadline >= 0 ? `irtisanottava ${formatDate(t.deadline)}` : `päättyy ${formatDate(c.ends_on)}`}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {awaitingSignature > 0 ? (
-        <div className="mt-2 border-t border-line pt-3 text-sm">
-          <Link href="/sopimukset/erat" className="hover:text-sky">
-            Allekirjoitusta odottavat sopimukset: <span className="font-semibold">{awaitingSignature}</span>
-          </Link>
-        </div>
-      ) : null}
-    </Panel>
-  );
+  const items: DashboardItem[] = tasks.map((t) => ({
+    id: `tehtava-${t.id}`,
+    category: "vuosikello",
+    title: t.title,
+    companyId: t.company_id,
+    companyName: t.company_name,
+    context: t.assignee_name && t.assignee_user_id !== ctx.user.id ? `vastuu ${t.assignee_name}` : null,
+    href: isDraftKey(t.template_key) && t.company_id ? `/tiedotteet/uusi?yhtio=${t.company_id}&pohja=${t.template_key}` : `/vuosikello/${t.id}`,
+    action: isDraftKey(t.template_key) ? "Laadi tiedote" : "Avaa",
+    dueOn: t.due_on,
+  }));
+  for (const c of contracts) {
+    const t = contractTiming(c, today);
+    if (!t.endingSoon) continue;
+    const byNotice = t.deadline !== null && t.daysToDeadline !== null && t.daysToDeadline >= 0;
+    items.push({
+      id: `sopimus-${c.id}`,
+      category: "sopimus",
+      title: byNotice ? `Sopimuksen irtisanomisaika päättyy: ${c.counterparty}` : `Sopimus päättyy: ${c.counterparty}`,
+      companyId: c.company_id,
+      companyName: c.company_name,
+      href: `/sopimukset/${c.id}`,
+      action: "Avaa",
+      dueOn: byNotice ? t.deadline : c.ends_on,
+    });
+  }
+  return { items };
 }
 
 export async function CompanyOverviewWidget({ ctx, companyId }: { ctx: StaffContext; companyId: string }) {

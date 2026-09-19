@@ -3,6 +3,7 @@ import { Badge, EmptyState, LinkButton, PageHeader, Table, Td, Th } from "@/comp
 import { requireStaff } from "@/lib/auth/current-user";
 import { hasShareIssues, listCompanies } from "@/lib/registry/queries";
 import { formatNumber } from "@/lib/format";
+import { GovernancePanel } from "./GovernancePanel";
 
 export const metadata = { title: "Taloyhtiöt" };
 
@@ -67,6 +68,11 @@ export default async function CompaniesPage() {
           </tbody>
         </Table>
       )}
+      {companies.length > 0 ? (
+        <div className="mt-6">
+          <GovernancePanel ctx={ctx} />
+        </div>
+      ) : null}
     </>
   );
 }

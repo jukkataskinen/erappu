@@ -5,58 +5,54 @@ import { formatDate } from "@/lib/format";
 import { listPortalAnnouncements } from "@/lib/announcements/queries";
 import { ANNOUNCEMENT_STATUS } from "@/lib/announcements/labels";
 import { companyMissingBasics } from "@/lib/documents/queries";
+import type { DashboardItem, DashboardSource } from "@/lib/dashboard/items";
+import { isoDateHelsinki } from "@/lib/format";
 
 /**
  * Tiedotteet ja dokumentit (moduuli M4): työpöydän, taloyhtiön yleissivun ja portaalin etusivun
  * nostot. Moduuli täyttää nämä; kehys kutsuu niitä valmiiksi.
  */
-export async function StaffDashboardWidget({ ctx }: { ctx: StaffContext }) {
+/** Työpöydän rivit: hallituksen tiedoteluonnokset ja epäonnistuneet sähköpostit. */
+export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource> {
   const { drafts, failed } = await ctx.run(async (tx) => {
-    const drafts = await tx.query<{ id: string; title: string; company_name: string; created_at: string }>(
-      `select a.id, a.title, c.name as company_name, a.created_at
+    const drafts = await tx.query<{ id: string; title: string; company_id: string; company_name: string; created_at: string }>(
+      `select a.id, a.title, a.company_id, c.name as company_name, a.created_at::text
          from er_announcements a join er_housing_companies c on c.id = a.company_id
         where a.organization_id = $1 and a.status = 'draft' and a.origin = 'board'
-        order by a.created_at limit 5`,
+        order by a.created_at`,
       [ctx.org.organizationId],
     );
-    const [f] = await tx.query<{ failed: number }>(
-      "select count(*)::int as failed from er_outbound_messages where organization_id = $1 and status = 'failed'",
-      [ctx.org.organizationId],
-    );
+    const [f] = await tx.query<{ failed: number }>("select count(*)::int as failed from er_outbound_messages where organization_id = $1 and status = 'failed'", [
+      ctx.org.organizationId,
+    ]);
     return { drafts, failed: f.failed };
   });
-  if (drafts.length === 0 && failed === 0) return null;
-
-  return (
-    <Panel>
-      <SectionTitle actions={<Link href="/tiedotteet" className="text-sm text-sky">Tiedotteet</Link>}>Viestintä</SectionTitle>
-      {failed > 0 ? (
-        <div className="mb-3">
-          <Notice tone="alert" title={`${failed} sähköpostia epäonnistui`}>
-            <Link href="/tiedotteet/lahetykset?tila=failed" className="text-sky">
-              Tarkista lähetykset
-            </Link>
-          </Notice>
-        </div>
-      ) : null}
-      {drafts.length > 0 ? (
-        <>
-          <p className="mb-2 text-sm text-ink/65">Hallituksen luonnokset odottavat julkaisua</p>
-          <ul className="divide-y divide-line">
-            {drafts.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-3 py-2">
-                <Link href={`/tiedotteet/${d.id}`} className="min-w-0 font-semibold hover:text-sky">
-                  {d.title}
-                  <span className="block text-xs font-normal text-ink/55">{d.company_name}</span>
-                </Link>
-                <span className="shrink-0 text-xs text-ink/55">{formatDate(d.created_at)}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-    </Panel>
-  );
+  const items: DashboardItem[] = drafts.map((d) => ({
+    id: `tiedote-${d.id}`,
+    category: "tiedote",
+    title: `Hallituksen tiedoteluonnos: ${d.title}`,
+    companyId: d.company_id,
+    companyName: d.company_name,
+    href: `/tiedotteet/${d.id}`,
+    action: "Tarkista",
+    dueOn: null,
+    waiting: true,
+    since: isoDateHelsinki(new Date(d.created_at)),
+  }));
+  if (failed > 0) {
+    items.push({
+      id: "viestit-epaonnistui",
+      category: "viesti",
+      title: `${failed} sähköpostia epäonnistui`,
+      companyId: null,
+      companyName: null,
+      href: "/tiedotteet/lahetykset?tila=failed",
+      action: "Tarkista",
+      dueOn: null,
+      waiting: true,
+    });
+  }
+  return { items };
 }
 
 export async function CompanyOverviewWidget({ ctx, companyId }: { ctx: StaffContext; companyId: string }) {

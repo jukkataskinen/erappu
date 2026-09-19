@@ -1,57 +1,36 @@
 import Link from "next/link";
 import type { PortalContext, StaffContext } from "@/lib/auth/current-user";
-import { Badge, Panel, SectionTitle } from "@/components/ui";
-import { formatDate } from "@/lib/format";
+import { Panel, SectionTitle } from "@/components/ui";
 import { StatusBadge, UrgencyBadge } from "@/lib/service-requests/components/parts";
 import { listPortalRequests, listRequests } from "@/lib/service-requests/queries";
 import { isOpen } from "@/lib/service-requests/status";
+import type { DashboardItem, DashboardSource } from "@/lib/dashboard/items";
+import { isoDateHelsinki } from "@/lib/format";
 
 /**
  * Huoltopyynnöt (moduuli M1): työpöydän, taloyhtiön yleissivun ja portaalin etusivun
  * nostot. Moduuli täyttää nämä; kehys kutsuu niitä valmiiksi.
  */
-export async function StaffDashboardWidget({ ctx }: { ctx: StaffContext }) {
+/** Työpöydän rivit: uudet, kiireelliset ja myöhässä olevat huoltopyynnöt. */
+export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource> {
   const open = await ctx.run((tx) => listRequests(tx, ctx.org.organizationId, { openOnly: true, limit: 500 }));
-  const urgent = open.filter((r) => r.urgency === "urgent").length;
-  const fresh = open.filter((r) => r.status === "new").length;
-  const overdue = open.filter((r) => r.overdue);
-  // Lista on jo järjestetty kiireellisyyden ja saapumisajan mukaan.
-  const top = [...overdue, ...open.filter((r) => !r.overdue)].slice(0, 6);
-
-  return (
-    <Panel>
-      <SectionTitle actions={<Link href="/huoltopyynnot" className="text-sm text-sky">Työjono</Link>}>Huoltopyynnöt</SectionTitle>
-      <div className="mb-3 flex flex-wrap gap-2 text-sm">
-        <Badge tone={open.length ? "info" : "ok"}>{open.length} avointa</Badge>
-        {fresh ? <Badge tone="alert">{fresh} uutta</Badge> : null}
-        {urgent ? <Badge tone="alert">{urgent} kiireellistä</Badge> : null}
-        {overdue.length ? <Badge tone="warn">{overdue.length} myöhässä</Badge> : null}
-      </div>
-      {top.length === 0 ? (
-        <p className="text-sm text-ink/65">Ei avoimia huoltopyyntöjä.</p>
-      ) : (
-        <ul className="divide-y divide-line">
-          {top.map((r) => (
-            <li key={r.id} className="flex items-center justify-between gap-3 py-2">
-              <span className="min-w-0">
-                <Link href={`/huoltopyynnot/${r.id}`} className="block truncate font-semibold hover:text-sky">
-                  {r.title}
-                </Link>
-                <span className="text-xs text-ink/55">
-                  {r.company_name} · {formatDate(r.created_at)}
-                </span>
-              </span>
-              <span className="flex shrink-0 flex-wrap justify-end gap-1">
-                {r.overdue ? <Badge tone="warn">Myöhässä</Badge> : null}
-                <UrgencyBadge urgency={r.urgency} />
-                <StatusBadge status={r.status} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Panel>
-  );
+  const today = isoDateHelsinki();
+  const items: DashboardItem[] = open
+    .filter((r) => r.status === "new" || r.overdue || r.urgency === "urgent")
+    .map((r) => ({
+      id: `huolto-${r.id}`,
+      category: "huolto" as const,
+      title: `#${r.number} ${r.title}`,
+      companyId: r.company_id,
+      companyName: r.company_name,
+      context: [r.unit_label, r.urgency === "urgent" ? "kiireellinen" : null, r.provider_name].filter(Boolean).join(" · ") || null,
+      href: `/huoltopyynnot/${r.id}`,
+      action: r.status === "new" ? "Käsittele" : "Avaa",
+      dueOn: r.status === "new" ? null : r.overdue ? (r.due_on ?? today) : r.due_on,
+      waiting: r.status === "new",
+      since: isoDateHelsinki(new Date(r.created_at)),
+    }));
+  return { items };
 }
 
 export async function CompanyOverviewWidget({ ctx, companyId }: { ctx: StaffContext; companyId: string }) {

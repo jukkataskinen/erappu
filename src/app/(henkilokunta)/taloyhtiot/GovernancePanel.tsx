@@ -80,7 +80,7 @@ export async function GovernancePanel({ ctx }: { ctx: StaffContext }) {
   const now = new Date();
 
   return (
-    <Panel>
+    <Panel id="hallinto">
       <SectionTitle actions={<Link href="/kokoukset" className="text-sm text-sky">Kokoukset</Link>}>Hallinto</SectionTitle>
       <p className="mb-3 text-sm text-ink/65">
         Viimeisin tallennettu talousarvio ja tilinpäätös (dokumenttien vuosi) sekä viimeisin pidetty kokous kokouksista tai pöytäkirjadokumenteista. Väri olettaa kalenterivuoden tilikauden ja varsinaisen yhtiökokouksen kesäkuun loppuun mennessä.

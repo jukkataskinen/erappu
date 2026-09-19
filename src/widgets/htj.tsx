@@ -8,6 +8,7 @@ import { companyHtjOverview, listHtjOverview } from "@/lib/htj/queries";
 import { workSummary } from "@/lib/maintenance/notice-form";
 import { listPortalNotices } from "@/lib/maintenance/queries";
 import { OPEN_FOR_COMPANY, OPEN_FOR_OWNER, RENOVATION_STATUS_LABEL, RENOVATION_STATUS_TONE } from "@/lib/maintenance/renovation";
+import type { DashboardItem, DashboardSource, HealthRow } from "@/lib/dashboard/items";
 
 /**
  * HTJ ja korjaushistoria (moduuli M2): työpöydän, taloyhtiön yleissivun ja portaalin etusivun
@@ -16,71 +17,43 @@ import { OPEN_FOR_COMPANY, OPEN_FOR_OWNER, RENOVATION_STATUS_LABEL, RENOVATION_S
 
 const reported = (s: string) => s === "sent" || s === "manual_done";
 
-export async function StaffDashboardWidget({ ctx }: { ctx: StaffContext }) {
+/**
+ * Työpöydän rivit: käsittelemättömät muutostyöilmoitukset. HTJ2-ilmoitusten
+ * puutteet ja HTJ-erot ovat tietojen kuntoa, eivät päivän tehtäviä.
+ */
+export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource> {
   const [rows, notices] = await ctx.run(async (tx) => [
     await listHtjOverview(tx, ctx.org.organizationId, isoDateHelsinki()),
-    await tx.query<{ id: string; company_id: string; company_name: string; unit_label: string; status: "received" | "info_requested"; created_at: string }>(
-      `select n.id, n.company_id, c.name as company_name, g.unit_label, n.status, n.created_at::text
+    await tx.query<{ id: string; company_id: string; company_name: string; unit_label: string; created_at: string; work_types: string | null; work_count: number }>(
+      `select n.id, n.company_id, c.name as company_name, g.unit_label, n.created_at::text,
+              (select string_agg(distinct w.work_type, ', ') from er_renovation_notice_works w where w.notice_id = n.id) as work_types,
+              (select count(*)::int from er_renovation_notice_works w where w.notice_id = n.id) as work_count
          from er_renovation_notices n join er_housing_companies c on c.id = n.company_id join er_share_groups g on g.id = n.share_group_id
-        where n.organization_id = $1 and n.status = any($2::text[]) order by n.created_at limit 6`,
-      [ctx.org.organizationId, OPEN_FOR_COMPANY],
+        where n.organization_id = $1 and n.status = 'received' order by n.created_at`,
+      [ctx.org.organizationId],
     ),
   ] as const);
-  if (rows.length === 0 && notices.length === 0) return null;
 
-  const mandatoryOpen = rows.filter((r) => r.obligation.level === "mandatory" && !reported(r.state));
-  const withDiffs = rows.filter((r) => r.pendingDiffs > 0);
-
-  return (
-    <Panel>
-      <SectionTitle actions={<Link href="/htj" className="text-sm text-sky">HTJ</Link>}>HTJ2-ilmoitukset ja muutostyöt</SectionTitle>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div>
-          <p className={`tabular text-2xl font-bold ${mandatoryOpen.length ? "text-coral" : "text-moss"}`}>{mandatoryOpen.length}</p>
-          <p className="text-xs text-ink/60">pakollista ilmoittamatta</p>
-        </div>
-        <div>
-          <p className={`tabular text-2xl font-bold ${withDiffs.length ? "text-amber" : ""}`}>{withDiffs.reduce((s, r) => s + r.pendingDiffs, 0)}</p>
-          <p className="text-xs text-ink/60">HTJ-eroa odottaa</p>
-        </div>
-        <div>
-          <p className={`tabular text-2xl font-bold ${notices.length ? "text-coral" : ""}`}>{notices.length}</p>
-          <p className="text-xs text-ink/60">muutostyöilmoitusta</p>
-        </div>
-      </div>
-      {mandatoryOpen.length > 0 || withDiffs.length > 0 || notices.length > 0 ? (
-        <ul className="mt-4 divide-y divide-line text-sm">
-          {withDiffs.map((r) => (
-            <li key={`d-${r.id}`} className="flex items-center justify-between gap-3 py-2">
-              <Link href={`/taloyhtiot/${r.id}/htj`} className="font-semibold hover:text-sky">
-                {r.name}
-              </Link>
-              <Badge tone="warn">{r.pendingDiffs} HTJ-eroa</Badge>
-            </li>
-          ))}
-          {notices.map((n) => (
-            <li key={n.id} className="flex items-center justify-between gap-3 py-2">
-              <Link href={`/taloyhtiot/${n.company_id}/korjaukset/muutostyot/${n.id}`} className="hover:text-sky">
-                <span className="font-semibold">{n.company_name}</span> {n.unit_label}
-                <span className="block text-xs text-ink/55">Muutostyöilmoitus {formatDate(n.created_at)}</span>
-              </Link>
-              <Badge tone={RENOVATION_STATUS_TONE[n.status]}>{RENOVATION_STATUS_LABEL[n.status]}</Badge>
-            </li>
-          ))}
-          {mandatoryOpen.slice(0, 5).map((r) => (
-            <li key={`m-${r.id}`} className="flex items-center justify-between gap-3 py-2">
-              <Link href={`/taloyhtiot/${r.id}/htj/yhteenveto`} className="font-semibold hover:text-sky">
-                {r.name}
-              </Link>
-              <span className="text-xs text-ink/60">{r.gaps.length ? `${r.gaps.length} puutetta` : REPORT_STATE_LABEL[r.state]}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-sm text-moss">Ilmoitukset on tehty, eikä mikään odota käsittelyä.</p>
-      )}
-    </Panel>
-  );
+  const items: DashboardItem[] = notices.map((n) => ({
+    id: `muutostyo-${n.id}`,
+    category: "muutostyo",
+    title: `Muutostyöilmoitus: ${n.work_count > 0 ? workSummary(n.work_types, n.work_count) : "muutostyö"}`,
+    companyId: n.company_id,
+    companyName: n.company_name,
+    context: n.unit_label,
+    href: `/taloyhtiot/${n.company_id}/korjaukset/muutostyot/${n.id}`,
+    action: "Käsittele",
+    dueOn: null,
+    waiting: true,
+    since: isoDateHelsinki(new Date(n.created_at)),
+  }));
+  const mandatory = rows.filter((r) => r.obligation.level === "mandatory" && !reported(r.state));
+  const diffs = rows.filter((r) => r.pendingDiffs > 0);
+  const health: HealthRow[] = [
+    { key: "htj2", label: "HTJ2-ilmoituksissa puutteita", companies: mandatory.map((r) => ({ id: r.id, name: r.name })), href: "/htj", tone: "neutral" },
+    { key: "htj-diff", label: "HTJ-eroja hyväksymättä", companies: diffs.map((r) => ({ id: r.id, name: r.name })), href: "/htj", tone: "neutral" },
+  ];
+  return { items, health };
 }
 
 export async function CompanyOverviewWidget({ ctx, companyId }: { ctx: StaffContext; companyId: string }) {
