@@ -43,6 +43,8 @@ interface Counts {
   rescue_review_on: string | null;
   rescue_draft: boolean;
   responsibility_exceptions: number;
+  water_meters: number;
+  water_open_round: string | null;
 }
 
 async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Counts> {
@@ -76,7 +78,9 @@ async function loadCounts(tx: Sql, companyId: string, today: string): Promise<Co
          and as_of = (select max(as_of) from er_payment_status where company_id = $1)) as overdue_eur,
        (select next_review_on::text from er_rescue_plans where company_id = $1 and status = 'final' and superseded_at is null) as rescue_review_on,
        exists (select 1 from er_rescue_plans where company_id = $1 and status = 'draft') as rescue_draft,
-       (select count(*)::int from er_responsibility_exceptions where company_id = $1) as responsibility_exceptions`,
+       (select count(*)::int from er_responsibility_exceptions where company_id = $1) as responsibility_exceptions,
+       (select count(*)::int from er_water_meters where company_id = $1 and removed_on is null) as water_meters,
+       (select read_on::text from er_water_reading_rounds where company_id = $1 and status = 'open' order by read_on desc limit 1) as water_open_round`,
     [companyId, today, OPEN_STATUSES, OPEN_FOR_COMPANY],
   );
   return row;
@@ -136,6 +140,8 @@ export async function loadCompanyModuleStatus(
   if (c.resources > 0) s.varaukset = { text: `${plural(c.resources, "kohde", "kohdetta")} · ${plural(c.upcoming_bookings, "tuleva varaus", "tulevaa varausta")}` };
   if (c.overdue_tasks > 0) s.vuosikello = { text: plural(c.overdue_tasks, "tehtävä myöhässä", "tehtävää myöhässä"), tone: "alert" };
   else if (c.next_task_on) s.vuosikello = { text: `Seuraava määräaika ${shortDate(c.next_task_on, today)}` };
+  if (c.water_open_round) s.vesi = { text: `Lukukierros ${shortDate(c.water_open_round, today)} auki`, tone: "warn" };
+  else if (c.water_meters > 0) s.vesi = { text: plural(c.water_meters, "mittari", "mittaria") };
   if (c.latest_reading_on) s.kulutus = { text: `Lukemat ${shortDate(c.latest_reading_on, today)} asti` };
   s.pelastussuunnitelma = rescuePlanStatus(c.rescue_review_on, c.rescue_draft, today);
   s.vastuunjako =

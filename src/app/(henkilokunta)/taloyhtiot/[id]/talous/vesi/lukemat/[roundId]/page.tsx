@@ -78,7 +78,7 @@ export default async function ReadingRoundPage({
 
   return (
     <>
-      <CompanyHeader company={company} active="talous" sub={`Lukukierros ${formatDate(round.read_on)}`} />
+      <CompanyHeader company={company} active="vesi" sub={`Lukukierros ${formatDate(round.read_on)}`} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl">Vesimittarien lukemat {formatDate(round.read_on)}</h2>

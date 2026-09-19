@@ -41,6 +41,7 @@ export const COMPANY_MODULES = [
   { key: "kulutus", label: "Kulutus", path: "/kulutus", icon: "bolt", group: "arki", description: "Sähkö, vesi ja lämmitys" },
   { key: "pelastussuunnitelma", label: "Pelastussuunnitelma", path: "/pelastussuunnitelma", icon: "shield", group: "arki", description: "Turvallisuus, toimintaohjeet ja vuosittainen tarkistus" },
   { key: "talous", label: "Talous", path: "/talous", icon: "coins", group: "hallinto", description: "Vastikkeet, laskutus ja lainat" },
+  { key: "vesi", label: "Vesilaskutus", path: "/talous/vesi", icon: "droplet", group: "hallinto", description: "Vesimittarit, lukemat, ennakot ja tasauslaskut", roles: ["owner", "manager", "assistant", "accountant"] },
   { key: "kokoukset", label: "Kokoukset", path: "/kokoukset", icon: "calendar", group: "hallinto", description: "Yhtiökokoukset ja hallituksen kokoukset" },
   { key: "dokumentit", label: "Dokumentit", path: "/dokumentit", icon: "folder", group: "hallinto", description: "Yhtiön asiakirjat" },
   { key: "sopimukset", label: "Sopimukset", path: "/sopimukset", icon: "pen", group: "hallinto", description: "Sopimukset ja irtisanomisajat" },

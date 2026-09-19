@@ -2,7 +2,7 @@ const P = { stroke: "currentColor", strokeWidth: 1.7, fill: "none", strokeLineca
 
 export type IconName =
   | "home" | "building" | "wrench" | "registry" | "coins" | "calendar" | "megaphone" | "folder" | "list" | "gear" | "users"
-  | "info" | "door" | "award" | "map" | "hammer" | "key" | "pen" | "bolt" | "stamp" | "shield" | "split";
+  | "info" | "door" | "award" | "map" | "hammer" | "key" | "pen" | "bolt" | "stamp" | "shield" | "split" | "droplet";
 
 export function NavIcon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -79,6 +79,7 @@ export function NavIcon({ name, size = 20 }: { name: IconName; size?: number }) 
       </>
     ),
     pen: <path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5zM13.5 7l3 3M13 20h7" {...P} />,
+    droplet: <path d="M12 3.5c3.2 4 6 7.4 6 10.5a6 6 0 0 1-12 0c0-3.1 2.8-6.5 6-10.5zM9.5 14.5a2.5 2.5 0 0 0 2.5 2.5" {...P} />,
     bolt: <path d="M13 3 5.5 13.5H12L11 21l7.5-10.5H12z" {...P} />,
     stamp: (
       <>

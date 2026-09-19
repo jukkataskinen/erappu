@@ -49,7 +49,7 @@ export default async function WaterPage({ params, searchParams }: { params: Prom
 
   return (
     <>
-      <CompanyHeader company={company} active="talous" sub="Vesilaskutus" />
+      <CompanyHeader company={company} active="vesi" />
       <FormError message={virhe} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
