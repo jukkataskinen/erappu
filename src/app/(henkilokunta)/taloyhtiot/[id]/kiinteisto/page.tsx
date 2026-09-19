@@ -7,6 +7,9 @@ import { formatDate, formatEur, formatNumber } from "@/lib/format";
 import { listBuildings, listProperties, type BuildingRow, type PropertyRow } from "@/lib/registry/queries";
 import { addBuilding, saveProperty, updateBuilding, updateBuildingHeating } from "../../actions";
 import { HEATING_TYPE_LABEL, HEATING_TYPES, type HeatingType } from "@/lib/consumption/heating";
+import { SHELTER_LABEL, SHELTER_OPTIONS } from "@/lib/rescue-plans/content";
+import { loadSafetyInfo, type SafetyInfo } from "@/lib/registry/safety";
+import { saveSafety } from "./actions";
 
 export const metadata = { title: "Kiinteistö ja rakennukset" };
 
@@ -118,12 +121,75 @@ function BuildingEditForm({ companyId, b }: { companyId: string; b: BuildingRow 
   );
 }
 
+const SAFETY_FIELDS: { key: Exclude<keyof SafetyInfo, "shelter">; label: string; hint?: string }[] = [
+  { key: "shelter_location", label: "Väestönsuojan sijainti", hint: "Esim. A-talon kellari, ovi porraskäytävästä A" },
+  { key: "shelter_capacity", label: "Väestönsuojan mitoitus", hint: "Esim. 60 henkilöä" },
+  { key: "assembly_point", label: "Kokoontumispaikka" },
+  { key: "assembly_point_alt", label: "Varakokoontumispaikka" },
+  { key: "shutoff_water", label: "Veden pääsulku" },
+  { key: "shutoff_electricity", label: "Sähkön pääkytkin" },
+  { key: "shutoff_ventilation", label: "Ilmanvaihdon hätäpysäytys" },
+  { key: "shutoff_heating", label: "Lämmityksen pääsulku" },
+];
+
+function SafetyPanel({ companyId, info, editing, canWrite }: { companyId: string; info: SafetyInfo; editing: boolean; canWrite: boolean }) {
+  return (
+    <Panel id="turvallisuus">
+      <SectionTitle
+        actions={
+          canWrite && !editing ? (
+            <Link href={`/taloyhtiot/${companyId}/kiinteisto?muokkaa=turvallisuus#turvallisuus`} className="text-sm font-semibold text-sky">
+              Muokkaa
+            </Link>
+          ) : null
+        }
+      >
+        Turvallisuustiedot
+      </SectionTitle>
+      <p className="mb-4 text-sm text-ink/65">Pelastussuunnitelma esitäyttää nämä tiedot. Päivitä rekisteristä -toiminto tuo muutokset luonnokseen.</p>
+      {editing && canWrite ? (
+        <form action={saveSafety} className="grid gap-3 sm:grid-cols-2">
+          <input type="hidden" name="company_id" value={companyId} />
+          <Field label="Väestönsuoja" htmlFor="shelter">
+            <Select id="shelter" name="shelter" defaultValue={info.shelter ?? ""}>
+              <option value="">Ei kirjattu</option>
+              {SHELTER_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {SHELTER_LABEL[o]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {SAFETY_FIELDS.map((f) => (
+            <Field key={f.key} label={f.label} htmlFor={f.key} hint={f.hint}>
+              <Input id={f.key} name={f.key} maxLength={f.key === "shelter_capacity" ? 40 : 300} defaultValue={info[f.key] ?? ""} />
+            </Field>
+          ))}
+          <div className="flex items-end gap-3 sm:col-span-2">
+            <Button variant="secondary">Tallenna turvallisuustiedot</Button>
+            <Link href={`/taloyhtiot/${companyId}/kiinteisto#turvallisuus`} className="text-sm text-ink/60">
+              Peru
+            </Link>
+          </div>
+        </form>
+      ) : (
+        <DefinitionList
+          items={[
+            { label: "Väestönsuoja", value: info.shelter ? SHELTER_LABEL[info.shelter] : "–" },
+            ...SAFETY_FIELDS.map((f) => ({ label: f.label, value: info[f.key] ?? "–" })),
+          ]}
+        />
+      )}
+    </Panel>
+  );
+}
+
 export default async function PropertyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; muokkaa?: string }> }) {
   const ctx = await requireStaff();
   const { id } = await params;
   const company = await loadCompany(ctx, id);
   const { virhe, muokkaa } = await searchParams;
-  const [buildings, properties] = await ctx.run((tx) => Promise.all([listBuildings(tx, id), listProperties(tx, id)]));
+  const [buildings, properties, safety] = await ctx.run((tx) => Promise.all([listBuildings(tx, id), listProperties(tx, id), loadSafetyInfo(tx, id)]));
   const canWrite = ctx.can("owner", "manager", "assistant");
 
   return (
@@ -246,6 +312,8 @@ export default async function PropertyPage({ params, searchParams }: { params: P
             </Panel>
           ))
         )}
+
+        {safety ? <SafetyPanel companyId={id} info={safety} editing={muokkaa === "turvallisuus"} canWrite={canWrite} /> : null}
 
         {canWrite ? (
           <Panel>

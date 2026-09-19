@@ -1,6 +1,7 @@
 import { HEATING_TYPE_LABEL, type HeatingType } from "@/lib/consumption/heating";
 import { addMonths, type IsoDate } from "@/lib/tasks/dates";
 import { emptyContent, hazardsFromTemplates, REVIEW_INTERVAL_MONTHS, type PlanBuilding, type RescuePlanContent } from "./content";
+import { safetyPlanFields } from "@/lib/registry/safety";
 import type { RegistryBuilding, RegistrySnapshot } from "./registry";
 
 /**
@@ -139,10 +140,11 @@ export function buildPrefill(s: RegistrySnapshot): RescuePlanContent {
       "Suunnitelma julkaistaan asukasportaalissa kaikille asukkaille, ja uudet asukkaat saavat sen muuttaessaan. Tiivistelmä toimintaohjeista ja kokoontumispaikasta on yhteisellä ilmoitustaululla. Muutoksista tiedotetaan portaalissa tai tiedotteella.",
     training:
       "Asukkaita kannustetaan omatoimiseen turvallisuuskoulutukseen (esim. SPEKin ja pelastuslaitoksen aineistot, ensiapukurssit). Hallitus ja isännöitsijä käyvät suunnitelman läpi vuosittain.",
+    ...safetyPlanFields(s.safety ?? null),
   };
 }
 
-/** "Päivitä rekisteristä": vain rekisterikentät korvataan, muu sisältö säilyy. */
+/** "Päivitä rekisteristä": vain rekisterikentät korvataan (turvallisuustiedot vain täytetyiltä osin), muu sisältö säilyy. */
 export function refreshFromRegistry(content: RescuePlanContent, s: RegistrySnapshot): RescuePlanContent {
-  return { ...content, ...registryFields(s) };
+  return { ...content, ...registryFields(s), ...safetyPlanFields(s.safety ?? null) };
 }

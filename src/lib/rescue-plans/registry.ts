@@ -1,4 +1,5 @@
 import type { Sql } from "@/lib/db";
+import { loadSafetyInfo, type SafetyInfo } from "@/lib/registry/safety";
 
 /**
  * Pelastussuunnitelman esitäytön lähtötiedot rekisteristä. Luetaan käyttäjän
@@ -45,6 +46,8 @@ export interface RegistrySnapshot {
   /** Voimassa olevat asumiset (henkilöt), arvion pohja. Tyhjä rekisteri → 0. */
   residents: number;
   maintenanceProviders: { name: string; phone: string | null; emergency_phone: string | null; email: string | null; service: string }[];
+  /** Väestönsuoja, kokoontumispaikat ja pääsulut rekisteristä (0108). */
+  safety?: SafetyInfo | null;
 }
 
 export async function loadRegistrySnapshot(tx: Sql, companyId: string, today: string): Promise<RegistrySnapshot | null> {
@@ -63,7 +66,7 @@ export async function loadRegistrySnapshot(tx: Sql, companyId: string, today: st
   );
   if (!company) return null;
 
-  const [chairs, properties, buildings, units, residents, providers] = await Promise.all([
+  const [chairs, properties, buildings, units, residents, providers, safety] = await Promise.all([
     tx.query<{ name: string; email: string | null; phone: string | null }>(
       `select p.display_name as name, p.email, p.phone
          from er_board_memberships b join er_parties p on p.id = b.party_id
@@ -98,6 +101,7 @@ export async function loadRegistrySnapshot(tx: Sql, companyId: string, today: st
         order by (s.service ilike '%huolto%') desc, s.default_for_requests desc, p.name`,
       [companyId],
     ),
+    loadSafetyInfo(tx, companyId),
   ]);
 
   const count = (kinds: string[]) => units.filter((u) => kinds.includes(u.kind)).reduce((s, u) => s + u.n, 0);
@@ -129,5 +133,6 @@ export async function loadRegistrySnapshot(tx: Sql, companyId: string, today: st
     },
     residents: residents[0]?.n ?? 0,
     maintenanceProviders: providers,
+    safety,
   };
 }

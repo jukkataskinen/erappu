@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, freshDb, one, seedTwoOrgs, type Fixture } from "../helpers/db";
 import type { Database, Sql } from "@/lib/db/types";
 import { syncPortalAccessForGroup } from "@/lib/registry/portal-access";
-import { buildPrefill } from "@/lib/rescue-plans/prefill";
+import { buildPrefill, refreshFromRegistry } from "@/lib/rescue-plans/prefill";
+import { loadSafetyInfo, safetySchema, saveSafetyInfo } from "@/lib/registry/safety";
 import { loadRegistrySnapshot } from "@/lib/rescue-plans/registry";
 import { createDraft, currentAndDraft, deleteDraft, finalizeDraft, listPlans, REVIEW_TASK_KEY, saveDraft } from "@/lib/rescue-plans/queries";
 import { loadCompanyModuleStatus } from "@/lib/registry/company-modules";
@@ -218,5 +219,32 @@ describe("pelastussuunnitelma: RLS ja versiointi", () => {
     const { draft } = currentAndDraft(await db.asUser(f.managerA.sub, (tx) => listPlans(tx, f.companyA)));
     expect(await db.asUser(f.managerA.sub, (tx) => deleteDraft(tx, { planId: draft!.id, userId: f.managerA.id }))).toBe(true);
     expect(await db.asUser(f.managerA.sub, (tx) => listPlans(tx, f.companyA))).toHaveLength(2);
+  });
+});
+
+describe("turvallisuustiedot rekisterissä (0108)", () => {
+  it("isännöitsijä tallentaa, esitäyttö käyttää ja tyhjä kenttä ei pyyhi suunnitelman tekstiä", async () => {
+    const info = safetySchema.parse({
+      shelter: "own", shelter_location: "A-talon kellari", shelter_capacity: "60 henkilöä", assembly_point: "Pihan lipputanko",
+      assembly_point_alt: "", shutoff_water: "Lämmönjakohuone, kellari", shutoff_electricity: "Sähköpääkeskus, A-rappu", shutoff_ventilation: "", shutoff_heating: "",
+    });
+    expect(info.assembly_point_alt).toBeNull();
+    expect(await db.asUser(f.managerA.sub, (tx) => saveSafetyInfo(tx, { companyId: f.companyA, userId: f.managerA.id, info }))).toBe(true);
+    expect((await db.asUser(f.managerA.sub, (tx) => loadSafetyInfo(tx, f.companyA)))?.shelter_location).toBe("A-talon kellari");
+
+    const snapshot = await db.asUser(f.managerA.sub, (tx) => loadRegistrySnapshot(tx, f.companyA, TODAY));
+    const content = buildPrefill(snapshot!);
+    expect(content).toMatchObject({ shelter: "own", shelterLocation: "A-talon kellari", shelterCapacity: "60 henkilöä", assemblyPoint: "Pihan lipputanko", shutoffWater: "Lämmönjakohuone, kellari" });
+
+    const edited = { ...content, assemblyPointAlt: "Naapuritalon piha", shutoffHeating: "Käsin kirjoitettu" };
+    const refreshed = refreshFromRegistry(edited, snapshot!);
+    expect(refreshed.assemblyPointAlt).toBe("Naapuritalon piha");
+    expect(refreshed.shutoffHeating).toBe("Käsin kirjoitettu");
+    expect(refreshed.shutoffElectricity).toBe("Sähköpääkeskus, A-rappu");
+  });
+
+  it("toisen organisaation isännöitsijä ei voi tallentaa", async () => {
+    const info = safetySchema.parse({ shelter: "none" });
+    expect(await db.asUser(f.managerB.sub, (tx) => saveSafetyInfo(tx, { companyId: f.companyA, userId: f.managerB.id, info }))).toBe(false);
   });
 });
