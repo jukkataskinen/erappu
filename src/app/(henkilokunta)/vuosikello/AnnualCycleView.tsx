@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AnnualCycleWheel } from "@/components/AnnualCycleWheel";
 import { FormError } from "@/components/FormError";
 import { Badge, Button, EmptyState, Field, LinkButton, Notice, Panel, SectionTitle, Select, Stat } from "@/components/ui";
 import type { StaffContext } from "@/lib/auth/current-user";
@@ -80,6 +81,16 @@ export async function AnnualCycleView({
         <Stat label="Tällä viikolla" value={thisWeek} />
         <Stat label="Seuraavat 30 päivää" value={next30} />
       </div>
+
+      {fixedCompanyId && !category && !assignee && !overdueOnly && upcoming.length > 0 ? (
+        <Panel className="mt-6">
+          <SectionTitle>Vuosi yhdellä silmäyksellä</SectionTitle>
+          <AnnualCycleWheel
+            caption={`alkaen ${parseIsoDate(firstMonth).month}/${parseIsoDate(firstMonth).year}`}
+            items={upcoming.map((t) => ({ title: t.title, date: t.due_on, category: t.category, href: `/vuosikello/${t.id}` }))}
+          />
+        </Panel>
+      ) : null}
 
       <form
         method="get"
