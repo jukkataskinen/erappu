@@ -169,11 +169,12 @@ export interface LoanShareRow {
   remaining_eur: string;
   balance_date: string;
   paid_off_on: string | null;
+  paid_off_eur: string | null;
 }
 
 export async function listLoanShares(tx: Sql, loanId: string): Promise<LoanShareRow[]> {
   return tx.query<LoanShareRow>(
-    `select s.id, s.share_group_id, g.unit_label, g.share_count, s.original_eur::text, s.remaining_eur::text, s.balance_date::text, s.paid_off_on::text
+    `select s.id, s.share_group_id, g.unit_label, g.share_count, s.original_eur::text, s.remaining_eur::text, s.balance_date::text, s.paid_off_on::text, s.paid_off_eur::text
        from er_loan_shares s join er_share_groups g on g.id = s.share_group_id
       where s.loan_id = $1`,
     [loanId],

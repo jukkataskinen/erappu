@@ -141,7 +141,7 @@ export default async function LoanPage({ params, searchParams }: { params: Promi
                         {s.unit_label}
                         {s.paid_off_on ? (
                           <span className="mt-1 block">
-                            <Badge tone="ok">Kertasuoritus {formatDate(s.paid_off_on)}</Badge>
+                            <Badge tone="ok">Kertasuoritus {formatDate(s.paid_off_on)}{s.paid_off_eur ? `, ${formatEur(s.paid_off_eur)}` : ""}</Badge>
                           </span>
                         ) : null}
                       </Td>
@@ -169,6 +169,7 @@ export default async function LoanPage({ params, searchParams }: { params: Promi
                           <div className="grid gap-1.5">
                             <input form={`ls-${s.id}`} aria-label="Saldopäivä" name="balance_date" type="date" defaultValue={s.balance_date} className="min-h-9 rounded-lg border border-line bg-paper px-2.5 text-sm text-ink focus:border-sky focus:outline-none w-40" />
                             <input form={`ls-${s.id}`} aria-label="Kertasuorituksen päivä" name="paid_off_on" type="date" defaultValue={s.paid_off_on ?? ""} className="min-h-9 rounded-lg border border-line bg-paper px-2.5 text-sm text-ink focus:border-sky focus:outline-none w-40" />
+                            <input form={`ls-${s.id}`} aria-label="Kertasuorituksen määrä (€)" placeholder="Kertasuoritus €" name="paid_off_eur" inputMode="decimal" defaultValue={decimalInput(s.paid_off_eur)} className="min-h-9 rounded-lg border border-line bg-paper px-2.5 text-sm text-ink focus:border-sky focus:outline-none w-40" />
                           </div>
                         ) : (
                           formatDate(s.balance_date)
@@ -192,7 +193,7 @@ export default async function LoanPage({ params, searchParams }: { params: Promi
               </Table>
             )}
             {canWrite && shares.length > 0 ? (
-              <p className="mt-3 text-xs text-ink/55">Kertasuoritus: anna suorituspäivä ja tallenna. Jäljellä oleva osuus nollautuu, eikä osakeryhmä saa rahoitusvastiketta tästä lainasta.</p>
+              <p className="mt-3 text-xs text-ink/55">Kertasuoritus: anna suorituspäivä ja maksettu määrä ja tallenna. Määrä tarvitaan tilinpäätöksen lainaosuuslaskelmaan. Jäljellä oleva osuus nollautuu, eikä osakeryhmä saa rahoitusvastiketta tästä lainasta.</p>
             ) : null}
           </Panel>
         </div>

@@ -222,6 +222,7 @@ const loanShareSchema = z.object({
   remaining_eur: decimal(2, "Jäljellä oleva osuus on euroina."),
   balance_date: date,
   paid_off_on: optDate,
+  paid_off_eur: optDecimal(2, "Kertasuorituksen määrä on euroina."),
 });
 
 export async function updateLoanShare(formData: FormData) {
@@ -235,11 +236,11 @@ export async function updateLoanShare(formData: FormData) {
   const remaining = d.paid_off_on ? "0" : d.remaining_eur;
   await ctx.run(async (tx) => {
     const rows = await tx.query<{ organization_id: string }>(
-      `update er_loan_shares s set original_eur = $3, remaining_eur = $4, balance_date = $5, paid_off_on = $6
+      `update er_loan_shares s set original_eur = $3, remaining_eur = $4, balance_date = $5, paid_off_on = $6, paid_off_eur = $8
          from er_loans l
         where s.id = $1 and s.loan_id = $2 and l.id = s.loan_id and l.company_id = $7
         returning s.organization_id`,
-      [shareId, loanId, d.original_eur, remaining, d.paid_off_on ? d.paid_off_on : d.balance_date, d.paid_off_on, companyId],
+      [shareId, loanId, d.original_eur, remaining, d.paid_off_on ? d.paid_off_on : d.balance_date, d.paid_off_on, companyId, d.paid_off_on ? d.paid_off_eur : null],
     );
     if (rows.length === 0) fail(back, "Lainaosuutta ei löytynyt.");
     await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: d.paid_off_on ? "paid_off" : "update", entity: "loan_share", entityId: shareId });

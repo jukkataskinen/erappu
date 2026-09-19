@@ -301,7 +301,15 @@ export default async function CompanyFinancePage({ params, searchParams }: { par
           </Panel>
 
           <Panel>
-            <SectionTitle>Lainat</SectionTitle>
+            <SectionTitle
+              actions={
+                <LinkButton variant="ghost" href={`/taloyhtiot/${id}/talous/tilinpaatos`}>
+                  Tilinpäätöksen laskelmat
+                </LinkButton>
+              }
+            >
+              Lainat
+            </SectionTitle>
             {loans.length === 0 ? (
               <p className="text-sm text-ink/65">Yhtiölainoja ei ole kirjattu.</p>
             ) : (
