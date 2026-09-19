@@ -13,7 +13,7 @@ import { monthPeriod } from "./dates";
 import { LOAN_TYPE } from "./labels";
 import { estimatedRemainingCents } from "./loans";
 import { toCents } from "./money";
-import { activeOn } from "./payers";
+import { activeOn, primaryPayer } from "./payers";
 import { companyReference } from "./references";
 import { centsToEur } from "./statements";
 
@@ -24,25 +24,47 @@ import { centsToEur } from "./statements";
  */
 
 const e = (cents: bigint) => `${centsToEur(cents)} €`;
+const thousands = (n: number | bigint) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
 export interface CalculationOptions {
   issuedOn: string;
   payOn: string;
   feeEur: string | null;
+  /** Lisäkulun nimi laskelmalla, oletus "Käsittelymaksu". */
+  feeLabel?: string | null;
+}
+
+/** Osuus osaketta kohden kuudella desimaalilla: 12 636,55 € / 65 osaketta → "194,408462". */
+export function perSharePrice(cents: bigint, shares: number): string {
+  if (shares <= 0) return "–";
+  const divisor = BigInt(shares) * 100n;
+  const micro = (cents * 1_000_000n + divisor / 2n) / divisor;
+  return `${thousands(micro / 1_000_000n)},${(micro % 1_000_000n).toString().padStart(6, "0")}`;
 }
 
 export async function loadLoanShareCalculation(tx: Sql, companyId: string, shareGroupId: string, opts: CalculationOptions): Promise<LoanShareCalculationData | null> {
-  const [g] = await tx.query<{ unit_label: string; kind: string; area_m2: string | null; share_count: number; company_name: string; business_id: string; org_name: string }>(
-    `select g.unit_label, g.kind, g.area_m2::text, g.share_count, c.name as company_name, c.business_id, o.name as org_name
+  const [g] = await tx.query<{
+    unit_label: string; kind: string; area_m2: string | null; share_count: number; company_name: string; business_id: string; org_name: string;
+    org_phone: string | null; org_email: string | null; manager_name: string | null; manager_email: string | null; manager_phone: string | null;
+  }>(
+    `select g.unit_label, g.kind, g.area_m2::text, g.share_count, c.name as company_name, c.business_id, o.name as org_name,
+            o.settings #>> '{contact,phone}' as org_phone, o.settings #>> '{contact,email}' as org_email,
+            u.full_name as manager_name, u.email as manager_email, u.phone as manager_phone
        from er_share_groups g join er_housing_companies c on c.id = g.company_id join er_organizations o on o.id = c.organization_id
+       left join er_users u on u.id = c.manager_user_id
       where g.id = $1 and g.company_id = $2`,
     [shareGroupId, companyId],
   );
   if (!g) return null;
   const [ranges, owners, shares, settings, bases, seq] = await Promise.all([
     tx.query<{ first: number; last: number }>("select first_share as first, last_share as last from er_share_ranges where share_group_id = $1 order by first_share", [shareGroupId]),
-    tx.query<{ display_name: string; starts_on: string | null; ends_on: string | null }>(
-      "select p.display_name, o.starts_on::text, o.ends_on::text from er_ownerships o join er_parties p on p.id = o.party_id where o.share_group_id = $1 order by p.display_name",
+    tx.query<{
+      party_id: string; display_name: string; share_numerator: number; share_denominator: number; starts_on: string | null; ends_on: string | null;
+      street_address: string | null; postal_code: string | null; city: string | null; country: string | null;
+    }>(
+      `select p.id as party_id, p.display_name, o.share_numerator, o.share_denominator, o.starts_on::text, o.ends_on::text,
+              p.street_address, p.postal_code, p.city, p.country
+         from er_ownerships o join er_parties p on p.id = o.party_id where o.share_group_id = $1 order by p.display_name`,
       [shareGroupId],
     ),
     tx.query<{
@@ -68,7 +90,7 @@ export async function loadLoanShareCalculation(tx: Sql, companyId: string, share
   const loans = shares.map((s) => {
     if (s.paid_off_on) {
       return {
-        name: s.loan_name, details: "", original: e(toCents(s.original_eur)), remaining: "", balanceDate: s.balance_date, payAmount: "", estimated: false,
+        name: s.loan_name, details: "", original: e(toCents(s.original_eur)), remaining: "", balanceDate: s.balance_date, payAmount: "", perShare: null, estimated: false,
         paidOff: `Maksettu ${formatDate(s.paid_off_on)}${s.paid_off_eur ? `, ${e(toCents(s.paid_off_eur))}` : ""}`,
       };
     }
@@ -82,6 +104,7 @@ export async function loadLoanShareCalculation(tx: Sql, companyId: string, share
       remaining: e(toCents(s.remaining_eur)),
       balanceDate: s.balance_date,
       payAmount: e(est.cents),
+      perShare: `${thousands(g.share_count)} osaketta × ${perSharePrice(est.cents, g.share_count)} €/osake`,
       estimated: est.estimated,
       paidOff: null,
     };
@@ -89,6 +112,18 @@ export async function loadLoanShareCalculation(tx: Sql, companyId: string, share
   const fee = opts.feeEur ? toCents(opts.feeEur) : 0n;
   if (fee > 0n) total += fee;
 
+  const current = owners.filter((o) => activeOn(o, opts.issuedOn));
+  // Kirje ensisijaiselle maksajalle (suurin omistusosuus) kuten vastikelaskut; nimi kaikista omistajista.
+  const payer = primaryPayer(current, opts.issuedOn);
+  const recipient = payer
+    ? {
+        name: formatNames(current.map((o) => o.display_name)),
+        lines: [payer.street_address, [payer.postal_code, payer.city].filter(Boolean).join(" "), payer.country && payer.country !== "FI" ? payer.country : null]
+          .filter((x): x is string => Boolean(x && x.trim())),
+      }
+    : null;
+  const phone = g.manager_phone ?? g.org_phone;
+  const contact = [g.manager_name ? `isännöitsijä ${g.manager_name}` : null, phone ? `puh. ${phone}` : null, g.manager_email ?? g.org_email].filter((x): x is string => Boolean(x));
   const reference = settings && seq[0] ? formatReference(companyReference(settings.company_number, seq[0].seq_no)) : null;
   const notes = [
     "Kertasuorituksella osakas maksaa huoneiston osuuden yhtiölainasta kerralla. Maksun jälkeen huoneistolta ei enää peritä rahoitusvastiketta tästä lainasta.",
@@ -104,12 +139,15 @@ export async function loadLoanShareCalculation(tx: Sql, companyId: string, share
     unitLabel: g.unit_label,
     shareCount: g.share_count,
     shareRanges: ranges.length ? formatShareRanges(ranges) : "",
-    owners: formatNames(owners.filter((o) => activeOn(o, opts.issuedOn)).map((o) => o.display_name)),
+    owners: formatNames(current.map((o) => o.display_name)),
+    recipient,
+    contact,
     issuedOn: opts.issuedOn,
     payOn: opts.payOn,
     loans,
     monthlyFinancing: monthly > 0n ? e(monthly) : null,
     fee: fee > 0n ? e(fee) : null,
+    feeLabel: opts.feeLabel?.trim() || "Käsittelymaksu",
     total: e(total),
     payment: settings?.bank_iban ? { iban: settings.bank_iban.replace(/(.{4})/g, "$1 ").trim(), bic: settings.bank_bic, reference } : null,
     notes,

@@ -19,6 +19,7 @@ const schema = z
       (v) => (typeof v === "string" ? emptyToNull(v.replace(/[\s ]/g, "").replace(",", ".")) : v),
       z.string().regex(/^\d{1,6}(\.\d{1,2})?$/, "Käsittelymaksu on euroina, esim. 50,00.").nullable(),
     ),
+    fee_label: z.preprocess(emptyToNull, z.string().max(60, "Lisäkulun nimi on enintään 60 merkkiä.").nullable()),
     visible: z.preprocess((v) => v === "on", z.boolean()),
   })
   .refine((d) => d.pay_on >= d.issued_on, "Maksupäivä ei voi olla ennen laskelman päivää.");
@@ -35,7 +36,7 @@ export async function generateLoanShareCalculationAction(formData: FormData) {
   let documentId: string;
   try {
     documentId = await generateLoanShareCalculation((fn) => ctx.run(fn), {
-      companyId, shareGroupId: gid, userId: ctx.user.id, issuedOn: d.issued_on, payOn: d.pay_on, feeEur: d.fee_eur, visibleToOwners: d.visible,
+      companyId, shareGroupId: gid, userId: ctx.user.id, issuedOn: d.issued_on, payOn: d.pay_on, feeEur: d.fee_eur, feeLabel: d.fee_label, visibleToOwners: d.visible,
     });
   } catch (err) {
     if (err instanceof FinanceError) fail(`${back}#lainaosuuslaskelma`, err.message);

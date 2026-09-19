@@ -187,10 +187,13 @@ export default async function UnitFinancePage({ params, searchParams }: { params
                     <Field label="Kertasuorituksen maksupäivä" htmlFor="pay_on">
                       <Input id="pay_on" name="pay_on" type="date" defaultValue={addDays(today, 30)} required />
                     </Field>
-                    <Field label="Käsittelymaksu (€)" htmlFor="fee_eur" hint="Valinnainen">
+                    <Field label="Lisäkulu (€)" htmlFor="fee_eur" hint="Valinnainen">
                       <Input id="fee_eur" name="fee_eur" inputMode="decimal" />
                     </Field>
                   </div>
+                  <Field label="Lisäkulun nimi" htmlFor="fee_label" hint="Esim. Pankin perimä lisäkulu. Tyhjä = Käsittelymaksu">
+                    <Input id="fee_label" name="fee_label" maxLength={60} />
+                  </Field>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="visible" /> Näytä osakkaalle portaalissa (huoneiston dokumentit)
                   </label>

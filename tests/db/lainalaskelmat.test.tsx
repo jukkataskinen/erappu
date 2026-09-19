@@ -99,8 +99,20 @@ describe("tilinpäätöksen laskelmat", () => {
       await tx.query("update er_loans set due_on = '2035-12-31' where id = $1", [loanId]);
       await tx.query("insert into er_company_billing_settings (organization_id, company_id, company_number, bank_iban) values ($1,$2,77,'FI2112345600000785')", [f.orgA, f.companyA]);
       await tx.query("insert into er_billing_unit_numbers (organization_id, company_id, share_group_id, seq_no) values ($1,$2,$3,1)", [f.orgA, f.companyA, g["A 1"]]);
+      const p1 = await one<{ id: string }>(tx, "insert into er_parties (organization_id, last_name, first_names, street_address, postal_code, city) values ($1,'Kakkonen','Osakas','Koulutuskatu 1 A 2','00100','Helsinki') returning id", [f.orgA]);
+      const p2 = await one<{ id: string }>(tx, "insert into er_parties (organization_id, last_name, first_names) values ($1,'Kakkonen','Puoliso') returning id", [f.orgA]);
+      await tx.query(
+        "insert into er_ownerships (organization_id, share_group_id, party_id, share_numerator, share_denominator, source) values ($1,$2,$3,2,3,'manual'),($1,$2,$4,1,3,'manual')",
+        [f.orgA, g["A 1"], p1.id, p2.id],
+      );
     });
-    const calc = await db.asUser(f.accountantA.sub, (tx) => loadLoanShareCalculation(tx, f.companyA, g["A 1"], { issuedOn: "2026-02-15", payOn: "2026-03-15", feeEur: "50" }));
+    const calc = await db.asUser(f.accountantA.sub, (tx) =>
+      loadLoanShareCalculation(tx, f.companyA, g["A 1"], { issuedOn: "2026-02-15", payOn: "2026-03-15", feeEur: "50", feeLabel: "Pankin perimä lisäkulu" }),
+    );
+    expect(calc!.recipient!.lines).toEqual(["Koulutuskatu 1 A 2", "00100 Helsinki"]);
+    expect(calc!.recipient!.name).toContain(" ja ");
+    expect(calc!.feeLabel).toBe("Pankin perimä lisäkulu");
+    expect(calc!.loans[0].perShare).toBe("100 osaketta × 222,920000 €/osake");
     expect(calc!.loans).toHaveLength(1);
     expect(calc!.loans[0]).toMatchObject({ original: "30 000,00 €", remaining: "22 666,66 €", balanceDate: "2025-12-31", estimated: true });
     expect(calc!.fee).toBe("50,00 €");

@@ -20,6 +20,10 @@ export interface LoanShareCalculationData {
   shareCount: number;
   shareRanges: string;
   owners: string;
+  /** Kirjeen vastaanottaja: omistajat ja ensisijaisen maksajan postiosoite. */
+  recipient: { name: string; lines: string[] } | null;
+  /** Isännöitsijän yhteystiedot laskelman loppuun. */
+  contact: string[];
   issuedOn: string;
   payOn: string;
   loans: {
@@ -29,11 +33,14 @@ export interface LoanShareCalculationData {
     remaining: string;
     balanceDate: string;
     payAmount: string;
+    /** "65 osaketta × 194,408462 €/osake" */
+    perShare: string | null;
     estimated: boolean;
     paidOff: string | null;
   }[];
   monthlyFinancing: string | null;
   fee: string | null;
+  feeLabel: string;
   total: string;
   payment: { iban: string | null; bic: string | null; reference: string | null } | null;
   notes: string[];
@@ -45,6 +52,15 @@ export function LoanShareCalculation({ data }: { data: LoanShareCalculationData 
     <DocumentRoot title={`Lainaosuuslaskelma, huoneisto ${data.unitLabel}`} subject={data.companyName} date={data.issuedOn}>
       <Page size="A4" style={pageStyle}>
         <DocumentHeader right={data.companyName} />
+        {data.recipient ? (
+          <View style={{ marginBottom: 18 }}>
+            <Text style={{ fontSize: typeScale.small, color: colors.inkSoft }}>Vastaanottaja</Text>
+            <Text style={{ marginTop: 2 }}>{data.recipient.name}</Text>
+            {data.recipient.lines.map((l, i) => (
+              <Text key={i}>{l}</Text>
+            ))}
+          </View>
+        ) : null}
         <Text style={{ fontSize: typeScale.title, fontWeight: weight.bold, lineHeight: 1.25 }}>Lainaosuuslaskelma</Text>
         <Muted style={{ marginTop: 3 }}>
           {data.companyName} ({data.businessId}), huoneisto {data.unitLabel}
@@ -73,7 +89,7 @@ export function LoanShareCalculation({ data }: { data: LoanShareCalculationData 
             name: `${l.name}${l.details ? `\n${l.details}` : ""}`,
             original: l.original,
             remaining: l.paidOff ? "–" : `${l.remaining}\n${formatDate(l.balanceDate)}`,
-            pay: l.paidOff ? l.paidOff : `${l.payAmount}${l.estimated ? " *" : ""}`,
+            pay: l.paidOff ? l.paidOff : `${l.payAmount}${l.estimated ? " *" : ""}${l.perShare ? `\n${l.perShare}` : ""}`,
           }))}
           emptyText="Huoneistolla ei ole lainaosuuksia."
         />
@@ -82,7 +98,7 @@ export function LoanShareCalculation({ data }: { data: LoanShareCalculationData 
           <Panel style={{ marginTop: 12 }} wrap={false}>
             {data.fee ? (
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                <Text>Käsittelymaksu</Text>
+                <Text>{data.feeLabel}</Text>
                 <Text>{data.fee}</Text>
               </View>
             ) : null}
@@ -113,6 +129,14 @@ export function LoanShareCalculation({ data }: { data: LoanShareCalculationData 
             </Paragraph>
           ))}
         </View>
+        {data.contact.length ? (
+          <View style={{ marginTop: 14, borderTopWidth: 0.5, borderTopColor: colors.line, paddingTop: 6 }} wrap={false}>
+            <Text style={{ fontSize: typeScale.small, color: colors.inkSoft }}>Lisätietoja</Text>
+            <Text style={{ fontSize: typeScale.small }}>
+              {data.organizationName}, {data.contact.join(", ")}
+            </Text>
+          </View>
+        ) : null}
         <DocumentFooter left={`${data.organizationName} · ${data.companyName} · huoneisto ${data.unitLabel}`} />
       </Page>
     </DocumentRoot>

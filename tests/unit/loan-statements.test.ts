@@ -77,3 +77,13 @@ describe("kertasuorituksen arvio maksupäivälle", () => {
     expect(estimatedRemainingCents(2266666n, "2025-12-31", "2026-06-01", null).estimated).toBe(false);
   });
 });
+
+describe("osuus osaketta kohden", () => {
+  it("kuusi desimaalia ja tuhaterotin", async () => {
+    const { perSharePrice } = await import("@/lib/finance/loan-share-calculation");
+    expect(perSharePrice(1263655n, 65)).toBe("194,408462");
+    expect(perSharePrice(468994n, 105)).toBe("44,666095");
+    expect(perSharePrice(250000000n, 100)).toBe("25 000,000000");
+    expect(perSharePrice(100n, 0)).toBe("–");
+  });
+});
