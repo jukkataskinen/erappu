@@ -47,11 +47,15 @@ Tee muutosten jälkeen uusi käännös (Vercel → Deployments → Redeploy), ko
 
 ## 6. Tarkistus
 
-1. **Yhteys:** aja omalla koneella
-   ```bash
-   ESINETTI_API_KEY=sk_live_... npm run esinetti:yhteystesti
+1. **Yhteys:** aja omalla koneella eRapun hakemistossa. PowerShellissä muuttuja asetetaan omalla rivillään:
+   ```powershell
+   $env:ESINETTI_API_KEY = "sk_live_..."
+   npm run esinetti:yhteystesti
+   Remove-Item Env:ESINETTI_API_KEY
    ```
-   Komento kutsuu vain lukevaa reittiä `/usage`, joten mitään ei synny eSinettiin. `HTTP 200` tarkoittaa, että avain ja osoite ovat kunnossa.
+   Git Bashissa vastaava onnistuu yhdellä rivillä: `ESINETTI_API_KEY=sk_live_... npm run esinetti:yhteystesti`.
+
+   Komento kutsuu vain lukevaa reittiä `/usage`, joten mitään ei synny eSinettiin. `HTTP 200` tarkoittaa, että avain ja osoite ovat kunnossa. Viimeinen rivi poistaa avaimen istunnosta, jottei se jää muistiin.
 2. **Asetukset:** eRapun **Asetukset → Integraatiot** näyttää rivin eSinetti tilassa "Käytössä" ilman puuttuvia muuttujia.
 3. **Koko ketju:** ota testiyhtiö, jolla on oikeat sähköpostiosoitteet.
    1. Luo kokous, merkitse se pidetyksi ja täytä päätökset.
