@@ -30,6 +30,8 @@ import { EsinettiError, type EsinettiErrorCode } from "./errors";
 import type {
   CreateRoundInput,
   EsinettiClient,
+  EsinettiCompany,
+  EsinettiCompanyInput,
   Round,
   SealDocumentInput,
   SealDocumentResult,
@@ -207,6 +209,7 @@ export class EsinettiHttpClient implements EsinettiClient {
     const payload = await this.request<RoundWire>("POST", "/rounds", {
       body: {
         title: input.title,
+        company_id: input.companyId,
         sequential: input.sequential ?? false,
         expires_in_days: input.expiresInDays,
         external_ref: input.externalRef,
@@ -229,6 +232,13 @@ export class EsinettiHttpClient implements EsinettiClient {
     });
 
     return roundFromWire(payload);
+  }
+
+  async upsertCompany(input: EsinettiCompanyInput): Promise<EsinettiCompany> {
+    const payload = await this.request<{ id: string; name: string; business_id: string | null }>("POST", "/companies", {
+      body: { name: input.name, business_id: input.businessId, external_ref: input.externalRef },
+    });
+    return { id: payload.id, name: payload.name, businessId: payload.business_id };
   }
 
   async findRoundByExternalRef(externalRef: string): Promise<Round | null> {

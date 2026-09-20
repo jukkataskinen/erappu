@@ -73,5 +73,5 @@ Jos webhook ei tule perille, eSinetin toimitukset näkyvät sen omassa lokissa, 
 - **Muistutukset** lähtevät automaattisesti 3 ja 7 päivän kuluttua, ja kierros vanhenee 30 päivässä.
 - **Kutsuraja** on 60 pyyntöä minuutissa per avain.
 - **Kahdentumisen esto:** eSinetissä ei ole `Idempotency-Key`-tukea, joten eRappu tarkistaa ulkoisella viitteellä (`erappu:meeting:<id>`), onko kierros jo olemassa, ennen kuin luo uuden. Katkennut yhteys ei siis lähetä samaa pöytäkirjaa kahdesti.
-- **Yhtiöt:** eRappu ei toistaiseksi kerro eSinetille, mistä taloyhtiöstä on kyse, joten kaikki kierrokset menevät eSinetissä organisaation oletusyhtiölle. Arkistointi yhtiöittäin vaatisi taloyhtiöiden kytkemisen eSinetin yhtiöihin (`POST /companies`).
+- **Yhtiöt:** eRappu luo taloyhtiölle vastineen eSinettiin ensimmäisellä allekirjoituksella (`POST /companies`, tunnistus y-tunnuksesta) ja muistaa tunnisteen. eSinetin arkisto järjestyy siis yhtiöittäin ilman käsityötä. Jos luonti epäonnistuu, allekirjoitus etenee silti ja kierros menee oletusyhtiölle.
 - **Hinnoittelu** perustuu vahvojen tunnistusten määrään. Kulutuksen näkee eSinetin omalta sivulta ja rajapinnasta `/usage`.

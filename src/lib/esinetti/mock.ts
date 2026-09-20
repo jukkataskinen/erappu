@@ -29,6 +29,8 @@ import { EsinettiError } from "./errors";
 import type {
   CreateRoundInput,
   EsinettiClient,
+  EsinettiCompany,
+  EsinettiCompanyInput,
   Round,
   RoundDocument,
   RoundSignerState,
@@ -64,10 +66,13 @@ interface RoundRecord extends Round {
 }
 
 const mockState = globalThis as unknown as {
-  __erappuEsinettiMock?: { rounds: Map<string, RoundRecord>; sealed: Map<string, SealedRecord> };
+  __erappuEsinettiMock?: { rounds: Map<string, RoundRecord>; sealed: Map<string, SealedRecord>; companies: Map<string, EsinettiCompany> };
 };
-mockState.__erappuEsinettiMock ??= { rounds: new Map(), sealed: new Map() };
+mockState.__erappuEsinettiMock ??= { rounds: new Map(), sealed: new Map(), companies: new Map() };
+mockState.__erappuEsinettiMock.companies ??= new Map();
 const rounds = mockState.__erappuEsinettiMock.rounds;
+/** Avaimena y-tunnus tai nimi — kuten eSinetin upsert. */
+const companies = mockState.__erappuEsinettiMock.companies;
 /** Avaimena sinetöity tiiviste — juuri niin kuin `GET /verify` hakee. */
 const sealed = mockState.__erappuEsinettiMock.sealed;
 
@@ -75,6 +80,7 @@ const sealed = mockState.__erappuEsinettiMock.sealed;
 export function resetMockEsinetti(): void {
   rounds.clear();
   sealed.clear();
+  companies.clear();
 }
 
 function toPublicRound(record: RoundRecord): Round {
@@ -194,6 +200,15 @@ export class EsinettiMockClient implements EsinettiClient {
 
     rounds.set(id, record);
     return toPublicRound(record);
+  }
+
+  async upsertCompany(input: EsinettiCompanyInput): Promise<EsinettiCompany> {
+    if (!input.name.trim()) throw new EsinettiError("validation_failed", "Yhtiön nimi vaaditaan.");
+    const key = input.businessId?.trim() || `name:${input.name.trim()}`;
+    const existing = companies.get(key);
+    const company: EsinettiCompany = { id: existing?.id ?? randomUUID(), name: input.name, businessId: input.businessId ?? null };
+    companies.set(key, company);
+    return company;
   }
 
   async findRoundByExternalRef(externalRef: string): Promise<Round | null> {

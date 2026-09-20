@@ -85,6 +85,21 @@ export interface CreateRoundInput {
   externalRef?: string;
   /** Lähetetäänkö kutsut heti. */
   send?: boolean;
+  /** Yhtiö eSinetissä (`upsertCompany`). Tyhjä = organisaation oletusyhtiö. */
+  companyId?: string;
+}
+
+export interface EsinettiCompanyInput {
+  name: string;
+  /** Y-tunnus. eSinetti tunnistaa yhtiön tästä, joten kutsun voi toistaa turvallisesti. */
+  businessId?: string;
+  externalRef?: string;
+}
+
+export interface EsinettiCompany {
+  id: string;
+  name: string;
+  businessId: string | null;
 }
 
 export type RoundStatus =
@@ -168,6 +183,8 @@ export interface EsinettiClient {
    * edellinen yritys ehti luoda kierroksen ennen katkosta.
    */
   findRoundByExternalRef(externalRef: string): Promise<Round | null>;
+  /** Luo tai päivittää yhtiön eSinetissä. Tunnistus y-tunnuksesta, joten toisto on turvallista. */
+  upsertCompany(input: EsinettiCompanyInput): Promise<EsinettiCompany>;
   /** Lataa kierroksen asiakirjan tavut (sinetöity, jos kierros on valmis). */
   downloadRoundDocument(roundId: string, documentId: string): Promise<Uint8Array>;
   verifyDocument(sha256: string): Promise<VerifyResult>;

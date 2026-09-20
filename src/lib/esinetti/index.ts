@@ -94,6 +94,8 @@ export {
 export type {
   CreateRoundInput,
   EsinettiClient,
+  EsinettiCompany,
+  EsinettiCompanyInput,
   Round,
   RoundDocument,
   RoundDocumentInput,

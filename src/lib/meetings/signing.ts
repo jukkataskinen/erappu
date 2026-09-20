@@ -2,6 +2,7 @@ import "server-only";
 import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { buildExternalRef, createRoundOnce, type EsinettiClient, type Round } from "@/lib/esinetti";
+import { ensureEsinettiCompany } from "@/lib/signing/company";
 import { generateMeetingDocument } from "./documents";
 import { MEETING_KIND } from "./labels";
 
@@ -61,7 +62,9 @@ export async function startMinutesSigning(run: Runner, userId: string, meetingId
   if (!generated) throw new SigningError("Pöytäkirjaa ei voitu muodostaa.");
 
   const date = new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(meeting.starts_at));
+  const esinettiCompanyId = await ensureEsinettiCompany(run, client, meeting.company_id);
   const round = await createRoundOnce(client, {
+    companyId: esinettiCompanyId,
     title: `${meeting.company_name}: ${MEETING_KIND[meeting.kind as keyof typeof MEETING_KIND].toLowerCase()} ${date}, pöytäkirja`,
     documents: [{ name: `poytakirja-${new Date(meeting.starts_at).toISOString().slice(0, 10)}.pdf`, pdfBytes: generated.bytes }],
     signers: signers.map((s) => ({ name: s.name, email: s.email, roleLabel: s.role, authLevel: "strong" })),
