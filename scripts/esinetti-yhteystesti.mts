@@ -8,14 +8,23 @@
  * Kutsuu vain lukevaa reittiä (`/usage`), joten mitään ei synny eikä muutu
  * eSinetin puolella. Tulostaa HTTP-tilan ja sen merkityksen, ei avainta
  * eikä vastauksen sisältöä kiintiölukuja lukuun ottamatta.
+ *
+ * Kutsun jälkeen paluuarvo asetetaan `process.exitCode`:lla eikä
+ * `process.exit()`:llä: Windowsilla pakotettu lopetus kesken HTTPS-yhteyden
+ * sulkemisen kaataa Noden libuv-assertioon (UV_HANDLE_CLOSING).
  */
 
 const apiUrl = (process.env.ESINETTI_API_URL?.trim() || "https://app.esinetti.fi/api/v1").replace(/\/+$/, "");
 const apiKey = process.env.ESINETTI_API_KEY?.trim() ?? "";
 const webhookSecret = process.env.ESINETTI_WEBHOOK_SECRET?.trim() ?? "";
 
-if (!apiKey) {
-  console.error("ESINETTI_API_KEY puuttuu. Luo avain eSinetissä (Asetukset → API-avaimet) ja aja komento uudelleen.");
+// Ennen kutsua ei ole avoimia yhteyksiä, joten tässä `process.exit` on turvallinen.
+if (!apiKey || !/^sk_(live|test)_[A-Za-z0-9_-]{20,}$/.test(apiKey)) {
+  console.error(
+    apiKey
+      ? "ESINETTI_API_KEY ei ole oikean muotoinen (sk_live_… tai sk_test_…). Kopioi avain eSinetin /api-keys-sivulta."
+      : "ESINETTI_API_KEY puuttuu. Luo avain eSinetin /api-keys-sivulta ja aja komento uudelleen.",
+  );
   process.exit(1);
 }
 
@@ -54,11 +63,11 @@ try {
       : "";
   console.log(`HTTP ${response.status}\n${meaning}${quota ? `\nKiintiö: ${quota}` : ""}`);
   console.log(webhookSecret ? "ESINETTI_WEBHOOK_SECRET on asetettu." : "ESINETTI_WEBHOOK_SECRET puuttuu: valmiit allekirjoitukset eivät päivity eRappuun.");
-  if (!response.ok) process.exit(1);
+  if (!response.ok) process.exitCode = 1;
 } catch (err) {
   const aborted = err instanceof Error && err.name === "AbortError";
   console.error(aborted ? "Aikakatkaisu: eSinettiin ei saatu yhteyttä." : "Yhteysvirhe: eSinettiin ei saatu yhteyttä.");
-  process.exit(1);
+  process.exitCode = 1;
 } finally {
   clearTimeout(timer);
 }
