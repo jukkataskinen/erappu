@@ -21,6 +21,7 @@
     "auth0:asetukset": "tsx scripts/auth0-asetukset.mts",
     "htj:yhteystesti": "tsx scripts/htj-yhteystesti.mts",
     "esinetti:yhteystesti": "tsx scripts/esinetti-yhteystesti.mts",
+    "esinetti:sync-client": "tsx scripts/sync-esinetti-client.mts",
     "deploy:migrate-org": "tsx scripts/deploy/migrate-org-to-production.mts"
   },
   "dependencies": {

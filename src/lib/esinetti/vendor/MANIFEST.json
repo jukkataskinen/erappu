@@ -1,0 +1,10 @@
+{
+  "source": "esinetti/clients/typescript/src",
+  "files": {
+    "errors.ts": "924cc664052dfa21cd6e9ee49453aa0a8484b3ee08bf9cd1124279bd71832a98",
+    "http-client.ts": "93fcc74491bb5186f993a97e314ce2b695db45e1075cfd04cfea9346bff2ebca",
+    "mock.ts": "d056ee8b2b1e8848d00f95d062b90f6094ade6f9b5d36a470b1eac8c98d60eaa",
+    "types.ts": "38ca4455bc0c2e3428aa8e6f5e3292f6fda4976011d8e40c54573ac87a990822",
+    "webhook.ts": "0bc207e0111821f2a9e0dd458ed25540af51015f04fb1512252c23744e811488"
+  }
+}
