@@ -19,7 +19,7 @@
 import { EsinettiError } from "./errors";
 import { EsinettiHttpClient } from "./http-client";
 import { EsinettiMockClient } from "./mock";
-import type { EsinettiClient } from "./types";
+import type { CreateRoundInput, EsinettiClient, Round } from "./types";
 
 let cached: EsinettiClient | null = null;
 
@@ -54,6 +54,23 @@ export function assertRealEsinetti(): void {
   if (process.env.NODE_ENV === "production" && esinettiMode() !== "http") {
     throw new EsinettiError("not_configured", "Allekirjoitusta ei voi tehdä jäljitelmällä tuotannossa.");
   }
+}
+
+/**
+ * Luo kierroksen enintään kerran ulkoista viitettä kohti.
+ *
+ * eSinetissä ei ole `Idempotency-Key`-tukea, ja luonti voi onnistua siellä
+ * vaikka vastaus ei ehtisi meille (aikakatkaisu, verkkovirhe). Silloin
+ * uudelleenyritys tekisi toisen kierroksen, ja samat ihmiset saisivat kaksi
+ * allekirjoituspyyntöä samasta asiakirjasta. Siksi ennen luontia katsotaan,
+ * onko viitteellä jo kierros.
+ *
+ * Löytynyt peruttu tai vanhentunut kierros ei estä uutta (client suodattaa ne).
+ */
+export async function createRoundOnce(client: EsinettiClient, input: CreateRoundInput & { externalRef: string }): Promise<Round> {
+  const existing = await client.findRoundByExternalRef(input.externalRef);
+  if (existing) return existing;
+  return client.createRound(input);
 }
 
 /** Testien käyttöön. */

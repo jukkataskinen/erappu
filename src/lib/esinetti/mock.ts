@@ -196,6 +196,13 @@ export class EsinettiMockClient implements EsinettiClient {
     return toPublicRound(record);
   }
 
+  async findRoundByExternalRef(externalRef: string): Promise<Round | null> {
+    const matching = [...rounds.values()]
+      .filter((r) => r.externalRef === externalRef && r.status !== "cancelled" && r.status !== "expired")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return matching[0] ? toPublicRound(matching[0]) : null;
+  }
+
   async getRound(roundId: string): Promise<Round> {
     return toPublicRound(requireRound(roundId));
   }

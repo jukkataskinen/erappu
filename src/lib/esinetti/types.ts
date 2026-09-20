@@ -162,6 +162,12 @@ export interface EsinettiClient {
   sendRound(roundId: string): Promise<Round>;
   remindRound(roundId: string): Promise<void>;
   cancelRound(roundId: string): Promise<Round>;
+  /**
+   * Kierros ulkoisella viitteellä, tai null. eSinetissä ei ole
+   * `Idempotency-Key`-tukea, joten tämä on ainoa tapa huomata, että
+   * edellinen yritys ehti luoda kierroksen ennen katkosta.
+   */
+  findRoundByExternalRef(externalRef: string): Promise<Round | null>;
   /** Lataa kierroksen asiakirjan tavut (sinetöity, jos kierros on valmis). */
   downloadRoundDocument(roundId: string, documentId: string): Promise<Uint8Array>;
   verifyDocument(sha256: string): Promise<VerifyResult>;

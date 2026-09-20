@@ -25,7 +25,7 @@ Tarkistuslista. Kohdat, jotka vaativat tunnuksia tai sopimuksia, ovat myös `BLO
 Verkkotunnus `erappu.fi`, SPF/DKIM/DMARC, `EMAIL_MODE=resend`, `RESEND_API_KEY`, `EMAIL_FROM`.
 
 ## 5. eSinetti
-Tenant Adepta Tilat Oy:lle (Adepta Oy myy palvelun), API-avain `ESINETTI_API_KEY`, webhook `https://app.erappu.fi/api/esinetti/webhook` ja salaisuus `ESINETTI_WEBHOOK_SECRET`, `ESINETTI_MODE=http`.
+Organisaatio Adepta Tilat Oy:lle (Adepta Oy myy palvelun), API-avain `ESINETTI_API_KEY`, webhook `https://www.erappu.fi/api/esinetti/webhook` ja salaisuus `ESINETTI_WEBHOOK_SECRET`, `ESINETTI_MODE=http`. Vaiheittainen ohje ja tarkistuslista: [esinetti-kayttoonotto.md](esinetti-kayttoonotto.md). Yhteystesti `npm run esinetti:yhteystesti`.
 
 ## 6. HTJ (Maanmittauslaitos)
 Testiympäristö → järjestelmälupa → tietoturvaliite → vakiosopimus → tuotantovarmenne. Varmenne base64-muodossa muuttujiin `HTJ_CLIENT_CERT_BASE64`, `HTJ_CLIENT_KEY_BASE64`, `HTJ_CLIENT_KEY_PASSPHRASE`, sitten `HTJ_MODE=mml`.

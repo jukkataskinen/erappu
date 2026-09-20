@@ -231,6 +231,22 @@ export class EsinettiHttpClient implements EsinettiClient {
     return roundFromWire(payload);
   }
 
+  async findRoundByExternalRef(externalRef: string): Promise<Round | null> {
+    const payload = await this.request<{ data?: RoundWire[] }>(
+      "GET",
+      "/rounds?external_ref=" + encodeURIComponent(externalRef),
+    );
+    const rounds = (payload.data ?? []).map(roundFromWire);
+    // Peruttu tai vanhentunut kierros ei kelpaa uudelleenkäytettäväksi: siitä
+    // ei enää synny allekirjoituksia. Uusin ensin, jotta vanha epäonnistunut
+    // yritys ei voita tuoretta.
+    return (
+      rounds
+        .filter((r) => r.status !== "cancelled" && r.status !== "expired")
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
+    );
+  }
+
   async getRound(roundId: string): Promise<Round> {
     return roundFromWire(await this.request<RoundWire>("GET", "/rounds/" + roundId));
   }

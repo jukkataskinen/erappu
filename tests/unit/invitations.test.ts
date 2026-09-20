@@ -46,6 +46,15 @@ describe("integraatioiden tila", () => {
     expect(JSON.stringify(s)).not.toContain("sk-salainen");
   });
 
+  it("puuttuvat muuttujat listataan nimillä, ei arvoilla", () => {
+    const missing = (env: Record<string, string>) => integrationStatuses(env).find((i) => i.key === "ESINETTI_MODE")!;
+    expect(missing({ ESINETTI_MODE: "http" })).toMatchObject({ live: true, missing: ["ESINETTI_API_KEY", "ESINETTI_WEBHOOK_SECRET"] });
+    expect(missing({ ESINETTI_MODE: "http", ESINETTI_API_KEY: "sk_salainen", ESINETTI_WEBHOOK_SECRET: "whsec_salainen" }).missing).toEqual([]);
+    expect(JSON.stringify(integrationStatuses({ ESINETTI_MODE: "http", ESINETTI_API_KEY: "sk_salainen" }))).not.toContain("sk_salainen");
+    // Jäljitelmätilassa puuttuvat muuttujat eivät ole virhe, mutta ne näytetään.
+    expect(missing({}).missing).toEqual(["ESINETTI_API_KEY", "ESINETTI_WEBHOOK_SECRET"]);
+  });
+
   it("portaalioikeuden peruste", () => {
     expect(basisLabel("ownership:123")).toBe("Omistus");
     expect(basisLabel("board:1")).toBe("Hallitusjäsenyys");

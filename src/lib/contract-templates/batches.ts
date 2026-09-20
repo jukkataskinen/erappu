@@ -2,7 +2,7 @@ import "server-only";
 import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { defaultReminderOn } from "@/lib/contracts/deadlines";
-import { assertRealEsinetti, buildExternalRef, isEsinettiError, type EsinettiClient } from "@/lib/esinetti";
+import { assertRealEsinetti, buildExternalRef, createRoundOnce, isEsinettiError, type EsinettiClient } from "@/lib/esinetti";
 import { isoDateHelsinki } from "@/lib/format";
 import { deleteStoredFile, readStoredFile, storeFile, type StoredFile } from "@/lib/storage";
 import { getTemplate } from "./index";
@@ -454,7 +454,7 @@ export async function sendBatch(run: Runner, actor: Actor, batchId: string, clie
     let round;
     try {
       const bytes = await read(item.storage_path!);
-      round = await client.createRound({
+      round = await createRoundOnce(client, {
         title: `${item.company_name}: ${filled.documentTitle}`,
         documents: [{ name: `${template.key === "snow-ploughing" ? "lumityosopimus" : "sopimus"}.pdf`, pdfBytes: new Uint8Array(bytes) }],
         signers: signers.map((s) => ({ name: s.name, email: s.email, roleLabel: s.roleLabel, authLevel: "strong" })),

@@ -12,6 +12,8 @@ export interface IntegrationStatus {
   live: boolean;
   statusLabel: "Jäljitelmä" | "Käytössä";
   blocker: string | null;
+  /** Käyttöön vaadittavat muuttujat, joita ei ole asetettu. Vain nimet, ei arvoja. */
+  missing: string[];
 }
 
 interface Spec {
@@ -21,12 +23,14 @@ interface Spec {
   defaultMode: string;
   liveModes: string[];
   blocker: string;
+  /** Muuttujat, jotka tarvitaan kun tila on `liveModes`. */
+  requires?: string[];
 }
 
 const SPECS: Spec[] = [
-  { key: "HTJ_MODE", label: "HTJ (Maanmittauslaitos)", description: "Osakeluettelot ja HTJ2-ilmoitukset", defaultMode: "mock", liveModes: ["mml"], blocker: "BLOCKERS 1: MML-sopimus ja varmenne" },
-  { key: "ESINETTI_MODE", label: "eSinetti", description: "Sähköiset allekirjoitukset ja sinetöinti", defaultMode: "mock", liveModes: ["http"], blocker: "BLOCKERS 3: eSinetti-tenant ja API-avain" },
-  { key: "EMAIL_MODE", label: "Sähköposti", description: "Kutsut, tiedotteet ja ilmoitukset", defaultMode: "console", liveModes: ["resend"], blocker: "BLOCKERS 2: tuotantoympäristö" },
+  { key: "HTJ_MODE", label: "HTJ (Maanmittauslaitos)", description: "Osakeluettelot ja HTJ2-ilmoitukset", defaultMode: "mock", liveModes: ["mml"], blocker: "BLOCKERS 1: MML-sopimus ja varmenne", requires: ["HTJ_ISANNOINTITAHO"] },
+  { key: "ESINETTI_MODE", label: "eSinetti", description: "Sähköiset allekirjoitukset ja sinetöinti", defaultMode: "mock", liveModes: ["http"], blocker: "BLOCKERS 3: eSinetti-tenant ja API-avain", requires: ["ESINETTI_API_KEY", "ESINETTI_WEBHOOK_SECRET"] },
+  { key: "EMAIL_MODE", label: "Sähköposti", description: "Kutsut, tiedotteet ja ilmoitukset", defaultMode: "console", liveModes: ["resend"], blocker: "BLOCKERS 2: tuotantoympäristö", requires: ["RESEND_API_KEY", "EMAIL_FROM"] },
   { key: "STORAGE_DRIVER", label: "Tiedostovarasto", description: "Dokumentit ja liitteet", defaultMode: "local", liveModes: ["supabase"], blocker: "BLOCKERS 2: tuotantoympäristö" },
   { key: "AUTH_MODE", label: "Kirjautuminen", description: "Henkilökunta ja portaali (Auth0)", defaultMode: "dev", liveModes: ["auth0"], blocker: "BLOCKERS 2: Auth0-sovellus" },
 ];
@@ -45,6 +49,7 @@ export function integrationStatuses(env: Record<string, string | undefined> = pr
       live,
       statusLabel: live ? "Käytössä" : "Jäljitelmä",
       blocker: live ? null : s.blocker,
+      missing: (s.requires ?? []).filter((name) => !(env[name]?.trim())),
     };
   });
 }

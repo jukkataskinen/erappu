@@ -33,14 +33,22 @@ export default async function IntegrationsPage() {
                 <p className="text-ink/60">{i.description}</p>
               </Td>
               <Td>
-                <Badge tone={i.live ? "ok" : "warn"}>{i.statusLabel}</Badge>
+                <Badge tone={i.live && i.missing.length === 0 ? "ok" : i.live ? "alert" : "warn"}>
+                  {i.live && i.missing.length > 0 ? "Puutteellinen" : i.statusLabel}
+                </Badge>
               </Td>
               <Td>
                 <code className="text-xs">
                   {i.key}={i.mode}
                 </code>
               </Td>
-              <Td>{i.blocker ?? "–"}</Td>
+              <Td>
+                {i.missing.length > 0 ? (
+                  <span className={i.live ? "text-coral" : undefined}>Puuttuu: {i.missing.join(", ")}</span>
+                ) : (
+                  (i.blocker ?? "–")
+                )}
+              </Td>
             </tr>
           ))}
         </tbody>

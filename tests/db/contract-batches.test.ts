@@ -233,6 +233,7 @@ describe("sopimuserät: lähetyksen virheet ja peruminen", () => {
     const mock = new EsinettiMockClient();
     let calls = 0;
     const flaky = {
+      findRoundByExternalRef: (ref: string) => mock.findRoundByExternalRef(ref),
       createRound: async (input: Parameters<EsinettiClient["createRound"]>[0]) => {
         if (calls++ === 0) throw new Error("verkko");
         return mock.createRound(input);
