@@ -62,6 +62,8 @@ export interface DashboardSource {
   health?: HealthRow[];
   /** Yhtiöt, joiden kuluvan kuukauden vastikeajo on tekemättä (talous). */
   billingMissing?: string[];
+  /** Tehdäänkö vastikeajoja eRapussa lainkaan (muuten ylälaidan luku piilotetaan). */
+  billingInUse?: boolean;
 }
 
 /** Tehtävälistan ikkuna: myöhässä, odottavat ja kahden viikon sisällä erääntyvät. */

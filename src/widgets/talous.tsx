@@ -20,10 +20,15 @@ const BILLING_LEAD_DAYS = 10;
  * kuukauden tekemättömät ajot (ryhmitellään yhdeksi riviksi). Laskutettava
  * kuukausi on kuluva kuukausi eräpäivään asti, sen jälkeen seuraava.
  * Erääntyneet saatavat ovat tietojen kuntoa.
+ *
+ * Tekemättömästä ajosta muistutetaan vain yhtiöille, joilla on jo tehty
+ * vastikeajo eRapussa. Vastikkeet laskutetaan vielä Procountorissa (Jukka
+ * 21.9.2026), joten muuten rivi näkyisi turhaan joka kuukausi. Muistutus
+ * alkaa itsestään, kun yhtiön ensimmäinen vastikeajo tehdään eRapussa.
  */
 export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource> {
   const today = isoDateHelsinki();
-  const { overview, drafts, dueDays, runs } = await ctx.run(async (tx) => ({
+  const { overview, drafts, dueDays, runs, billedHere } = await ctx.run(async (tx) => ({
     overview: await financeOverview(tx, ctx.org.organizationId, today),
     drafts: await tx.query<{ id: string; company_id: string; company_name: string; period_start: string; kind: string }>(
       `select r.id, r.company_id, c.name as company_name, r.period_start::text, r.kind
@@ -43,6 +48,12 @@ export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource
         [ctx.org.organizationId, today],
       )).map((r) => r.key),
     ),
+    billedHere: new Set(
+      (await tx.query<{ company_id: string }>(
+        "select distinct company_id from er_billing_runs where organization_id = $1 and status <> 'cancelled' and kind = 'charges'",
+        [ctx.org.organizationId],
+      )).map((r) => r.company_id),
+    ),
   }));
   const target = (companyId: string) => {
     const day = String(dueDays.get(companyId) ?? 5).padStart(2, "0");
@@ -51,7 +62,7 @@ export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource
     return { month: due.slice(0, 7), due };
   };
   const missing = overview
-    .filter((c) => Number(c.monthlyAccrual) > 0)
+    .filter((c) => billedHere.has(c.id) && Number(c.monthlyAccrual) > 0)
     .map((c) => ({ c, t: target(c.id) }))
     .filter(({ c, t }) => !runs.has(`${c.id}:${t.month}`));
   const items: DashboardItem[] = [
@@ -86,7 +97,7 @@ export async function dashboardItems(ctx: StaffContext): Promise<DashboardSource
   const health: HealthRow[] = [
     { key: "saatavat", label: "Erääntyneitä vastikesaatavia", companies: overdue.map((c) => ({ id: c.id, name: c.name })), href: "/talous", tone: "neutral" },
   ];
-  return { items, health, billingMissing: missing.map(({ c }) => c.id) };
+  return { items, health, billingMissing: missing.map(({ c }) => c.id), billingInUse: billedHere.size > 0 };
 }
 
 export async function CompanyOverviewWidget({ ctx, companyId }: { ctx: StaffContext; companyId: string }) {

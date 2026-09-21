@@ -115,6 +115,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     scope,
   ).sort((a, b) => (a.tone === "alert" ? 0 : 1) - (b.tone === "alert" ? 0 : 1));
   const billingMissing = sources.flatMap((s) => s.billingMissing ?? []).filter((id) => !scope || scope.has(id)).length;
+  const billingInUse = sources.some((s) => s.billingInUse);
   const quiet = QUIET.filter((c) => !scoped.some((i) => i.category === c));
   const shownTasks = sp.kaikki === "1" ? agenda.tasks : agenda.tasks.slice(0, MAX_TASKS);
   const firstName = ctx.user.fullName?.split(" ")[0];
@@ -140,11 +141,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${billingInUse ? "lg:grid-cols-4" : "sm:grid-cols-3"}`}>
         <Stat label="Odottaa vastaustasi" value={agenda.waiting} tone={agenda.waiting ? "warn" : "ok"} href="#tehtavaa" />
         <Stat label="Myöhässä" value={agenda.overdue} tone={agenda.overdue ? "alert" : "ok"} href="#tehtavaa" />
         <Stat label="Tällä viikolla" value={agenda.thisWeek} tone={agenda.thisWeek ? "warn" : undefined} href="#tehtavaa" />
-        <Stat label="Vastikeajot tekemättä" value={billingMissing} tone={billingMissing ? "warn" : "ok"} href="/talous" />
+        {billingInUse ? <Stat label="Vastikeajot tekemättä" value={billingMissing} tone={billingMissing ? "warn" : "ok"} href="/talous" /> : null}
       </div>
 
       <Panel id="tehtavaa" className="mt-6">
