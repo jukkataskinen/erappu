@@ -44,6 +44,20 @@ export const PORTAL_NAV = [
   { href: "/portaali/oma", label: "Oma" },
 ];
 
+/**
+ * Leveän näytön ylävalikko: nämä näkyvät suoraan, loput "Lisää"-valikossa.
+ * Koko valikko ei mahdu yhdelle riville (12 kohtaa), joten kaksi viimeistä
+ * näkyvät suoraan vasta xl-leveydellä ja sitä kapeammalla Lisää-valikossa.
+ */
+export const PORTAL_NAV_TOP: { href: string; xlOnly?: boolean }[] = [
+  { href: "/portaali" },
+  { href: "/portaali/huoltopyynnot" },
+  { href: "/portaali/yhteydenotot" },
+  { href: "/portaali/tiedotteet" },
+  { href: "/portaali/dokumentit", xlOnly: true },
+  { href: "/portaali/varaukset", xlOnly: true },
+];
+
 /** Puhelimen alapalkki: viisi yleisintä, loput "Oma"-sivun kautta. */
 export const PORTAL_TABBAR = [
   { href: "/portaali", label: "Etusivu" },
