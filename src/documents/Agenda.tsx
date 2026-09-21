@@ -72,7 +72,14 @@ export function Agenda({ data }: { data: MeetingDocumentBase }) {
             return (
               <View key={item.position} style={{ flexDirection: "row", marginTop: sub ? 2 : 5, marginLeft: sub ? 26 : 0 }} wrap={false}>
                 <Text style={{ width: 26, textAlign: "right", paddingRight: 8 }}>{item.position}.</Text>
-                <Text style={{ flex: 1, lineHeight: 1.15 }}>{item.title}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ lineHeight: 1.15 }}>{item.title}</Text>
+                  {item.attachments?.map((a) => (
+                    <Text key={a.label} style={{ fontSize: typeScale.small, color: colors.inkSoft, marginTop: 1 }}>
+                      {a.label}: {a.title}
+                    </Text>
+                  ))}
+                </View>
               </View>
             );
           })}

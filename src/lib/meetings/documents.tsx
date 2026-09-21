@@ -11,6 +11,7 @@ import { MeetingNotice, type MeetingDocumentBase } from "@/documents/MeetingNoti
 import { Minutes } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
 import { attendanceStatement, computeVotes } from "./votes";
+import { byItem, listItemAttachments } from "./attachments";
 import { resolveGoverningAct, type GoverningAct } from "./governing-act";
 import { isGeneralMeeting, MEETING_KIND } from "./labels";
 import { getMeeting, listAttendees, listItems, type AttendeeRow, type MeetingRow } from "./queries";
@@ -58,7 +59,8 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
     [meeting.company_id],
   );
   if (!company) return null;
-  const [items, attendees] = await Promise.all([listItems(tx, meetingId), listAttendees(tx, meetingId)]);
+  const [items, attendees, attachments] = await Promise.all([listItems(tx, meetingId), listAttendees(tx, meetingId), listItemAttachments(tx, meetingId)]);
+  const attachmentsByItem = byItem(attachments);
   const act = resolveGoverningAct(company.company_form, company.governing_act);
   const address = [company.street_address, [company.postal_code, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null;
   return {
@@ -78,7 +80,13 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
       remoteParticipation: meeting.remote_participation,
       remoteUrl: meeting.remote_url,
       fiscalYear: meeting.fiscal_year,
-      items: items.map((i) => ({ position: i.position, title: i.title, proposal: i.proposal, decision: i.decision })),
+      items: items.map((i) => ({
+        position: i.position,
+        title: i.title,
+        proposal: i.proposal,
+        decision: i.decision,
+        attachments: (attachmentsByItem.get(i.id) ?? []).map((a) => ({ label: a.label, title: a.title ?? "" })),
+      })),
       manager: company.manager_name ? { name: company.manager_name, email: company.manager_email, phone: company.manager_phone } : null,
       issuedOn: isoDateHelsinki(),
     },

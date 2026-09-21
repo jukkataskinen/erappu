@@ -2,6 +2,7 @@ import { Badge, EmptyState, Panel } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { MEETING_KIND, MEETING_STATUS } from "@/lib/meetings/labels";
+import { byItem, listItemAttachments } from "@/lib/meetings/attachments";
 import { listMeetings, type MeetingItemRow } from "@/lib/meetings/queries";
 
 export const metadata = { title: "Kokoukset" };
@@ -31,7 +32,9 @@ export default async function PortalMeetingsPage() {
           [upcoming.map((m) => m.id)],
         )
       : [];
-    return { upcoming, past, docs, items };
+    // Pykälän liitteet: luettelo näkyy kokouksen näkijöille, tiedoston avaus noudattaa dokumentin näkyvyyttä.
+    const attachments = byItem(await listItemAttachments(tx, upcoming.map((m) => m.id)));
+    return { upcoming, past, docs, items, attachments };
   });
 
   const docsFor = (id: string) => data.docs.filter((d) => d.subject_id === id);
@@ -58,14 +61,30 @@ export default async function PortalMeetingsPage() {
                   Etäyhteys
                 </a>
               ) : null}
-              <details className="mt-3">
+              <details className="mt-3" open={new Date(m.starts_at).getTime() - Date.now() < 36 * 3600 * 1000}>
                 <summary className="cursor-pointer text-sm font-semibold">Asialista</summary>
-                <ol className="mt-2 grid gap-1 text-sm">
+                <ol className="mt-2 grid gap-1.5 text-sm">
                   {data.items
                     .filter((i) => i.meeting_id === m.id)
                     .map((i) => (
                       <li key={i.id}>
                         {i.position}. {i.title}
+                        {(data.attachments.get(i.id) ?? []).length ? (
+                          <ul className="ml-5 mt-0.5 grid gap-0.5">
+                            {data.attachments.get(i.id)!.map((a) => (
+                              <li key={a.id}>
+                                <span className="tabular-nums text-ink/60">{a.label}</span>{" "}
+                                {a.title ? (
+                                  <a href={`/api/dokumentit/${a.document_id}`} target="_blank" rel="noopener" className="font-semibold text-sky hover:underline">
+                                    {a.title}
+                                  </a>
+                                ) : (
+                                  <span className="text-ink/55">ei näkyvissä sinulle</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
                       </li>
                     ))}
                 </ol>

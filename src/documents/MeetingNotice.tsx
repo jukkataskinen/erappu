@@ -25,7 +25,7 @@ export interface MeetingDocumentBase {
   remoteParticipation: boolean;
   remoteUrl: string | null;
   fiscalYear: string | null;
-  items: { position: number; title: string; proposal: string | null; decision?: string | null }[];
+  items: { position: number; title: string; proposal: string | null; decision?: string | null; attachments?: { label: string; title: string }[] }[];
   manager: { name: string | null; email: string | null; phone: string | null } | null;
   /** Asiakirjan päiväys VVVV-KK-PP. */
   issuedOn: string;
@@ -144,6 +144,11 @@ export function MeetingNotice({ data }: { data: MeetingNoticeData }) {
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: weight.medium }}>{item.title}</Text>
               {item.proposal ? <Text style={{ fontSize: typeScale.small, color: colors.inkSoft }}>{item.proposal}</Text> : null}
+              {item.attachments?.map((a) => (
+                <Text key={a.label} style={{ fontSize: typeScale.small, color: colors.inkSoft }}>
+                  {a.label}: {a.title}
+                </Text>
+              ))}
             </View>
           </View>
         ))}

@@ -93,6 +93,15 @@ export function Minutes({ data }: { data: MinutesData }) {
                 <Text style={{ fontSize: typeScale.small, color: colors.inkSoft }}>{item.proposal}</Text>
               </View>
             ) : null}
+            {item.attachments?.length ? (
+              <View style={{ marginLeft: 28, marginTop: 2 }}>
+                {item.attachments.map((a) => (
+                  <Text key={a.label} style={{ fontSize: typeScale.small, color: colors.inkSoft }}>
+                    {a.label}: {a.title}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
             {isAttendanceItem(item.title) && (general ? data.attendance.statement : data.attendance.names.length) ? (
               <View style={{ marginLeft: 28, marginTop: 3 }}>
                 <Text>

@@ -7,6 +7,7 @@ import { requireStaff } from "@/lib/auth/current-user";
 import { audit } from "@/lib/audit";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { assertRealEsinetti, canSimulateSigning, getEsinettiClient, isEsinettiError } from "@/lib/esinetti";
+import { AttachmentError, attachDocument, removeAttachment } from "@/lib/meetings/attachments";
 import { generateMeetingDocument, type MeetingDocumentKind } from "@/lib/meetings/documents";
 import { addItem, createItemTask, createMeeting, deleteItem, moveItem, prefillAttendees, updateItem } from "@/lib/meetings/mutations";
 import { NoticeError, sendMeetingNotice } from "@/lib/meetings/send-notice";
@@ -319,4 +320,35 @@ export async function simulateSigningAction(formData: FormData) {
   const roundId = uuid.parse(formData.get("round_id"));
   await simulateSigning(ctx.db, roundId, ctx.user.sub);
   done(companyId, meetingId, "#allekirjoitus");
+}
+
+/** Olemassa olevan yhtiön dokumentin liittäminen asiaan (esim. tilinpäätös tai tarjous dokumenttipankista). */
+export async function attachExistingDocumentAction(formData: FormData) {
+  const { companyId, meetingId, back } = ids(formData);
+  const ctx = await writer(back);
+  const itemId = uuid.safeParse(formData.get("item_id"));
+  const documentId = uuid.safeParse(formData.get("document_id"));
+  if (!itemId.success) fail(back, "Asiaa ei löytynyt.");
+  if (!documentId.success) fail(back, "Valitse liitettävä dokumentti.");
+  try {
+    await ctx.run((tx) => attachDocument(tx, { meetingId, itemId: itemId.data, documentId: documentId.data, userId: ctx.user.id }));
+  } catch (err) {
+    if (err instanceof AttachmentError) fail(back, err.message);
+    throw err;
+  }
+  done(companyId, meetingId, "#asiat");
+}
+
+export async function removeAttachmentAction(formData: FormData) {
+  const { companyId, meetingId, back } = ids(formData);
+  const ctx = await writer(back);
+  const attachmentId = uuid.safeParse(formData.get("attachment_id"));
+  if (!attachmentId.success) fail(back, "Liitettä ei löytynyt.");
+  try {
+    await ctx.run((tx) => removeAttachment(tx, { meetingId, attachmentId: attachmentId.data, userId: ctx.user.id }));
+  } catch (err) {
+    if (err instanceof AttachmentError) fail(back, err.message);
+    throw err;
+  }
+  done(companyId, meetingId, "#asiat");
 }

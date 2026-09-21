@@ -6,6 +6,7 @@ import { Badge, Button, EmptyState, Field, Input, Notice, Panel, SectionTitle, T
 import { requireStaff } from "@/lib/auth/current-user";
 import { canSimulateSigning, isUsingMockEsinetti } from "@/lib/esinetti";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
+import { ATTACHMENTS_EDITABLE, attachmentVisibility, byItem, listAttachableDocuments, listItemAttachments } from "@/lib/meetings/attachments";
 import { buildVoteSummary } from "@/lib/meetings/documents";
 import { resolveGoverningAct } from "@/lib/meetings/governing-act";
 import { isGeneralMeeting, MEETING_KIND, MEETING_STATUS, MEETING_STATUS_TONE, SIGNING_STATUS } from "@/lib/meetings/labels";
@@ -15,6 +16,8 @@ import { listNoticeParties } from "@/lib/meetings/send-notice";
 import { noticeWindow } from "@/lib/meetings/templates";
 import { isoToHelsinkiLocal } from "@/lib/meetings/time";
 import { BOARD_ROLE } from "@/lib/registry/labels";
+import { VISIBILITY_LABEL } from "@/lib/documents/labels";
+import { AttachmentLinks, ItemAttachmentEditor } from "./ItemAttachments";
 import {
   addAttendeeAction,
   addItemAction,
@@ -72,18 +75,23 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
     if (!meeting || meeting.company_id !== id) return null;
-    const [items, attendees, documents, rounds, parties] = await Promise.all([
+    const [items, attendees, documents, rounds, parties, attachments, attachable] = await Promise.all([
       listItems(tx, mid),
       listAttendees(tx, mid),
       listMeetingDocuments(tx, mid),
       listSigningRounds(tx, "er_meetings", mid),
       listNoticeParties(tx, id, meeting.kind),
+      listItemAttachments(tx, mid),
+      listAttachableDocuments(tx, id),
     ]);
-    return { meeting, items, attendees, documents, rounds, parties };
+    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable };
   });
   if (!data) notFound();
 
-  const { meeting, items, attendees, documents, rounds, parties } = data;
+  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable } = data;
+  const attachmentsByItem = byItem(attachments);
+  const attachmentsEditable = ctx.can("owner", "manager", "assistant") && (ATTACHMENTS_EDITABLE as readonly string[]).includes(meeting.status);
+  const attachmentVisibilityLabel = VISIBILITY_LABEL[attachmentVisibility(meeting.kind)];
   const general = isGeneralMeeting(meeting.kind);
   const canWrite = ctx.can("owner", "manager", "assistant");
   const local = isoToHelsinkiLocal(meeting.starts_at);
@@ -231,6 +239,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                           <span className="font-semibold">Päätös:</span> {item.decision}
                         </p>
                       ) : null}
+                      <AttachmentLinks attachments={attachmentsByItem.get(item.id) ?? []} />
                       {item.task_id ? (
                         <Link href={`/taloyhtiot/${id}/vuosikello`} className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-sky hover:underline">
                           {item.task_done ? "Tehtävä kuitattu" : `Isännöitsijän tehtävälistalla, määräpäivä ${formatDate(item.task_due_on)}`}
@@ -260,7 +269,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                   </div>
                   {canWrite ? (
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-xs font-semibold text-sky">Muokkaa esitystä ja päätöstä</summary>
+                      <summary className="cursor-pointer text-xs font-semibold text-sky">Muokkaa esitystä, päätöstä ja liitteitä</summary>
                       <form action={updateItemAction} className="mt-3 grid gap-3">
                         {hidden}
                         <input type="hidden" name="item_id" value={item.id} />
@@ -278,6 +287,18 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                           <Button variant="secondary">Tallenna</Button>
                         </div>
                       </form>
+                      {attachmentsEditable ? (
+                        <ItemAttachmentEditor
+                          hidden={hidden}
+                          companyId={id}
+                          meetingId={mid}
+                          itemId={item.id}
+                          itemPosition={item.position}
+                          attachments={attachmentsByItem.get(item.id) ?? []}
+                          documents={attachable}
+                          visibilityLabel={attachmentVisibilityLabel}
+                        />
+                      ) : null}
                       <form action={deleteItemAction} className="mt-2">
                         {hidden}
                         <input type="hidden" name="item_id" value={item.id} />
