@@ -16,14 +16,14 @@ import { z } from "zod";
  * - 7:27 ja 7:28 tiedot isännöitsijäntodistukseen ja säilytys, 24 luku vahingot
  *
  * Työlajikohtaiset vaatimukset ovat eRapun omia tiivistelmiä vakiintuneesta
- * käytännöstä, eivät lainauksia mallipohjista. Kunnes Jukka on hyväksynyt
- * ne, PDF:ssä on luonnosmerkintä.
+ * käytännöstä, eivät lainauksia mallipohjista. Jukka hyväksyi vakiotekstit
+ * 21.9.2026.
  */
 
 export const RENOVATION_GUIDE_VERSION = 1;
 
 /** Vakiotekstien hyväksyntä. `false` → luonnosmerkintä PDF:ssä (kuten RESCUE_PLAN_TEMPLATE_APPROVED). */
-export const RENOVATION_GUIDE_TEMPLATE_APPROVED = false;
+export const RENOVATION_GUIDE_TEMPLATE_APPROVED = true;
 
 /** Asbestin käyttö rakennustuotteissa kiellettiin Suomessa 1994; sitä vanhemmissa rakennuksissa kartoitus ennen purkua. */
 export const ASBESTOS_SURVEY_BEFORE_YEAR = 1994;
