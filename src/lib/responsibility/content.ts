@@ -28,10 +28,9 @@
  */
 
 /**
- * Tulkinnat ovat eRapun omia luonnoksia, kunnes Jukka on tarkistanut ne
- * (BLOCKERS 12). Henkilökunnan sivulla näkyy siihen asti huomautus.
+ * Tulkinnat ovat eRapun omia. Jukka hyväksyi ne 21.9.2026 (BLOCKERS 12).
  */
-export const RESPONSIBILITY_CONTENT_APPROVED = false;
+export const RESPONSIBILITY_CONTENT_APPROVED = true;
 
 export const RESPONSIBILITIES = ["company", "shareholder", "shared"] as const;
 
@@ -106,8 +105,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Yhtiö vastaa, koska hana ja sen sulkuventtiili ovat osa huoneiston vesijohtojärjestelmää, jonka yhtiö on toteuttanut. Yhtiön vastuu ulottuu perusjärjestelmiin myös huoneiston sisällä.",
     law: "AOYL 4:2 § 2 mom",
     note: "Jos osakas on itse vaihtanut hanan, yhtiö vastaa vain, jos asennus rinnastuu yhtiön toteuttamaan ja yhtiö on voinut valvoa sen (AOYL 4:2 § 3 mom).",
-    x: 250,
-    y: 305,
+    x: 192,
+    y: 272,
   },
   {
     key: "keittio-viemari",
@@ -117,8 +116,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Yhtiö vastaa viemärin kunnosta perusjärjestelmänä. Hajulukon puhdistaminen ja tukoksen avaaminen kuuluu asukkaan tavanomaiseen huolelliseen hoitoon.",
     law: "AOYL 4:2 § 2 mom ja 4:3 § 2 mom",
     note: "Jos tukos on aiheutunut huolimattomasta käytöstä, avaamisen kustannus voi jäädä osakkaalle.",
-    x: 245,
-    y: 500,
+    x: 270,
+    y: 405,
   },
   {
     key: "keittio-allas",
@@ -128,8 +127,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Laissa on nimenomainen rajaus: yhtiö ei vastaa osakehuoneistoissa olevista altaista. Altaan uusiminen ja korjaus on siis osakkaan.",
     law: "AOYL 4:2 § 2 mom",
     note: "Jos allas rikkoutuu yhtiön vastuulla olevan vian tai korjaustyön takia, yhtiö korjaa vahingon perustasoon.",
-    x: 170,
-    y: 425,
+    x: 122,
+    y: 337,
   },
   {
     key: "keittio-tiskikone",
@@ -139,8 +138,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Kone ja sen liitokset ovat osakkaan hankkimia eivätkä kuulu yhtiön toteuttamaan perusjärjestelmään. Osakas vastaa liitännästä, vuotokaukalosta ja niiden kunnosta.",
     law: "AOYL 4:2 § 3 mom ja 4:3 §",
     note: "Liitännästä on tehtävä kirjallinen ilmoitus yhtiölle ennen työtä, koska se voi vaikuttaa yhtiön vastuulla olevaan putkistoon (AOYL 4:7 §).",
-    x: 415,
-    y: 465,
+    x: 176,
+    y: 433,
   },
   {
     key: "keittio-liesi",
@@ -150,8 +149,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Liesi on huoneiston laite eikä yhtiön perusjärjestelmä, joten se kuuluu osakkaan kunnossapitovastuulle sisäosana.",
     law: "AOYL 4:3 § 1 mom",
     note: "Jos yhtiö on hankkinut liedet ja hyväksynyt ne vastuulleen, vastuu on yhtiön (AOYL 4:2 § 3 mom).",
-    x: 560,
-    y: 462,
+    x: 518,
+    y: 414,
   },
   {
     key: "keittio-liesituuletin",
@@ -161,8 +160,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Jos kupu on liitetty yhtiön koneelliseen poistoilmanvaihtoon, se on osa ilmanvaihtojärjestelmää ja yhtiön vastuulla. Osakkaan itse hankkima tuuletin, esimerkiksi aktiivihiilimalli, on osakkaan.",
     law: "AOYL 4:2 § 2 ja 3 mom",
     note: "Rasvasuodattimen pesu ja vaihto on asukkaan tavanomaista hoitoa.",
-    x: 530,
-    y: 180,
+    x: 516,
+    y: 170,
   },
   {
     key: "keittio-iv-venttiili",
@@ -172,8 +171,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Venttiili on osa yhtiön ilmanvaihtojärjestelmää, joten yhtiö vastaa sen kunnosta ja säädöstä.",
     law: "AOYL 4:2 § 2 mom",
     note: "Asukas puhdistaa venttiilin pinnan, mutta ei saa muuttaa säätöä: säätö on osa koko rakennuksen ilmanvaihdon tasapainoa.",
-    x: 765,
-    y: 60,
+    x: 745,
+    y: 42,
   },
   {
     key: "keittio-kaapistot",
@@ -183,8 +182,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Kalusteet ja työtaso ovat huoneiston sisäosia, joten osakas vastaa niiden kunnosta ja uusimisesta.",
     law: "AOYL 4:3 § 1 mom",
     note: "Jos kalusteet vahingoittuvat rakenteen tai yhtiön vastuulla olevan osan vian tai korjaamisen vuoksi, yhtiö korjaa ne yhtiön senhetkiseen perustasoon (AOYL 4:2 § 2 ja 3 mom).",
-    x: 150,
-    y: 175,
+    x: 122,
+    y: 138,
   },
   {
     key: "keittio-pistorasiat",
@@ -194,8 +193,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Sähköjärjestelmä on yhtiön perusjärjestelmä myös huoneiston sisällä, joten rasiat ja kiinteät johdot ovat yhtiön vastuulla.",
     law: "AOYL 4:2 § 2 mom",
     note: "Osakkaan itse teettämät lisärasiat jäävät osakkaalle, jollei yhtiö ole hyväksynyt niitä vastuulleen (AOYL 4:2 § 3 mom).",
-    x: 690,
-    y: 320,
+    x: 335,
+    y: 293,
   },
   {
     key: "keittio-runkoputki",
@@ -205,8 +204,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Runkoputki on rakennuksen vesijohtojärjestelmää ja kotelo rakenne, joten molemmat ovat yhtiön vastuulla.",
     law: "AOYL 4:2 § 2 mom",
     note: "Osakkaan on ilmoitettava yhtiölle viivytyksettä havaitsemastaan vuodosta tai kosteudesta (AOYL 4:8 §).",
-    x: 955,
-    y: 240,
+    x: 929,
+    y: 253,
   },
 ];
 
