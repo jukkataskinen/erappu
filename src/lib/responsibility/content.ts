@@ -105,8 +105,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Yhtiö vastaa, koska hana ja sen sulkuventtiili ovat osa huoneiston vesijohtojärjestelmää, jonka yhtiö on toteuttanut. Yhtiön vastuu ulottuu perusjärjestelmiin myös huoneiston sisällä.",
     law: "AOYL 4:2 § 2 mom",
     note: "Jos osakas on itse vaihtanut hanan, yhtiö vastaa vain, jos asennus rinnastuu yhtiön toteuttamaan ja yhtiö on voinut valvoa sen (AOYL 4:2 § 3 mom).",
-    x: 192,
-    y: 272,
+    x: 205,
+    y: 285,
   },
   {
     key: "keittio-viemari",
@@ -116,8 +116,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Yhtiö vastaa viemärin kunnosta perusjärjestelmänä. Hajulukon puhdistaminen ja tukoksen avaaminen kuuluu asukkaan tavanomaiseen huolelliseen hoitoon.",
     law: "AOYL 4:2 § 2 mom ja 4:3 § 2 mom",
     note: "Jos tukos on aiheutunut huolimattomasta käytöstä, avaamisen kustannus voi jäädä osakkaalle.",
-    x: 270,
-    y: 405,
+    x: 163,
+    y: 439,
   },
   {
     key: "keittio-allas",
@@ -127,8 +127,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Laissa on nimenomainen rajaus: yhtiö ei vastaa osakehuoneistoissa olevista altaista. Altaan uusiminen ja korjaus on siis osakkaan.",
     law: "AOYL 4:2 § 2 mom",
     note: "Jos allas rikkoutuu yhtiön vastuulla olevan vian tai korjaustyön takia, yhtiö korjaa vahingon perustasoon.",
-    x: 122,
-    y: 337,
+    x: 125,
+    y: 352,
   },
   {
     key: "keittio-tiskikone",
@@ -138,8 +138,8 @@ const KEITTIO: ResponsibilityItem[] = [
     text: "Kone ja sen liitokset ovat osakkaan hankkimia eivätkä kuulu yhtiön toteuttamaan perusjärjestelmään. Osakas vastaa liitännästä, vuotokaukalosta ja niiden kunnosta.",
     law: "AOYL 4:2 § 3 mom ja 4:3 §",
     note: "Liitännästä on tehtävä kirjallinen ilmoitus yhtiölle ennen työtä, koska se voi vaikuttaa yhtiön vastuulla olevaan putkistoon (AOYL 4:7 §).",
-    x: 176,
-    y: 433,
+    x: 285,
+    y: 426,
   },
   {
     key: "keittio-liesi",
@@ -150,7 +150,7 @@ const KEITTIO: ResponsibilityItem[] = [
     law: "AOYL 4:3 § 1 mom",
     note: "Jos yhtiö on hankkinut liedet ja hyväksynyt ne vastuulleen, vastuu on yhtiön (AOYL 4:2 § 3 mom).",
     x: 518,
-    y: 414,
+    y: 433,
   },
   {
     key: "keittio-liesituuletin",

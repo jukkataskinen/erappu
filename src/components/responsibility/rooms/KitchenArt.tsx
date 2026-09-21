@@ -3,7 +3,8 @@
 
 /**
  * Keittiö edestä valokuvana (Jukka 21.9.2026): yläkaapit, liesikupu,
- * ilmanvaihtoventtiili, allas, tiskikone, uuni ja jääkaappi.
+ * ilmanvaihtoventtiili, avoin allaskaappi (vesijohdot, sulut ja hajulukko),
+ * astianpesukone, uuni ja jääkaappi.
  *
  * Kuva on 1560 × 1008 px ja täyttää viewBoxin 1000 × 640 (leikkaa ~3 yksikköä
  * ylhäältä ja alhaalta). Kuvapikseli → viewBox: x · 0,641, y · 0,641 − 3.
