@@ -10,8 +10,8 @@ import { z } from "zod";
  * Lähteet ja tulkinnat: DECISIONS.md 2026-09-15 Pelastussuunnitelma.
  *
  * Vakiotekstit (vaaratilanteet ja toimintaohjeet) ovat eRapun omia
- * tiivistelmiä, eivät lainauksia mallipohjista. Kunnes Jukka on hyväksynyt
- * ne, PDF:ssä on luonnosmerkintä.
+ * tiivistelmiä, eivät lainauksia mallipohjista. Jukka hyväksyi vakiotekstit
+ * 21.9.2026.
  *
  * Kaikki kentät ovat merkkijonoja, jotta lomake ja jsonb-kenttä vastaavat
  * toisiaan suoraan; luvut ovat tekstiä ("noin 20").
@@ -20,7 +20,7 @@ import { z } from "zod";
 export const RESCUE_PLAN_TEMPLATE_VERSION = 1;
 
 /** Vakiotekstien hyväksyntä. `false` → luonnosmerkintä PDF:ssä (kuten CERTIFICATE_TEMPLATE_APPROVED). */
-export const RESCUE_PLAN_TEMPLATE_APPROVED = false;
+export const RESCUE_PLAN_TEMPLATE_APPROVED = true;
 
 /** Suunnitelman tarkistusväli. VNa 407/2011 ei määrää väliä; vuosittainen tarkistus on pelastuslaitosten ja SPEKin suositus. */
 export const REVIEW_INTERVAL_MONTHS = 12;
