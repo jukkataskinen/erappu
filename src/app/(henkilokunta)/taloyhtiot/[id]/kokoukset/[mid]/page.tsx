@@ -163,11 +163,6 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         ) : null}
       </div>
 
-      <div className="mb-6">
-        <Notice tone="warn" title="Pohjat ovat luonnoksia">
-          Kokouskutsun, asialistan ja pöytäkirjan juridinen sisältö tarkistetaan ennen käyttöä.
-        </Notice>
-      </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <div className="grid content-start gap-6">
