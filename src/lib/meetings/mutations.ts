@@ -75,24 +75,27 @@ async function companyAnnualAgenda(tx: Sql, companyId: string): Promise<AgendaIt
 }
 
 /**
- * Lisää asian asialistalle. Jos viimeinen asia on "Kokouksen päättäminen",
- * uusi asia lisätään sen edelle (Muut asiat -kohdan alle), muuten loppuun.
+ * Uusi asia lisätään ennen "Muut asiat" -kohtaa, koska muut asiat käsitellään
+ * aina juuri ennen kokouksen päättämistä (Jukka 22.9.2026). Jos kohtaa ei ole,
+ * asia lisätään ennen kokouksen päättämistä, muuten loppuun.
  */
 export async function addItem(tx: Sql, meetingId: string, title: string, proposal: string | null): Promise<string | null> {
-  const [last] = await tx.query<{ id: string; position: number; title: string }>(
-    "select id, position, title from er_meeting_items where meeting_id = $1 order by position desc limit 1",
+  const items = await tx.query<{ id: string; position: number; title: string }>(
+    "select id, position, title from er_meeting_items where meeting_id = $1 order by position",
     [meetingId],
   );
-  const beforeClosing = last && /^kokouksen päättäminen/i.test(last.title.trim());
-  if (beforeClosing) {
-    // Uniikkiehto on viivästetty, joten päättämisen siirto ja lisäys onnistuvat samassa transaktiossa.
-    await tx.query("update er_meeting_items set position = position + 1 where id = $1", [last.id]);
+  const anchor =
+    items.find((i) => /^muut (esille tulevat )?asiat/i.test(i.title.trim())) ??
+    (items.length && /^kokouksen päättäminen/i.test(items[items.length - 1].title.trim()) ? items[items.length - 1] : undefined);
+  if (anchor) {
+    // Uniikkiehto on viivästetty, joten siirto ja lisäys onnistuvat samassa transaktiossa.
+    await tx.query("update er_meeting_items set position = position + 1 where meeting_id = $1 and position >= $2", [meetingId, anchor.position]);
   }
   const rows = await tx.query<{ id: string }>(
     `insert into er_meeting_items (organization_id, meeting_id, position, title, proposal)
      select m.organization_id, m.id, $4::int, $2, $3
        from er_meetings m where m.id = $1 returning id`,
-    [meetingId, title, proposal, beforeClosing ? last.position : (last?.position ?? 0) + 1],
+    [meetingId, title, proposal, anchor ? anchor.position : (items[items.length - 1]?.position ?? 0) + 1],
   );
   return rows[0]?.id ?? null;
 }

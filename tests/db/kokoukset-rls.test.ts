@@ -261,14 +261,26 @@ describe("kokouksen asiasta isännöitsijän tehtävä", () => {
 });
 
 describe("asian lisäys asialistalle", () => {
-  it("uusi asia lisätään kokouksen päättämisen edelle", async () => {
+  it("uusi asia lisätään Muut asiat -kohdan edelle", async () => {
     const meeting = await db.asUser(f.managerA.sub, (tx) =>
       createMeeting(tx, { companyId: f.companyA, kind: "annual_general", startsAt: "2027-05-12T15:00:00.000Z", location: null, remoteParticipation: false, remoteUrl: null, fiscalYear: "2026", createdBy: f.managerA.id }),
     );
     await db.asUser(f.managerA.sub, (tx) => addItem(tx, meeting!.id, "Katon pinnoitus", null));
     await db.asUser(f.managerA.sub, (tx) => addItem(tx, meeting!.id, "Sähköinen osakeluettelo", null));
     const titles = (await db.asUser(f.managerA.sub, (tx) => listItems(tx, meeting!.id))).map((i) => i.title);
-    expect(titles.slice(-4)).toEqual(["Muut asiat:", "Katon pinnoitus", "Sähköinen osakeluettelo", "Kokouksen päättäminen"]);
+    expect(titles.slice(-4)).toEqual(["Katon pinnoitus", "Sähköinen osakeluettelo", "Muut asiat:", "Kokouksen päättäminen"]);
+    const positions = (await db.asUser(f.managerA.sub, (tx) => listItems(tx, meeting!.id))).map((i) => i.position);
+    expect(positions).toEqual(positions.map((_, i) => i + 1));
+  });
+
+  it("hallituksen kokouksessa samoin", async () => {
+    const meeting = await db.asUser(f.managerA.sub, (tx) =>
+      createMeeting(tx, { companyId: f.companyA, kind: "board", startsAt: "2027-05-20T15:00:00.000Z", location: null, remoteParticipation: false, remoteUrl: null, fiscalYear: null, createdBy: f.managerA.id }),
+    );
+    await db.asUser(f.managerA.sub, (tx) => addItem(tx, meeting!.id, "Lakimuutokset", null));
+    const titles = (await db.asUser(f.managerA.sub, (tx) => listItems(tx, meeting!.id))).map((i) => i.title);
+    const other = titles.findIndex((t) => /^Muut asiat/.test(t));
+    expect(titles[other - 1]).toBe("Lakimuutokset");
   });
 });
 
