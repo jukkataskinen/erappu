@@ -12,6 +12,7 @@ import { Minutes } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
 import { attendanceStatement, computeVotes } from "./votes";
 import { byItem, listItemAttachments } from "./attachments";
+import { loadMinutesSignerPlan, type MinutesSignerPlan } from "./minutes-signers";
 import { appendMeetingAttachments, type MeetingAttachmentFile } from "./attachment-pdf";
 import { resolveGoverningAct, type GoverningAct } from "./governing-act";
 import { isGeneralMeeting, MEETING_KIND } from "./labels";
@@ -44,6 +45,8 @@ interface LoadedMeeting {
   act: GoverningAct;
   /** Pykälien liitetiedostot esityslistan ja pöytäkirjan loppuun. */
   attachmentFiles: MeetingAttachmentFile[];
+  /** Pöytäkirjan allekirjoittajat (hallituksen kokouksessa yhtiöjärjestyksen mukaan). */
+  signerPlan: MinutesSignerPlan | null;
 }
 
 export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promise<LoadedMeeting | null> {
@@ -86,6 +89,7 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
     totalShares: company.total_shares,
     act,
     attachmentFiles,
+    signerPlan: meeting.kind === "board" ? await loadMinutesSignerPlan(tx, meetingId) : null,
     base: {
       governingAct: act,
       organizationName: company.org_name,
@@ -148,6 +152,7 @@ export async function renderMeetingDocument(loaded: LoadedMeeting, kind: Meeting
           chairName: meeting.chair_name,
           secretaryName: meeting.secretary_name,
           checkerNames: (meeting.minutes_checkers ?? []).map((c) => c.name).filter(Boolean),
+          signatories: loaded.signerPlan?.signers.map((s) => ({ role: s.role, name: s.name })),
           attendance: {
             presentCount: attendees.filter((a) => a.present).length,
             representedShares: summary.representedShares,

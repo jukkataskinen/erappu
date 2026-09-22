@@ -67,7 +67,7 @@ describe("ennen kokousta", () => {
     expect(plan.preview).toBe(true);
     expect(plan.signers.map((s) => [s.name, s.role])).toEqual([
       ["Jouttijärvi Olavi", "Puheenjohtaja"],
-      ["Eila Hokkanen", "Läsnä ollut"],
+      ["Eila Hokkanen", "Hallituksen jäsen"],
     ]);
   });
 });

@@ -104,11 +104,22 @@ export async function updateMeetingAction(formData: FormData) {
   const d = parseForm(updateSchema, formData, back);
   const startsAt = helsinkiLocalToIso(d.date, d.time);
   if (!startsAt) fail(back, "Kokouksen aika ei ole kelvollinen.");
-  const checkers = [
+  let checkers = [
     { name: d.checker1_name, email: d.checker1_email },
     { name: d.checker2_name, email: d.checker2_email },
   ].filter((c) => c.name);
+  // Hallituksen kokouksessa valittu jäsen valitaan osallistujista; nimi ja sähköposti rekisteristä.
+  const pickedAttendee = formData.has("checker_attendee_id") ? uuid.safeParse(formData.get("checker_attendee_id")) : null;
   const ok = await ctx.run(async (tx) => {
+    if (pickedAttendee) {
+      const [picked] = pickedAttendee.success
+        ? await tx.query<{ name: string; email: string | null }>(
+            "select a.display_name as name, p.email from er_meeting_attendees a left join er_parties p on p.id = a.party_id where a.id = $1 and a.meeting_id = $2",
+            [pickedAttendee.data, meetingId],
+          )
+        : [];
+      checkers = picked?.email ? [{ name: picked.name, email: picked.email }] : [];
+    }
     const rows = await tx.query<{ organization_id: string }>(
       `update er_meetings set starts_at = $2, location = $3, remote_participation = $4, remote_url = $5, fiscal_year = $6,
               chair_name = $7, chair_email = $8, secretary_name = $9, minutes_checkers = $10, notes = $11

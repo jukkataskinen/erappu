@@ -90,7 +90,7 @@ export function planMinutesSigners(
         continue;
       }
       if (signers.some((s) => s.email.toLowerCase() === email.toLowerCase())) continue;
-      signers.push({ name: a.display_name, email, role: "Läsnä ollut" });
+      signers.push({ name: a.display_name, email, role: "Hallituksen jäsen" });
     }
     if (missing.length) problems.push(`Sähköposti puuttuu: ${missing.join(", ")}. Lisää se henkilön tietoihin rekisterissä.`);
     if (!problems.length && signers.length < 2 && present.length > 1) problems.push("Allekirjoittajia on vain yksi.");
@@ -122,7 +122,7 @@ export async function loadMinutesSignerPlan(tx: Sql, meetingId: string): Promise
   );
   const [registryChair] = await tx.query<{ name: string; email: string | null }>(
     `select p.display_name as name, p.email from er_board_memberships b join er_parties p on p.id = b.party_id
-      where b.company_id = $1 and b.role = chair and b.starts_on <= current_date and (b.ends_on is null or b.ends_on >= current_date)
+      where b.company_id = $1 and b.role = 'chair' and b.starts_on <= current_date and (b.ends_on is null or b.ends_on >= current_date)
       order by b.starts_on desc limit 1`,
     [meeting.company_id],
   );

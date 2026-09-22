@@ -7,6 +7,7 @@
  */
 
 import { cite } from "@/lib/meetings/governing-act";
+import { attendanceItemPosition } from "@/lib/meetings/labels";
 import { Page, Text, View } from "@react-pdf/renderer";
 import { DataTable, DocumentFooter, DocumentHeader, DocumentRoot, Heading, KeyValues, Muted, Paragraph, Signatures, pageStyle } from "./components";
 import { formatDate, formatInteger, formatMeetingTime, orDash } from "./format";
@@ -17,6 +18,8 @@ export interface MinutesData extends MeetingDocumentBase {
   chairName: string | null;
   secretaryName: string | null;
   checkerNames: string[];
+  /** Hallituksen kokouksessa allekirjoittajat yhtiöjärjestyksen mukaan (minutes-signers.ts). */
+  signatories?: { role: string; name: string }[];
   attendance: {
     presentCount: number;
     representedShares: number;
@@ -35,7 +38,6 @@ const formatPercent = (part: number, whole: number) =>
   `${(Math.round((part / whole) * 1000) / 10).toLocaleString("fi-FI", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
 /** Asia, jossa läsnäolijat ja ääniluettelo todetaan. */
-const isAttendanceItem = (title: string) => /läsnäolij|ääniluettelo/i.test(title);
 
 const TITLE: Record<MeetingDocumentBase["kind"], string> = {
   annual_general: "Varsinaisen yhtiökokouksen pöytäkirja",
@@ -45,7 +47,10 @@ const TITLE: Record<MeetingDocumentBase["kind"], string> = {
 
 export function Minutes({ data }: { data: MinutesData }) {
   const general = data.kind !== "board";
-  const signatories = [
+  const attendancePosition = attendanceItemPosition(data.items);
+  const signatories = data.signatories?.length
+    ? [...data.signatories.slice(0, 1), ...(data.secretaryName ? [{ role: "Sihteeri", name: data.secretaryName }] : []), ...data.signatories.slice(1)]
+    : [
     { role: "Puheenjohtaja", name: data.chairName ?? "" },
     ...(data.secretaryName ? [{ role: "Sihteeri", name: data.secretaryName }] : []),
     ...(data.checkerNames.length > 0
@@ -102,7 +107,7 @@ export function Minutes({ data }: { data: MinutesData }) {
                 ))}
               </View>
             ) : null}
-            {isAttendanceItem(item.title) && (general ? data.attendance.statement : data.attendance.names.length) ? (
+            {item.position === attendancePosition && (general ? data.attendance.statement : data.attendance.names.length) ? (
               <View style={{ marginLeft: 28, marginTop: 3 }}>
                 <Text>
                   {general

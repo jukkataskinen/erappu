@@ -38,3 +38,16 @@ export const SIGNING_STATUS: Record<string, string> = {
 export function isGeneralMeeting(kind: string): boolean {
   return kind === "annual_general" || kind === "extraordinary_general";
 }
+
+/**
+ * Asialistan kohta, jossa läsnäolijat todetaan: ensisijaisesti
+ * "läsnäolijat"/"ääniluettelo", muuten "laillisuus ja päätösvaltaisuus"
+ * (hallituksen kokouksen pohjassa läsnäolijat todetaan siinä). Kokoussivu
+ * näyttää läsnäolojen merkinnän tässä kohdassa, ja pöytäkirjaan läsnä olleet
+ * kirjataan samaan pykälään.
+ */
+export function attendanceItemPosition(items: { position: number; title: string }[]): number | null {
+  const primary = items.find((i) => /läsnäolij|ääniluettelo/i.test(i.title));
+  const fallback = items.find((i) => /päätösvaltai/i.test(i.title));
+  return (primary ?? fallback)?.position ?? null;
+}

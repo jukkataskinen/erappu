@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, EmptyState, Field, Input, Notice, Panel, SectionTitle, Table, Td, Textarea, Th } from "@/components/ui";
+import { Badge, Button, EmptyState, Field, Input, Notice, Panel, Select, SectionTitle, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { canSimulateSigning, isUsingMockEsinetti } from "@/lib/esinetti";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
@@ -19,6 +19,8 @@ import { BOARD_ROLE } from "@/lib/registry/labels";
 import { VISIBILITY_LABEL } from "@/lib/documents/labels";
 import { AttachmentLinks, ItemAttachmentEditor } from "./ItemAttachments";
 import { loadMinutesSignerPlan } from "@/lib/meetings/minutes-signers";
+import { attendanceItemPosition } from "@/lib/meetings/labels";
+import { BoardAttendance } from "./BoardAttendance";
 import {
   addAttendeeAction,
   addItemAction,
@@ -76,7 +78,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
     if (!meeting || meeting.company_id !== id) return null;
-    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan] = await Promise.all([
+    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails] = await Promise.all([
       listItems(tx, mid),
       listAttendees(tx, mid),
       listMeetingDocuments(tx, mid),
@@ -85,12 +87,15 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
       listItemAttachments(tx, mid),
       listAttachableDocuments(tx, id),
       loadMinutesSignerPlan(tx, mid),
+      tx.query<{ id: string; email: string | null }>("select a.id, p.email from er_meeting_attendees a left join er_parties p on p.id = a.party_id where a.meeting_id = $1", [mid]),
     ]);
-    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan };
+    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails };
   });
   if (!data) notFound();
 
-  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan } = data;
+  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails } = data;
+  const emailById = new Map(attendeeEmails.map((a) => [a.id, a.email]));
+  const attendancePos = attendanceItemPosition(items);
   const attachmentsByItem = byItem(attachments);
   const attachmentsEditable = ctx.can("owner", "manager", "assistant") && (ATTACHMENTS_EDITABLE as readonly string[]).includes(meeting.status);
   const attachmentVisibilityLabel = VISIBILITY_LABEL[attachmentVisibility(meeting.kind)];
@@ -202,16 +207,40 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                   <Input id="secretary_name" name="secretary_name" defaultValue={meeting.secretary_name ?? ""} disabled={!canWrite} />
                 </Field>
                 <div />
-                {[1, 2].map((n) => (
-                  <div key={n} className="contents">
-                    <Field label={general ? `Pöytäkirjantarkastaja ${n}` : `Hallituksen valitsema jäsen ${n}`} htmlFor={`checker${n}_name`} hint={!general && signerPlan?.rule === "all_present" ? "Ei tarvita: allekirjoittavat kaikki läsnä olleet." : undefined}>
-                      <Input id={`checker${n}_name`} name={`checker${n}_name`} defaultValue={checkers[n - 1]?.name ?? ""} disabled={!canWrite} />
-                    </Field>
-                    <Field label="Sähköposti" htmlFor={`checker${n}_email`}>
-                      <Input id={`checker${n}_email`} name={`checker${n}_email`} type="email" defaultValue={checkers[n - 1]?.email ?? ""} disabled={!canWrite} />
-                    </Field>
+                {general || (attendees.length === 0 && signerPlan?.rule !== "all_present") ? (
+                  <>
+                    {[1, 2].map((n) => (
+                      <div key={n} className="contents">
+                        <Field label={`Pöytäkirjantarkastaja ${n}`} htmlFor={`checker${n}_name`}>
+                          <Input id={`checker${n}_name`} name={`checker${n}_name`} defaultValue={checkers[n - 1]?.name ?? ""} disabled={!canWrite} />
+                        </Field>
+                        <Field label="Sähköposti" htmlFor={`checker${n}_email`}>
+                          <Input id={`checker${n}_email`} name={`checker${n}_email`} type="email" defaultValue={checkers[n - 1]?.email ?? ""} disabled={!canWrite} />
+                        </Field>
+                      </div>
+                    ))}
+                  </>
+                ) : signerPlan?.rule === "all_present" ? (
+                  <div className="rounded-xl bg-cloud/60 p-3 text-sm sm:col-span-2">
+                    <p className="font-semibold">Pöytäkirjan allekirjoittavat kaikki läsnä olleet (yhtiöjärjestys)</p>
+                    <p className="mt-0.5 text-ink/70">
+                      {signerPlan.signers.length ? signerPlan.signers.map((s) => s.name).join(", ") : "Ei vielä osallistujia."}
+                      {attendancePos ? ` Läsnäolot merkitään kohdassa ${attendancePos} §.` : ""}
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  <Field label="Hallituksen valitsema jäsen" htmlFor="checker_attendee_id" hint="Allekirjoittaa pöytäkirjan puheenjohtajan kanssa. Sähköposti tulee rekisteristä.">
+                    <Select id="checker_attendee_id" name="checker_attendee_id" disabled={!canWrite} defaultValue={attendees.find((a) => checkers[0]?.email && emailById.get(a.id)?.toLowerCase() === checkers[0].email.toLowerCase())?.id ?? ""}>
+                      <option value="">Valitse</option>
+                      {attendees.map((a) => (
+                        <option key={a.id} value={a.id} disabled={!emailById.get(a.id)}>
+                          {a.display_name}
+                          {emailById.get(a.id) ? "" : " (sähköposti puuttuu)"}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
               </div>
               <Field label="Muistiinpanot (sisäinen)" htmlFor="notes">
                 <Textarea id="notes" name="notes" defaultValue={meeting.notes ?? ""} disabled={!canWrite} />
@@ -242,6 +271,19 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                         </p>
                       ) : null}
                       <AttachmentLinks attachments={attachmentsByItem.get(item.id) ?? []} />
+                      {item.position === attendancePos && general ? (
+                        <a href="#osallistujat" className="mt-1 inline-block text-xs font-semibold text-sky hover:underline">
+                          Läsnäolijat ja ääniluettelo: läsnä {attendees.filter((a) => a.present).length}/{attendees.length}
+                        </a>
+                      ) : null}
+                      {item.position === attendancePos && !general ? (
+                        <BoardAttendance
+                          hidden={hidden}
+                          attendees={attendees}
+                          canWrite={canWrite}
+                          signersNote={signerPlan?.rule === "all_present" ? "Yhtiöjärjestyksen mukaan pöytäkirjan allekirjoittavat kaikki läsnä olleet." : null}
+                        />
+                      ) : null}
                       {item.task_id ? (
                         <Link href={`/taloyhtiot/${id}/vuosikello`} className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-sky hover:underline">
                           {item.task_done ? "Tehtävä kuitattu" : `Isännöitsijän tehtävälistalla, määräpäivä ${formatDate(item.task_due_on)}`}
@@ -328,6 +370,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             ) : null}
           </Panel>
 
+          {!general && attendancePos !== null ? null : (
           <Panel id="osallistujat">
             <SectionTitle
               actions={
@@ -433,6 +476,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               </form>
             ) : null}
           </Panel>
+          )}
 
           <Panel id="kutsu">
             <SectionTitle>Kokouskutsu</SectionTitle>
@@ -482,14 +526,14 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
           <Panel id="allekirjoitus">
             <SectionTitle>Pöytäkirjan allekirjoitus</SectionTitle>
             <p className="mb-3 text-sm text-ink/65">
-              Pöytäkirja lähetetään eSinettiin puheenjohtajan ja pöytäkirjantarkastajien allekirjoitettavaksi vahvalla tunnistuksella. Sinetöity pöytäkirja tallentuu dokumentteihin automaattisesti.
+              Pöytäkirja lähetetään eSinettiin allekirjoitettavaksi vahvalla tunnistuksella: yhtiökokouksessa puheenjohtajalle ja pöytäkirjantarkastajille, hallituksen kokouksessa yhtiöjärjestyksen mukaan. Sinetöity pöytäkirja tallentuu dokumentteihin automaattisesti.
               {isUsingMockEsinetti() ? " Kehitystilassa käytössä on eSinetin jäljitelmä." : ""}
             </p>
             {signerPlan && meeting.status !== "minutes_signed" ? (
               <div className="mb-4 rounded-xl border border-line bg-cloud/40 p-3 text-sm">
                 {signerPlan.ruleLabel ? (
                   <p>
-                    <span className="font-semibold">Yhtiöjärjestyksen mukaan allekirjoittavat:</span> {signerPlan.ruleLabel.toLowerCase()}.{" "}
+                    <span className="font-semibold">Allekirjoittavat:</span> {signerPlan.ruleLabel.toLowerCase()}.{" "}
                     <Link href={`/taloyhtiot/${id}/muokkaa`} className="text-sky">
                       Muuta perustiedoissa
                     </Link>
