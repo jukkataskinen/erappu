@@ -14,6 +14,7 @@ import { SigningError, startMinutesSigning } from "@/lib/meetings/signing";
 import { simulateSigning } from "@/lib/meetings/simulate";
 import { minutesSignerChange } from "@/lib/meetings/minutes-signers";
 import { helsinkiLocalToIso } from "@/lib/meetings/time";
+import { deleteStoredFile } from "@/lib/storage";
 import type { IsoDate } from "@/lib/tasks/dates";
 
 /**
@@ -354,4 +355,35 @@ export async function removeAttachmentAction(formData: FormData) {
     throw err;
   }
   done(companyId, meetingId, "#asiat");
+}
+
+/**
+ * Kokouksen tallennetun asiakirjan poisto kokoussivulta (Jukka 22.9.2026).
+ * Sinetöityä asiakirjaa tai allekirjoituskierroksen alkuperäistä ei poisteta.
+ */
+export async function deleteMeetingDocumentAction(formData: FormData) {
+  const { companyId, meetingId, back } = ids(formData);
+  const ctx = await requireStaff();
+  if (!ctx.can("owner", "manager")) fail(back, "Asiakirjan poistaa pääkäyttäjä tai isännöitsijä.");
+  const documentId = uuid.safeParse(formData.get("document_id"));
+  if (!documentId.success) fail(back, "Asiakirjaa ei löytynyt.");
+  const storagePath = await ctx.run(async (tx) => {
+    const [inRound] = await tx.query("select id from er_signing_rounds where original_document_id = $1 or sealed_document_id = $1", [documentId.data]);
+    if (inRound) return null;
+    const rows = await tx.query<{ organization_id: string; storage_path: string; category: string }>(
+      `delete from er_documents where id = $1 and subject_table = 'er_meetings' and subject_id = $2 and company_id = $3 and sealed = false
+       returning organization_id, storage_path, category`,
+      [documentId.data, meetingId, companyId],
+    );
+    if (!rows[0]) return null;
+    await audit(tx, {
+      organizationId: rows[0].organization_id, userId: ctx.user.id, action: "delete", entity: "document", entityId: documentId.data,
+      details: { category: rows[0].category, company_id: companyId, meeting_id: meetingId },
+    });
+    return rows[0].storage_path;
+  });
+  if (!storagePath) fail(back, "Asiakirjaa ei voitu poistaa. Allekirjoitettua tai allekirjoitettavaksi lähetettyä pöytäkirjaa ei poisteta.");
+  // Tiedosto poistetaan vasta, kun rivin poisto on pysyvä.
+  await deleteStoredFile(storagePath).catch(() => undefined);
+  done(companyId, meetingId, "#asiakirjat");
 }

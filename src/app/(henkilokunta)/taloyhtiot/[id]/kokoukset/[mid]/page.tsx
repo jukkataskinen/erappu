@@ -26,6 +26,7 @@ import {
   addItemAction,
   deleteAttendeeAction,
   deleteItemAction,
+  deleteMeetingDocumentAction,
   moveItemAction,
   prefillAttendeesAction,
   saveAttendeesAction,
@@ -109,6 +110,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const recipients = splitNoticeRecipients(parties, general);
   // Kutsuaika: AOYL 6:20 § viimeistään kaksi viikkoa, OYL 5:19 § viimeistään viikkoa ennen.
   const noticeDates = noticeWindow(new Date(meeting.starts_at).toISOString(), act === "oyl" ? 7 : 14);
+  const canDeleteDocs = ctx.can("owner", "manager");
+  const roundDocIds = new Set(rounds.flatMap((r) => [r.original_document_id, r.sealed_document_id].filter((x): x is string => !!x)));
   const activeRound = rounds.find((r) => ["draft", "sent", "partially_signed"].includes(r.status));
   const checkers = meeting.minutes_checkers ?? [];
   const hidden = (
@@ -680,6 +683,16 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                       <span className="text-xs text-ink/55">
                         {VISIBILITY[d.visibility] ?? d.visibility} · {formatDate(d.created_at)}
                       </span>
+                      {canDeleteDocs && !d.sealed && !roundDocIds.has(d.id) ? (
+                        <details className="text-right">
+                          <summary className="cursor-pointer list-none text-xs text-coral [&::-webkit-details-marker]:hidden">Poista</summary>
+                          <form action={deleteMeetingDocumentAction} className="mt-1">
+                            {hidden}
+                            <input type="hidden" name="document_id" value={d.id} />
+                            <button className="rounded-full border border-coral/40 px-3 py-1 text-xs font-semibold text-coral hover:bg-coral-soft">Vahvista poisto</button>
+                          </form>
+                        </details>
+                      ) : null}
                     </span>
                   </li>
                 ))}
