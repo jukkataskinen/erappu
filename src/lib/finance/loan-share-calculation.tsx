@@ -49,7 +49,7 @@ export async function loadLoanShareCalculation(tx: Sql, companyId: string, share
   }>(
     `select g.unit_label, g.kind, g.area_m2::text, g.share_count, c.name as company_name, c.business_id, o.name as org_name,
             o.settings #>> '{contact,phone}' as org_phone, o.settings #>> '{contact,email}' as org_email,
-            u.full_name as manager_name, u.email as manager_email, u.phone as manager_phone
+            u.full_name as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone
        from er_share_groups g join er_housing_companies c on c.id = g.company_id join er_organizations o on o.id = c.organization_id
        left join er_users u on u.id = c.manager_user_id
       where g.id = $1 and g.company_id = $2`,

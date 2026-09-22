@@ -71,7 +71,7 @@ export async function sendMeetingNotice(run: Runner, userId: string, meetingId: 
       manager_name: string | null; manager_email: string | null; manager_phone: string | null;
     }>(
       `select c.name as company_name, m.kind, m.starts_at, m.location, m.remote_participation, m.remote_url,
-              coalesce(u.full_name, u.email) as manager_name, u.email as manager_email, u.phone as manager_phone
+              coalesce(u.full_name, u.email) as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone
          from er_meetings m join er_housing_companies c on c.id = m.company_id left join er_users u on u.id = c.manager_user_id
         where m.id = $1 and m.status = 'draft' for update of m`,
       [meetingId],

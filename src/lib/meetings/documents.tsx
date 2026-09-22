@@ -57,7 +57,7 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
     total_shares: number | null; company_form: string; governing_act: string | null; org_name: string; manager_name: string | null; manager_email: string | null; manager_phone: string | null;
   }>(
     `select c.name, c.business_id, c.street_address, c.postal_code, c.city, c.total_shares, c.company_form, c.governing_act, o.name as org_name,
-            coalesce(u.full_name, u.email) as manager_name, u.email as manager_email, u.phone as manager_phone
+            coalesce(u.full_name, u.email) as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone
        from er_housing_companies c
        join er_organizations o on o.id = c.organization_id
        left join er_users u on u.id = c.manager_user_id

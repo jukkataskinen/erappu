@@ -83,7 +83,7 @@ async function loadProvider(tx: Sql, organizationId: string, providerId: string 
 /** Yhtiön tiedot ja tilaajan edustaja rekisteristä. */
 export async function loadCompanyContext(tx: Sql, companyId: string): Promise<Omit<RegistryContext, "provider"> | null> {
   const [company] = await tx.query<RegistryContext["company"] & { manager_name: string | null; manager_email: string | null }>(
-    `select c.name, c.business_id, c.street_address, c.postal_code, c.city, coalesce(u.full_name, u.email) as manager_name, u.email as manager_email
+    `select c.name, c.business_id, c.street_address, c.postal_code, c.city, coalesce(u.full_name, u.email) as manager_name, coalesce(u.contact_email, u.email) as manager_email
        from er_housing_companies c left join er_users u on u.id = c.manager_user_id
       where c.id = $1`,
     [companyId],

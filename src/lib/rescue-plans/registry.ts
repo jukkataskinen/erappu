@@ -57,7 +57,7 @@ export async function loadRegistrySnapshot(tx: Sql, companyId: string, today: st
   }>(
     `select c.name, c.business_id, c.street_address, c.postal_code, c.city, c.property_maintenance, c.parking_hall_spaces, c.parking_other_spaces,
             o.name as org_name, o.settings as org_settings,
-            coalesce(u.full_name, u.email) as manager_name, u.email as manager_email, u.phone as manager_phone
+            coalesce(u.full_name, u.email) as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone
        from er_housing_companies c
        join er_organizations o on o.id = c.organization_id
        left join er_users u on u.id = c.manager_user_id

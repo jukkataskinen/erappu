@@ -107,7 +107,7 @@ export async function loadManagerCertificateData(
   const [company] = await tx.query<CompanyRow>(
     `select c.name, c.business_id, c.street_address, c.postal_code, c.city, c.articles_date::text, c.total_shares,
             c.insurance_company, c.insurance_type, c.property_maintenance, c.redemption_clause, c.htj_synced_at, o.name as org_name, o.settings as org_settings,
-            coalesce(u.full_name, u.email) as manager_name, u.email as manager_email, u.phone as manager_phone, c.commercial_register_note,
+            coalesce(u.full_name, u.email) as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone, c.commercial_register_note,
             c.registered_on::text, c.certificate_notes, c.mortgages_total_eur::text, c.maintenance_needs_report_on::text, c.maintenance_plan_on::text,
             c.maintenance_plan_summary, c.htj_register_transferred_on::text, c.vat_registered, c.vat_note, c.charges_decided_by, c.articles_maintenance_clause,
             c.share_issue_authorization, c.articles_lawsuit, c.parking_hall_spaces, c.parking_other_spaces, c.parking_company_spaces, c.parking_allocation_rules,

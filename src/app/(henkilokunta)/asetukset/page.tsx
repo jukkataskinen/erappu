@@ -3,7 +3,7 @@ import { formatDate } from "@/lib/format";
 import { requireSettingsAccess } from "@/lib/settings/guard";
 import { listMembers, listOpenInvitations } from "@/lib/settings/members";
 import { STAFF_ROLES, STAFF_ROLE_LABEL, assignableStaffRoles } from "@/lib/invitations/rules";
-import { changeRole, inviteStaff, removeMemberAction, resendInvite, revokeInvite } from "./actions";
+import { changeRole, inviteStaff, removeMemberAction, resendInvite, revokeInvite, updateOwnContact } from "./actions";
 import { SettingsHeader } from "./SettingsHeader";
 
 export const metadata = { title: "Asetukset: henkilökunta" };
@@ -12,7 +12,13 @@ export default async function StaffSettingsPage({ searchParams }: { searchParams
   const ctx = await requireSettingsAccess();
   const { virhe, ok } = await searchParams;
   const orgId = ctx.org.organizationId;
-  const [members, invitations] = await ctx.run((tx) => Promise.all([listMembers(tx, orgId), listOpenInvitations(tx, orgId, "staff")]));
+  const [members, invitations, me] = await ctx.run((tx) =>
+    Promise.all([
+      listMembers(tx, orgId),
+      listOpenInvitations(tx, orgId, "staff"),
+      tx.query<{ email: string; full_name: string | null; phone: string | null; contact_email: string | null }>("select email, full_name, phone, contact_email from er_users where id = er_current_user_id()").then((r) => r[0]),
+    ]),
+  );
   const isOwner = ctx.can("owner");
   const ownerCount = members.filter((m) => m.role === "owner").length;
   const invitable = assignableStaffRoles(ctx.org.role);
@@ -125,6 +131,27 @@ export default async function StaffSettingsPage({ searchParams }: { searchParams
           </section>
         </div>
 
+        <div className="grid content-start gap-6">
+        <Panel>
+          <SectionTitle>Omat yhteystiedot asiakirjoissa</SectionTitle>
+          <p className="mb-3 text-sm text-ink/65">
+            Näkyvät isännöitsijän tietoina kokouskutsussa, isännöitsijäntodistuksessa ja pelastussuunnitelmassa. Kirjautumissähköposti {me?.email} ei muutu.
+          </p>
+          <form action={updateOwnContact} className="grid gap-4">
+            <Field label="Nimi" htmlFor="own_full_name">
+              <Input id="own_full_name" name="full_name" defaultValue={me?.full_name ?? ""} autoComplete="name" />
+            </Field>
+            <Field label="Sähköposti asiakirjoihin" htmlFor="own_contact_email" hint="Tyhjänä käytetään kirjautumissähköpostia.">
+              <Input id="own_contact_email" name="contact_email" type="email" defaultValue={me?.contact_email ?? ""} autoComplete="email" />
+            </Field>
+            <Field label="Puhelin" htmlFor="own_phone">
+              <Input id="own_phone" name="phone" type="tel" defaultValue={me?.phone ?? ""} autoComplete="tel" />
+            </Field>
+            <div>
+              <Button variant="secondary">Tallenna</Button>
+            </div>
+          </form>
+        </Panel>
         <Panel className="content-start">
           <SectionTitle>Kutsu käyttäjä</SectionTitle>
           <form action={inviteStaff} className="grid gap-4">
@@ -146,6 +173,7 @@ export default async function StaffSettingsPage({ searchParams }: { searchParams
             </div>
           </form>
         </Panel>
+        </div>
       </div>
     </>
   );

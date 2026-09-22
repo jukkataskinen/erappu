@@ -128,7 +128,7 @@ export async function queueReadingMessages(tx: Sql, opts: { roundId: string; kin
   const [round] = await tx.query<{
     organization_id: string; company_name: string; read_on: string; report_by: string; manager_name: string | null; manager_email: string | null;
   }>(
-    `select r.organization_id, c.name as company_name, r.read_on::text, r.report_by::text, u.full_name as manager_name, u.email as manager_email
+    `select r.organization_id, c.name as company_name, r.read_on::text, r.report_by::text, u.full_name as manager_name, coalesce(u.contact_email, u.email) as manager_email
        from er_water_reading_rounds r
        join er_housing_companies c on c.id = r.company_id
        left join er_users u on u.id = c.manager_user_id

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { fail, isUniqueViolation, parseForm } from "@/lib/forms";
 import { requireSettingsAccess } from "@/lib/settings/guard";
 import { createStaffInvitation, resendInvitation, revokeInvitation } from "@/lib/invitations";
@@ -116,4 +117,30 @@ export async function saveOrganization(formData: FormData) {
   if (!ok) fail(back, "Organisaation tietoja voi muuttaa vain pääkäyttäjä.");
   revalidatePath(back);
   redirect(`${back}?ok=tallennettu`);
+}
+
+const optionalText = (max: number) => z.preprocess((v) => (typeof v === "string" && v.trim() ? v.trim() : null), z.string().max(max).nullable());
+
+/**
+ * Omat yhteystiedot asiakirjoihin (0114): nimi, puhelin ja yhteystietosähköposti,
+ * joka näkyy kokouskutsussa, isännöitsijäntodistuksessa ja pelastussuunnitelmassa.
+ * Kirjautumissähköposti ei muutu.
+ */
+export async function updateOwnContact(formData: FormData) {
+  const ctx = await requireSettingsAccess();
+  const data = parseForm(
+    z.object({
+      full_name: optionalText(200),
+      phone: optionalText(40),
+      contact_email: z.preprocess((v) => (typeof v === "string" && v.trim() ? v.trim() : null), z.string().email("Sähköpostiosoite ei ole kelvollinen.").max(200).nullable()),
+    }),
+    formData,
+    "/asetukset",
+  );
+  await ctx.run(async (tx) => {
+    await tx.query("update er_users set full_name = $1, phone = $2, contact_email = $3 where id = er_current_user_id()", [data.full_name, data.phone, data.contact_email]);
+    await audit(tx, { organizationId: ctx.org.organizationId, userId: ctx.user.id, action: "update", entity: "user_contact", entityId: ctx.user.id });
+  });
+  revalidatePath("/asetukset");
+  redirect("/asetukset?ok=tallennettu");
 }

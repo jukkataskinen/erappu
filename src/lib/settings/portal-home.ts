@@ -93,7 +93,7 @@ export async function loadPortalHome(db: Database, user: { id: string; sub: stri
       company_id: string; manager_name: string | null; manager_email: string | null; manager_phone: string | null;
       org_name: string; org_phone: string | null; org_email: string | null;
     }>(
-      `select c.id as company_id, u.full_name as manager_name, u.email as manager_email, u.phone as manager_phone,
+      `select c.id as company_id, u.full_name as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone,
               o.name as org_name, o.settings #>> '{contact,phone}' as org_phone, o.settings #>> '{contact,email}' as org_email
          from er_housing_companies c
          join er_organizations o on o.id = c.organization_id

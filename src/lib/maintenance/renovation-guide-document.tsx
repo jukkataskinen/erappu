@@ -31,7 +31,7 @@ export async function loadGuideCompany(tx: Sql, companyId: string): Promise<Guid
   }>(
     `select c.id, c.organization_id, c.name, c.business_id, c.renovation_guide_settings as settings,
             (select min(b.completed_year)::int from er_buildings b where b.company_id = c.id) as oldest_year,
-            u.full_name as manager_name, u.email as manager_email, u.phone as manager_phone,
+            u.full_name as manager_name, coalesce(u.contact_email, u.email) as manager_email, u.phone as manager_phone,
             o.settings #>> '{contact,phone}' as org_phone, o.settings #>> '{contact,email}' as org_email
        from er_housing_companies c join er_organizations o on o.id = c.organization_id
        left join er_users u on u.id = c.manager_user_id
