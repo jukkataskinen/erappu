@@ -389,7 +389,8 @@ export function EmergencySheet({ data, number }: { data: RescuePlanData; number:
   const numbers: KeyValue[] = kv([
     { label: "Hätänumero", value: "112" },
     { label: "Myrkytystietokeskus", value: "0800 147 111" },
-    { label: has(c.maintenanceName) ? c.maintenanceName : "Kiinteistöhuolto", value: c.maintenanceEmergencyPhone || c.maintenancePhone },
+    // Ilman numeroa rivi jätetään pois: Toivakan yhtiöissä kiinteistönhuolto on talkoita (Jukka 22.9.2026).
+    { label: has(c.maintenanceName) ? c.maintenanceName : "Kiinteistöhuolto", value: c.maintenanceEmergencyPhone || c.maintenancePhone, optional: true },
     { label: has(c.managerName) ? `Isännöitsijä ${c.managerName}` : "Isännöitsijä", value: c.managerPhone },
     { label: "Vesisulku", value: c.shutoffWater, optional: true },
     { label: "Sähköpääkeskus", value: c.shutoffElectricity, optional: true },
