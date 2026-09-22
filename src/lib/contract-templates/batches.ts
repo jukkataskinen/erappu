@@ -423,7 +423,7 @@ export async function sendBatch(run: Runner, actor: Actor, batchId: string, clie
   assertRealEsinetti();
   const read = deps.read ?? readStoredFile;
 
-  const { batch, items } = await run(async (tx) => {
+  const { batch, items, requester } = await run(async (tx) => {
     const b = await loadBatch(tx, batchId);
     const list = await listBatchItems(tx, batchId);
     const paths = await tx.query<{ id: string; storage_path: string }>(
@@ -431,7 +431,12 @@ export async function sendBatch(run: Runner, actor: Actor, batchId: string, clie
       [list.map((i) => i.document_id).filter(Boolean)],
     );
     const pathById = new Map(paths.map((p) => [p.id, p.storage_path]));
-    return { batch: b, items: list.map((i) => ({ ...i, storage_path: i.document_id ? pathById.get(i.document_id) ?? null : null })) };
+    // Pyytäjä eSinetin viesteihin: lähettäjä ja isännöintitoimisto ("Nimi (Adepta) kutsui sinut…").
+    const [requester] = await tx.query<{ name: string | null; org_name: string }>(
+      "select u.full_name as name, o.name as org_name from er_organizations o left join er_users u on u.id = $2 where o.id = $1",
+      [actor.organizationId, actor.userId],
+    );
+    return { batch: b, items: list.map((i) => ({ ...i, storage_path: i.document_id ? pathById.get(i.document_id) ?? null : null })), requester };
   });
   if (batch.status !== "generated" && batch.status !== "sent") throw new BatchError("Muodosta sopimukset ennen lähetystä.");
   const template = requireTemplate(batch.template_key);
@@ -461,6 +466,7 @@ export async function sendBatch(run: Runner, actor: Actor, batchId: string, clie
         documents: [{ name: `${template.key === "snow-ploughing" ? "lumityosopimus" : "sopimus"}.pdf`, pdfBytes: new Uint8Array(bytes) }],
         signers: signers.map((s) => ({ name: s.name, email: s.email, roleLabel: s.roleLabel, authLevel: "strong" })),
         externalRef: buildExternalRef("contract", item.id),
+        requestedBy: requester ? { name: requester.name ?? undefined, organization: requester.org_name } : undefined,
         expiresInDays: 30,
         send: true,
       });

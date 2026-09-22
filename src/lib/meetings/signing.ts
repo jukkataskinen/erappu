@@ -31,9 +31,14 @@ export async function startMinutesSigning(run: Runner, userId: string, meetingId
     const [m] = await tx.query<{
       id: string; organization_id: string; company_id: string; kind: string; status: string; starts_at: string; company_name: string;
       chair_name: string | null; chair_email: string | null; minutes_checkers: { name: string; email: string }[];
+      manager_name: string | null; org_name: string;
     }>(
-      `select m.id, m.organization_id, m.company_id, m.kind, m.status, m.starts_at, c.name as company_name, m.chair_name, m.chair_email, m.minutes_checkers
-         from er_meetings m join er_housing_companies c on c.id = m.company_id where m.id = $1`,
+      `select m.id, m.organization_id, m.company_id, m.kind, m.status, m.starts_at, c.name as company_name, m.chair_name, m.chair_email, m.minutes_checkers,
+              u.full_name as manager_name, o.name as org_name
+         from er_meetings m join er_housing_companies c on c.id = m.company_id
+         join er_organizations o on o.id = m.organization_id
+         left join er_users u on u.id = c.manager_user_id
+        where m.id = $1`,
       [meetingId],
     );
     if (!m) return null;
@@ -63,6 +68,8 @@ export async function startMinutesSigning(run: Runner, userId: string, meetingId
     documents: [{ name: `poytakirja-${new Date(meeting.starts_at).toISOString().slice(0, 10)}.pdf`, pdfBytes: generated.bytes }],
     signers: signers.map((s) => ({ name: s.name, email: s.email, roleLabel: s.role, authLevel: "strong" })),
     externalRef: buildExternalRef("meeting", meetingId),
+    // Viesteissä "Jukka Taskinen (Adepta) kutsui sinut allekirjoittamaan": isännöitsijä ja isännöintitoimisto.
+    requestedBy: { name: meeting.manager_name ?? undefined, organization: meeting.org_name },
     expiresInDays: 30,
     send: true,
   });

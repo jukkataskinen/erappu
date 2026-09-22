@@ -86,6 +86,11 @@ export interface CreateRoundInput {
   send?: boolean;
   /** Yhtiö eSinetissä (`upsertCompany`). Tyhjä = organisaation oletusyhtiö. */
   companyId?: string;
+  /**
+   * Kuka pyytää allekirjoitusta. Viesteissä: "Nimi (Organisaatio) kutsui sinut
+   * allekirjoittamaan". Tyhjä organisaatio = tilin lähettäjänimi.
+   */
+  requestedBy?: { name?: string; organization?: string };
 }
 
 export interface EsinettiCompanyInput {

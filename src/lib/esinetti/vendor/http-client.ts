@@ -216,6 +216,7 @@ export class EsinettiHttpClient implements EsinettiClient {
         expires_in_days: input.expiresInDays,
         external_ref: input.externalRef,
         send: input.send ?? false,
+        requested_by: input.requestedBy,
         documents: input.documents.map((d) => ({
           name: d.name,
           content_base64: toBase64(d.pdfBytes),
