@@ -7,6 +7,7 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { listBoard, listBuildings, listShareGroups } from "@/lib/registry/queries";
 import { BOARD_ROLE, COMPANY_FORM, REDEMPTION_CLAUSE } from "@/lib/registry/labels";
 import { checkCoverage } from "@/lib/registry/share-ranges";
+import { boardMinutesSignersLabel } from "@/lib/meetings/minutes-signers";
 import { latestKeyDocuments } from "@/lib/documents/key-documents";
 import { KeyDocumentLinks } from "@/components/KeyDocuments";
 import * as huolto from "@/widgets/huolto";
@@ -76,6 +77,7 @@ export default async function CompanyBasicsPage({ params }: { params: Promise<{ 
               { label: "Yhtiömuoto", value: COMPANY_FORM[company.company_form] },
               { label: "Osoite", value: [company.street_address, [company.postal_code, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "–" },
               { label: "Yhtiöjärjestys", value: formatDate(company.articles_date) },
+              { label: "Hallituksen pöytäkirjan allekirjoittavat", value: boardMinutesSignersLabel(company.board_minutes_signers) },
               { label: "Tilikausi alkaa", value: company.fiscal_year_start.split("-").reverse().join(".") + "." },
               { label: "Kaupparekisteri", value: company.commercial_register_note },
               { label: "Rekisteröity", value: formatDate(company.registered_on) },

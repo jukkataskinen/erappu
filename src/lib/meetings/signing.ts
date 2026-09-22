@@ -6,12 +6,13 @@ import { ensureEsinettiCompany } from "@/lib/signing/company";
 import { generateMeetingDocument } from "./documents";
 import { MeetingAttachmentPdfError } from "./attachment-pdf";
 import { MEETING_KIND } from "./labels";
+import { loadMinutesSignerPlan, type SignerInput } from "./minutes-signers";
 
 /**
  * Pöytäkirjan allekirjoitus eSinetissä.
  *
  * Lähetys: pöytäkirja renderöidään → kierros eSinettiin (puheenjohtaja ja
- * pöytäkirjantarkastajat, vahva tunnistus) → `er_signing_rounds`.
+ * yhtiöjärjestyksen mukaiset allekirjoittajat, vahva tunnistus) → `er_signing_rounds`.
  *
  * Paluu: webhook (`processSigningEvent`) → sinetöity PDF talteen →
  * `er_documents` (sealed) → kokous `minutes_signed`. Käsittely on
@@ -21,22 +22,9 @@ import { MEETING_KIND } from "./labels";
 
 type Runner = <T>(fn: (tx: Sql) => Promise<T>) => Promise<T>;
 
-export interface SignerInput {
-  name: string;
-  email: string;
-  role: string;
-}
+export type { SignerInput } from "./minutes-signers";
 
 export class SigningError extends Error {}
-
-export function minutesSigners(meeting: { chair_name: string | null; chair_email: string | null; minutes_checkers: { name: string; email: string }[] }): SignerInput[] {
-  const signers: SignerInput[] = [];
-  if (meeting.chair_name && meeting.chair_email) signers.push({ name: meeting.chair_name, email: meeting.chair_email, role: "Puheenjohtaja" });
-  for (const c of meeting.minutes_checkers ?? []) {
-    if (c?.name && c?.email) signers.push({ name: c.name, email: c.email, role: "Pöytäkirjantarkastaja" });
-  }
-  return signers;
-}
 
 export async function startMinutesSigning(run: Runner, userId: string, meetingId: string, client: EsinettiClient): Promise<string> {
   const meeting = await run(async (tx) => {
@@ -55,9 +43,11 @@ export async function startMinutesSigning(run: Runner, userId: string, meetingId
   if (!meeting) throw new SigningError("Kokousta ei löytynyt.");
   if (meeting.status !== "held") throw new SigningError("Merkitse kokous pidetyksi ennen pöytäkirjan lähettämistä allekirjoitettavaksi.");
   if (meeting.hasActive) throw new SigningError("Pöytäkirja on jo allekirjoituskierroksella.");
-  const signers = minutesSigners(meeting);
-  if (!signers.some((s) => s.role === "Puheenjohtaja")) throw new SigningError("Anna puheenjohtajan nimi ja sähköposti.");
-  if (signers.length < 2) throw new SigningError("Anna vähintään yhden pöytäkirjantarkastajan nimi ja sähköposti.");
+  // Hallituksen kokouksessa allekirjoittajat yhtiöjärjestyksen säännön mukaan (0113).
+  const plan = await run((tx) => loadMinutesSignerPlan(tx, meetingId));
+  if (!plan) throw new SigningError("Kokousta ei löytynyt.");
+  if (plan.problems.length) throw new SigningError(plan.problems[0]);
+  const signers = plan.signers;
 
   const generated = await generateMeetingDocument(run, userId, meetingId, "minutes").catch((err) => {
     if (err instanceof MeetingAttachmentPdfError) throw new SigningError(err.message);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { BOARD_MINUTES_SIGNERS } from "@/lib/meetings/minutes-signers";
 import { requireStaff } from "@/lib/auth/current-user";
 import { audit } from "@/lib/audit";
 import { emptyToNull, fail, isExclusionViolation, isUniqueViolation, parseForm } from "@/lib/forms";
@@ -52,6 +53,7 @@ const companySchema = z.object({
   parking_other_spaces: optInt,
   parking_company_spaces: optInt,
   parking_allocation_rules: z.preprocess(emptyToNull, z.string().max(2000).nullable()),
+  board_minutes_signers: z.preprocess(emptyToNull, z.enum(BOARD_MINUTES_SIGNERS).nullable()),
 });
 
 type CompanyInput = z.infer<typeof companySchema>;
@@ -66,6 +68,7 @@ const COMPANY_COLUMNS = [
   "manager_user_id", "management_started_on", "same_charge_basis", "property_maintenance", "commercial_register_note", "registered_on",
   "certificate_notes", "htj_register_transferred_on", "vat_registered", "vat_note", "charges_decided_by", "articles_maintenance_clause",
   "share_issue_authorization", "articles_lawsuit", "parking_hall_spaces", "parking_other_spaces", "parking_company_spaces", "parking_allocation_rules",
+  "board_minutes_signers",
 ] as const satisfies readonly (keyof CompanyInput)[];
 
 function redemptionFrom(formData: FormData) {

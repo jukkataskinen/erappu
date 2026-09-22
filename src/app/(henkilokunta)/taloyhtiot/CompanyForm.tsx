@@ -2,6 +2,7 @@ import { Button, Field, Input, Panel, Select, SectionTitle, Textarea } from "@/c
 import type { Company } from "@/lib/registry/queries";
 import { REDEMPTION_CLAUSE } from "@/lib/registry/labels";
 import { toIsoDate } from "@/lib/format";
+import { BOARD_MINUTES_SIGNERS_LABEL } from "@/lib/meetings/minutes-signers";
 
 export function CompanyForm({
   action,
@@ -50,6 +51,13 @@ export function CompanyForm({
           </div>
           <Field label="Yhtiöjärjestyksen päivämäärä" htmlFor="articles_date">
             <Input id="articles_date" name="articles_date" type="date" defaultValue={toIsoDate(c?.articles_date)} />
+          </Field>
+          <Field label="Hallituksen pöytäkirjan allekirjoittavat" htmlFor="board_minutes_signers" hint="Yhtiöjärjestyksen mukaan. Käytetään, kun hallituksen pöytäkirja lähetetään allekirjoitettavaksi.">
+            <Select id="board_minutes_signers" name="board_minutes_signers" defaultValue={c?.board_minutes_signers ?? ""}>
+              <option value="">{BOARD_MINUTES_SIGNERS_LABEL.law} (ei määräystä)</option>
+              <option value="chair_and_member">{BOARD_MINUTES_SIGNERS_LABEL.chair_and_member}</option>
+              <option value="all_present">{BOARD_MINUTES_SIGNERS_LABEL.all_present}</option>
+            </Select>
           </Field>
           <Field label="Tilikausi alkaa (KK-PP)" htmlFor="fiscal_year_start">
             <Input id="fiscal_year_start" name="fiscal_year_start" defaultValue={c?.fiscal_year_start ?? "01-01"} />

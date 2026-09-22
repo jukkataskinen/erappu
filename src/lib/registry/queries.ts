@@ -90,6 +90,8 @@ export interface Company {
   parking_other_spaces: number | null;
   parking_company_spaces: number | null;
   parking_allocation_rules: string | null;
+  /** Hallituksen pöytäkirjan allekirjoittajat yhtiöjärjestyksen mukaan (0113), tyhjä = laki. */
+  board_minutes_signers: string | null;
 }
 
 /** Kevyt nimilista sivupalkille (myös päättyneet, jotta vanhan yhtiön sivulla näkyy nimi). */

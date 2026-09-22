@@ -18,6 +18,7 @@ import { isoToHelsinkiLocal } from "@/lib/meetings/time";
 import { BOARD_ROLE } from "@/lib/registry/labels";
 import { VISIBILITY_LABEL } from "@/lib/documents/labels";
 import { AttachmentLinks, ItemAttachmentEditor } from "./ItemAttachments";
+import { loadMinutesSignerPlan } from "@/lib/meetings/minutes-signers";
 import {
   addAttendeeAction,
   addItemAction,
@@ -75,7 +76,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
     if (!meeting || meeting.company_id !== id) return null;
-    const [items, attendees, documents, rounds, parties, attachments, attachable] = await Promise.all([
+    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan] = await Promise.all([
       listItems(tx, mid),
       listAttendees(tx, mid),
       listMeetingDocuments(tx, mid),
@@ -83,12 +84,13 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
       listNoticeParties(tx, id, meeting.kind),
       listItemAttachments(tx, mid),
       listAttachableDocuments(tx, id),
+      loadMinutesSignerPlan(tx, mid),
     ]);
-    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable };
+    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan };
   });
   if (!data) notFound();
 
-  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable } = data;
+  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan } = data;
   const attachmentsByItem = byItem(attachments);
   const attachmentsEditable = ctx.can("owner", "manager", "assistant") && (ATTACHMENTS_EDITABLE as readonly string[]).includes(meeting.status);
   const attachmentVisibilityLabel = VISIBILITY_LABEL[attachmentVisibility(meeting.kind)];
@@ -202,7 +204,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 <div />
                 {[1, 2].map((n) => (
                   <div key={n} className="contents">
-                    <Field label={`Pöytäkirjantarkastaja ${n}`} htmlFor={`checker${n}_name`}>
+                    <Field label={general ? `Pöytäkirjantarkastaja ${n}` : `Hallituksen valitsema jäsen ${n}`} htmlFor={`checker${n}_name`} hint={!general && signerPlan?.rule === "all_present" ? "Ei tarvita: allekirjoittavat kaikki läsnä olleet." : undefined}>
                       <Input id={`checker${n}_name`} name={`checker${n}_name`} defaultValue={checkers[n - 1]?.name ?? ""} disabled={!canWrite} />
                     </Field>
                     <Field label="Sähköposti" htmlFor={`checker${n}_email`}>
@@ -483,6 +485,32 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               Pöytäkirja lähetetään eSinettiin puheenjohtajan ja pöytäkirjantarkastajien allekirjoitettavaksi vahvalla tunnistuksella. Sinetöity pöytäkirja tallentuu dokumentteihin automaattisesti.
               {isUsingMockEsinetti() ? " Kehitystilassa käytössä on eSinetin jäljitelmä." : ""}
             </p>
+            {signerPlan && meeting.status !== "minutes_signed" ? (
+              <div className="mb-4 rounded-xl border border-line bg-cloud/40 p-3 text-sm">
+                {signerPlan.ruleLabel ? (
+                  <p>
+                    <span className="font-semibold">Yhtiöjärjestyksen mukaan allekirjoittavat:</span> {signerPlan.ruleLabel.toLowerCase()}.{" "}
+                    <Link href={`/taloyhtiot/${id}/muokkaa`} className="text-sky">
+                      Muuta perustiedoissa
+                    </Link>
+                  </p>
+                ) : null}
+                {signerPlan.signers.length ? (
+                  <ul className="mt-1 text-ink/75">
+                    {signerPlan.signers.map((s) => (
+                      <li key={s.email}>
+                        {s.name}, {s.role.toLowerCase()} · {s.email}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {signerPlan.problems.map((p) => (
+                  <p key={p} className="mt-1 text-coral">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ) : null}
             {rounds.length > 0 ? (
               <ul className="mb-4 grid gap-2">
                 {rounds.map((r) => (
