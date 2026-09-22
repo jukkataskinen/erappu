@@ -62,6 +62,23 @@ export interface MergeAttachment {
   kind: "pdf" | "image";
 }
 
+/** Lisää liitteen sivut: PDF sellaisenaan, kuva sovitettuna omalle A4-sivulleen. */
+export async function appendAttachmentPages(out: PDFDocument, attachment: MergeAttachment): Promise<void> {
+  if (attachment.kind === "pdf") {
+    const src = await PDFDocument.load(attachment.bytes, { updateMetadata: false });
+    for (const page of await out.copyPages(src, src.getPageIndices())) out.addPage(page);
+    return;
+  }
+  const image = imageKind(attachment.bytes) === "png" ? await out.embedPng(attachment.bytes) : await out.embedJpg(attachment.bytes);
+  const landscape = image.width > image.height;
+  const [pageW, pageH] = landscape ? [A4_PORTRAIT[1], A4_PORTRAIT[0]] : A4_PORTRAIT;
+  const scale = Math.min((pageW - 2 * IMAGE_MARGIN) / image.width, (pageH - 2 * IMAGE_MARGIN) / image.height);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  const page = out.addPage([pageW, pageH]);
+  page.drawImage(image, { x: (pageW - w) / 2, y: (pageH - h) / 2, width: w, height: h });
+}
+
 /**
  * Yhdistää: todistuksen sivut, sitten jokaisesta liitteestä erotinsivu ja
  * liitteen sivut. `separators` sisältää yhden sivun liitettä kohden samassa
@@ -84,19 +101,7 @@ export async function mergeCertificatePdf(opts: {
       const [sep] = await out.copyPages(separators, [index]);
       out.addPage(sep);
     }
-    if (attachment.kind === "pdf") {
-      const src = await PDFDocument.load(attachment.bytes, { updateMetadata: false });
-      for (const page of await out.copyPages(src, src.getPageIndices())) out.addPage(page);
-    } else {
-      const image = imageKind(attachment.bytes) === "png" ? await out.embedPng(attachment.bytes) : await out.embedJpg(attachment.bytes);
-      const landscape = image.width > image.height;
-      const [pageW, pageH] = landscape ? [A4_PORTRAIT[1], A4_PORTRAIT[0]] : A4_PORTRAIT;
-      const scale = Math.min((pageW - 2 * IMAGE_MARGIN) / image.width, (pageH - 2 * IMAGE_MARGIN) / image.height);
-      const w = image.width * scale;
-      const h = image.height * scale;
-      const page = out.addPage([pageW, pageH]);
-      page.drawImage(image, { x: (pageW - w) / 2, y: (pageH - h) / 2, width: w, height: h });
-    }
+    await appendAttachmentPages(out, attachment);
   }
 
   // Aikaleimat todistuksen päiväyksestä, jotta sama sisältö tuottaa samat tavut (ks. documents/render.ts).

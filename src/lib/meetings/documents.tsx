@@ -12,6 +12,7 @@ import { Minutes } from "@/documents/Minutes";
 import { VotingList } from "@/documents/VotingList";
 import { attendanceStatement, computeVotes } from "./votes";
 import { byItem, listItemAttachments } from "./attachments";
+import { appendMeetingAttachments, type MeetingAttachmentFile } from "./attachment-pdf";
 import { resolveGoverningAct, type GoverningAct } from "./governing-act";
 import { isGeneralMeeting, MEETING_KIND } from "./labels";
 import { getMeeting, listAttendees, listItems, type AttendeeRow, type MeetingRow } from "./queries";
@@ -41,6 +42,8 @@ interface LoadedMeeting {
   attendees: AttendeeRow[];
   totalShares: number | null;
   act: GoverningAct;
+  /** Pykälien liitetiedostot esityslistan ja pöytäkirjan loppuun. */
+  attachmentFiles: MeetingAttachmentFile[];
 }
 
 export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promise<LoadedMeeting | null> {
@@ -61,6 +64,20 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
   if (!company) return null;
   const [items, attendees, attachments] = await Promise.all([listItems(tx, meetingId), listAttendees(tx, meetingId), listItemAttachments(tx, meetingId)]);
   const attachmentsByItem = byItem(attachments);
+  const files = attachments.length
+    ? await tx.query<{ id: string; storage_path: string; mime_type: string; size_bytes: string | number }>(
+        `select a.id, d.storage_path, d.mime_type, d.size_bytes from er_meeting_item_attachments a join er_documents d on d.id = a.document_id where a.meeting_id = $1`,
+        [meetingId],
+      )
+    : [];
+  const fileById = new Map(files.map((f) => [f.id, f]));
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  const attachmentFiles: MeetingAttachmentFile[] = attachments.flatMap((a) => {
+    const file = fileById.get(a.id);
+    const item = itemById.get(a.item_id);
+    if (!file || !item) return [];
+    return [{ label: a.label, title: a.title ?? "", item: `${item.position} § ${item.title}`, storagePath: file.storage_path, mimeType: file.mime_type, sizeBytes: Number(file.size_bytes) }];
+  });
   const act = resolveGoverningAct(company.company_form, company.governing_act);
   const address = [company.street_address, [company.postal_code, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null;
   return {
@@ -68,6 +85,7 @@ export async function loadMeetingForDocuments(tx: Sql, meetingId: string): Promi
     attendees,
     totalShares: company.total_shares,
     act,
+    attachmentFiles,
     base: {
       governingAct: act,
       organizationName: company.org_name,
@@ -214,8 +232,21 @@ export async function generateMeetingDocument(run: Runner, userId: string, meeti
   const { meeting } = loaded;
   if (kind !== "notice" && kind !== "agenda" && kind !== "minutes" && !isGeneralMeeting(meeting.kind)) return null;
 
-  const pdf = await renderMeetingDocument(loaded, kind);
+  const rendered = await renderMeetingDocument(loaded, kind);
   const date = new Date(meeting.starts_at).toISOString().slice(0, 10);
+  const pdf =
+    kind === "agenda" || kind === "minutes"
+      ? {
+          bytes: await appendMeetingAttachments({
+            document: rendered.bytes,
+            files: loaded.attachmentFiles,
+            documentLabel: kind === "agenda" ? "ESITYSLISTAN LIITE" : "PÖYTÄKIRJAN LIITE",
+            companyName: loaded.base.companyName,
+            meetingTitle: `${MEETING_KIND[meeting.kind]} ${new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(meeting.starts_at))}`,
+            issuedOn: loaded.base.issuedOn,
+          }),
+        }
+      : rendered;
   const stored = await storeFile({
     organizationId: meeting.organization_id,
     companyId: meeting.company_id,

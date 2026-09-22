@@ -78,7 +78,7 @@ export function ItemAttachmentEditor({
         <input type="hidden" name="company_id" value={companyId} />
         <input type="hidden" name="meeting_id" value={meetingId} />
         <input type="hidden" name="item_id" value={itemId} />
-        <Field label={`Lisää tiedosto (${next})`} htmlFor={`att_file_${itemId}`} hint={`PDF, kuva, XLSX tai DOCX, enintään 20 Mt. Tallentuu yhtiön dokumentteihin, näkyy: ${visibilityLabel}.`}>
+        <Field label={`Lisää tiedosto (${next})`} htmlFor={`att_file_${itemId}`} hint={`PDF, kuva, XLSX tai DOCX, enintään 20 Mt. PDF:t ja PNG/JPEG-kuvat liitetään esityslistan ja pöytäkirjan loppuun. Tallentuu yhtiön dokumentteihin, näkyy: ${visibilityLabel}.`}>
           <Input id={`att_file_${itemId}`} name="file" type="file" required accept={UPLOAD_ACCEPT} />
         </Field>
         <Field label="Otsikko" htmlFor={`att_title_${itemId}`} hint="Tyhjänä tiedoston nimi.">

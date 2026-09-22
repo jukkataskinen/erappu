@@ -8,6 +8,7 @@ import { audit } from "@/lib/audit";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { assertRealEsinetti, canSimulateSigning, getEsinettiClient, isEsinettiError } from "@/lib/esinetti";
 import { AttachmentError, attachDocument, removeAttachment } from "@/lib/meetings/attachments";
+import { MeetingAttachmentPdfError } from "@/lib/meetings/attachment-pdf";
 import { generateMeetingDocument, type MeetingDocumentKind } from "@/lib/meetings/documents";
 import { addItem, createItemTask, createMeeting, deleteItem, moveItem, prefillAttendees, updateItem } from "@/lib/meetings/mutations";
 import { NoticeError, sendMeetingNotice } from "@/lib/meetings/send-notice";
@@ -263,7 +264,13 @@ export async function generateDocumentAction(formData: FormData) {
       if (row && row.n === 0) await prefillAttendees(tx, meetingId);
     });
   }
-  const result = await generateMeetingDocument(ctx.run, ctx.user.id, meetingId, kind);
+  let result;
+  try {
+    result = await generateMeetingDocument(ctx.run, ctx.user.id, meetingId, kind);
+  } catch (err) {
+    if (err instanceof MeetingAttachmentPdfError) fail(back, err.message);
+    throw err;
+  }
   if (!result) fail(back, "Asiakirjaa ei voitu muodostaa tälle kokoukselle.");
   // Luotu asiakirja avataan esikatseluun kokoussivulle.
   done(companyId, meetingId, `?asiakirja=${result.documentId}#asiakirjat`);

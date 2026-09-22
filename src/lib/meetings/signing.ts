@@ -4,6 +4,7 @@ import { audit } from "@/lib/audit";
 import { buildExternalRef, createRoundOnce, type EsinettiClient, type Round } from "@/lib/esinetti";
 import { ensureEsinettiCompany } from "@/lib/signing/company";
 import { generateMeetingDocument } from "./documents";
+import { MeetingAttachmentPdfError } from "./attachment-pdf";
 import { MEETING_KIND } from "./labels";
 
 /**
@@ -58,7 +59,10 @@ export async function startMinutesSigning(run: Runner, userId: string, meetingId
   if (!signers.some((s) => s.role === "Puheenjohtaja")) throw new SigningError("Anna puheenjohtajan nimi ja sähköposti.");
   if (signers.length < 2) throw new SigningError("Anna vähintään yhden pöytäkirjantarkastajan nimi ja sähköposti.");
 
-  const generated = await generateMeetingDocument(run, userId, meetingId, "minutes");
+  const generated = await generateMeetingDocument(run, userId, meetingId, "minutes").catch((err) => {
+    if (err instanceof MeetingAttachmentPdfError) throw new SigningError(err.message);
+    throw err;
+  });
   if (!generated) throw new SigningError("Pöytäkirjaa ei voitu muodostaa.");
 
   const date = new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(meeting.starts_at));
