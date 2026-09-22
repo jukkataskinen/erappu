@@ -3,6 +3,7 @@ import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { queueMessage } from "@/lib/messaging";
 import { generateMeetingDocument } from "./documents";
+import { MeetingAttachmentPdfError } from "./attachment-pdf";
 import { isGeneralMeeting, type MeetingKind } from "./labels";
 import { buildNoticeMessage, splitNoticeRecipients, type NoticeParty } from "./notice";
 import { listItems } from "./queries";
@@ -53,7 +54,10 @@ export async function sendMeetingNotice(run: Runner, userId: string, meetingId: 
   if (!meeting) throw new NoticeError("Kokousta ei löytynyt.");
   if (meeting.status !== "draft") throw new NoticeError("Kutsu on jo lähetetty.");
 
-  const generated = await generateMeetingDocument(run, userId, meetingId, "notice");
+  const generated = await generateMeetingDocument(run, userId, meetingId, "notice").catch((err) => {
+    if (err instanceof MeetingAttachmentPdfError) throw new NoticeError(err.message);
+    throw err;
+  });
   if (!generated) throw new NoticeError("Kokouskutsua ei voitu muodostaa.");
 
   return run(async (tx) => {

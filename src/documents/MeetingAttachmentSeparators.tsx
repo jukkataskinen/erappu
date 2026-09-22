@@ -1,7 +1,7 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource react */
 /**
- * Esityslistan ja pöytäkirjan liitteiden erotinsivut: yksi sivu liitettä
+ * Kokouskutsun, esityslistan ja pöytäkirjan liitteiden erotinsivut: yksi sivu liitettä
  * kohden ennen liitteen omia sivuja ("Liite 8.1", otsikko ja pykälä).
  * Jos tiedostoa ei voi liittää PDF:ään (esim. Excel), erotinsivu kertoo sen,
  * ja liite on avattavissa kokoussivulta ja portaalista.
@@ -13,7 +13,7 @@ import { formatDate } from "./format";
 import { colors, type as typeScale, weight } from "./theme";
 
 export interface MeetingAttachmentSeparatorData {
-  documentLabel: "ESITYSLISTAN LIITE" | "PÖYTÄKIRJAN LIITE";
+  documentLabel: "KOKOUSKUTSUN LIITE" | "ESITYSLISTAN LIITE" | "PÖYTÄKIRJAN LIITE";
   companyName: string;
   meetingTitle: string;
   issuedOn: string;

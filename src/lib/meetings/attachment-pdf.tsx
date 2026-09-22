@@ -3,12 +3,12 @@
 import "server-only";
 import { PDFDocument } from "pdf-lib";
 import { renderDocumentPdf } from "@/documents/render";
-import { MeetingAttachmentSeparators } from "@/documents/MeetingAttachmentSeparators";
+import { MeetingAttachmentSeparators, type MeetingAttachmentSeparatorData } from "@/documents/MeetingAttachmentSeparators";
 import { appendAttachmentPages, inspectAttachment, MAX_MERGED_BYTES, type MergeAttachment } from "@/lib/certificates/pdf-merge";
 import { readStoredFile } from "@/lib/storage";
 
 /**
- * Pykälien liitteet esityslistan ja pöytäkirjan PDF:n loppuun (Jukka 22.9.2026).
+ * Pykälien liitteet kokouskutsun, esityslistan ja pöytäkirjan PDF:n loppuun (Jukka 22.9.2026).
  * Järjestys: asiakirja, sitten jokaisesta liitteestä erotinsivu ("Liite 8.1")
  * ja liitteen sivut. PDF liitetään sellaisenaan, PNG- ja JPEG-kuvat omalle
  * sivulleen. Muut tiedostot (Excel, Word, CSV, WebP) eivät mahdu PDF:ään: niistä tulee vain
@@ -47,7 +47,7 @@ async function prepare(file: MeetingAttachmentFile, read: (path: string) => Prom
 export async function appendMeetingAttachments(opts: {
   document: Uint8Array;
   files: MeetingAttachmentFile[];
-  documentLabel: "ESITYSLISTAN LIITE" | "PÖYTÄKIRJAN LIITE";
+  documentLabel: MeetingAttachmentSeparatorData["documentLabel"];
   companyName: string;
   meetingTitle: string;
   issuedOn: string;

@@ -235,12 +235,12 @@ export async function generateMeetingDocument(run: Runner, userId: string, meeti
   const rendered = await renderMeetingDocument(loaded, kind);
   const date = new Date(meeting.starts_at).toISOString().slice(0, 10);
   const pdf =
-    kind === "agenda" || kind === "minutes"
+    kind === "notice" || kind === "agenda" || kind === "minutes"
       ? {
           bytes: await appendMeetingAttachments({
             document: rendered.bytes,
             files: loaded.attachmentFiles,
-            documentLabel: kind === "agenda" ? "ESITYSLISTAN LIITE" : "PÖYTÄKIRJAN LIITE",
+            documentLabel: kind === "notice" ? "KOKOUSKUTSUN LIITE" : kind === "agenda" ? "ESITYSLISTAN LIITE" : "PÖYTÄKIRJAN LIITE",
             companyName: loaded.base.companyName,
             meetingTitle: `${MEETING_KIND[meeting.kind]} ${new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(meeting.starts_at))}`,
             issuedOn: loaded.base.issuedOn,
