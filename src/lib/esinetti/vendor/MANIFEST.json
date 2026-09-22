@@ -2,9 +2,9 @@
   "source": "esinetti/clients/typescript/src",
   "files": {
     "errors.ts": "924cc664052dfa21cd6e9ee49453aa0a8484b3ee08bf9cd1124279bd71832a98",
-    "http-client.ts": "cb0775b73f9e9ff493fe69254a10fb5ee1229607d9491b1d2dd55a007f146d06",
+    "http-client.ts": "949f15acb9baad6c2554526dd306875eaa25d82be9953b3f76781d2a51cda7ba",
     "mock.ts": "d056ee8b2b1e8848d00f95d062b90f6094ade6f9b5d36a470b1eac8c98d60eaa",
-    "types.ts": "0b977b9b336042c738b8f19cef1838d816d9c9853df26e8772cbdbabfb404eb9",
+    "types.ts": "02ab565a609042e360e14080c0835c45dac7070e96c59bff2ede622db88c06bc",
     "webhook.ts": "0bc207e0111821f2a9e0dd458ed25540af51015f04fb1512252c23744e811488"
   }
 }

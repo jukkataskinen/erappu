@@ -15,6 +15,7 @@ import { assertRealEsinetti, getEsinettiClient, isEsinettiError } from "@/lib/es
 import { createAccessLink, revokeAccessLinks } from "@/lib/security/access-links";
 import { signValue } from "@/lib/security/crypto";
 import { ORDER_LINK_FLASH_COOKIE } from "@/lib/certificates/order-link";
+import { parsePaymentCheck } from "@/lib/certificates/payment-check";
 
 const uuid = z.string().uuid();
 
@@ -139,13 +140,6 @@ const optionsSchema = z.object({
   purpose: z.preprocess(emptyToNull, z.enum(["bank", "sale", "rental", "other"]).nullable()),
   purpose_text: z.preprocess(emptyToNull, z.string().max(200).nullable()),
   intent: z.enum(["save", "generate"]).default("save"),
-  // Maksutilanne kirjanpidosta (0115): tyhjä = ei tarkistettu, none = ei erääntyneitä, overdue = summa.
-  payment_state: z.preprocess(emptyToNull, z.enum(["none", "overdue"]).nullable()),
-  payment_overdue_eur: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? Number(v.trim().replace(/s/g, "").replace(",", ".")) : null),
-    z.number({ message: "Tarkista erääntyneiden maksujen summa." }).min(0, "Tarkista erääntyneiden maksujen summa.").max(10_000_000).nullable(),
-  ),
-  payment_checked_on: z.preprocess(emptyToNull, z.string().regex(/^d{4}-d{2}-d{2}$/, "Tarkista maksutilanteen päivä.").nullable()),
 });
 
 /**
@@ -159,9 +153,9 @@ export async function saveOrderOptionsAction(formData: FormData) {
   const ctx = await writer(back);
   const d = parseForm(optionsSchema, formData, back);
   if (d.purpose === "other" && !d.purpose_text) fail(back, "Kerro todistuksen käyttötarkoitus.");
-  if (d.payment_state === "overdue" && !(d.payment_overdue_eur && d.payment_overdue_eur > 0)) fail(back, "Anna erääntyneiden maksujen summa.");
-  if (d.payment_state && !d.payment_checked_on) fail(back, "Anna päivä, jolta maksutilanne on tarkistettu.");
-  const payment = d.payment_state ? { overdueEur: d.payment_state === "none" ? 0 : d.payment_overdue_eur!, checkedOn: d.payment_checked_on! } : null;
+  const check = parsePaymentCheck(Object.fromEntries(formData.entries()));
+  if (!check.ok) fail(back, check.error);
+  const payment = check.payment;
   const offered = formData.getAll("offered").filter((v): v is string => typeof v === "string");
   const excluded = offered.filter((key) => formData.get(`include_${key}`) !== "on");
   const ok = await ctx.run(async (tx) => {

@@ -26,13 +26,18 @@ export const HEADER = [
   "",
 ].join("\n");
 
+/**
+ * Tiiviste rivinvaihdoista riippumatta: Windows-kone voi tallentaa kopion
+ * CRLF-rivinvaihdoin, CI:n checkout on LF. Ilman normalisointia sama sisältö
+ * näyttäisi muokatulta.
+ */
 export function sha256(text: string): string {
-  return createHash("sha256").update(text, "utf8").digest("hex");
+  return createHash("sha256").update(text.replace(/\r\n/g, "\n"), "utf8").digest("hex");
 }
 
 /** Bundleri ei tarvitse `.js`-päätteitä, ja ilman niitä tiedostot näyttävät muulta koodilta. */
 export function toVendorSource(source: string): string {
-  return HEADER + source.replace(/from "\.\/([a-z-]+)\.js"/g, 'from "./$1"');
+  return HEADER + source.replace(/\r\n/g, "\n").replace(/from "\.\/([a-z-]+)\.js"/g, 'from "./$1"');
 }
 
 export async function syncClient(sourceDir: string): Promise<{ files: string[]; manifest: Record<string, string> }> {
