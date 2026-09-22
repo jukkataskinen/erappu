@@ -26,7 +26,6 @@ import {
   addItemAction,
   deleteAttendeeAction,
   deleteItemAction,
-  generateDocumentAction,
   moveItemAction,
   prefillAttendeesAction,
   saveAttendeesAction,
@@ -58,22 +57,23 @@ function TaskToggle({ idSuffix }: { idSuffix: string }) {
   );
 }
 
+/** Esikatselu ei tallenna mitään (esikatselu/route.ts). */
 const DOC_BUTTONS = [
   { kind: "notice", label: "Kokouskutsu", generalOnly: false },
   { kind: "agenda", label: "Esityslista", generalOnly: false },
   { kind: "shareholders", label: "Osakasluettelo", generalOnly: true },
   { kind: "votes", label: "Ääniluettelo", generalOnly: true },
-  { kind: "minutes", label: "Pöytäkirjan luonnos", generalOnly: false },
+  { kind: "minutes", label: "Pöytäkirja", generalOnly: false },
 ] as const;
 
 const VISIBILITY: Record<string, string> = { internal: "Sisäinen", board: "Hallitus", owners: "Osakkaat", residents: "Asukkaat" };
 
-export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string; mid: string }>; searchParams: Promise<{ virhe?: string; asiakirja?: string }> }) {
+export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string; mid: string }>; searchParams: Promise<{ virhe?: string; asiakirja?: string; esikatselu?: string }> }) {
   const ctx = await requireStaff();
   const { id, mid } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(mid)) notFound();
   const company = await loadCompany(ctx, id);
-  const { virhe, asiakirja } = await searchParams;
+  const { virhe, asiakirja, esikatselu } = await searchParams;
 
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
@@ -608,17 +608,34 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         <div className="grid content-start gap-6">
           <Panel id="asiakirjat">
             <SectionTitle>Asiakirjat</SectionTitle>
-            {canWrite ? (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {DOC_BUTTONS.filter((b) => general || !b.generalOnly).map((b) => (
-                  <form key={b.kind} action={generateDocumentAction}>
-                    {hidden}
-                    <input type="hidden" name="kind" value={b.kind} />
-                    <Button variant="secondary" className="min-h-9 px-4 text-xs">
-                      {b.label} PDF
-                    </Button>
-                  </form>
-                ))}
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Esikatselu</p>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {DOC_BUTTONS.filter((b) => general || !b.generalOnly).map((b) => (
+                <Link
+                  key={b.kind}
+                  href={`?esikatselu=${b.kind}#asiakirjat`}
+                  aria-current={esikatselu === b.kind ? "page" : undefined}
+                  className={`inline-flex min-h-9 items-center rounded-full border px-4 text-xs font-semibold ${esikatselu === b.kind ? "border-ink bg-ink text-paper" : "border-line bg-paper text-ink hover:border-ink/30"}`}
+                >
+                  {b.label}
+                </Link>
+              ))}
+            </div>
+            <p className="mb-4 text-xs text-ink/55">Esikatselu muodostetaan kokouksen nykyisistä tiedoista, eikä sitä tallenneta. Kutsu ja esityslista tallentuvat, kun kutsu lähetetään, ja pöytäkirja, kun se lähetetään allekirjoitettavaksi.</p>
+            {DOC_BUTTONS.some((b) => b.kind === esikatselu && (general || !b.generalOnly)) ? (
+              <div className="mb-4 grid gap-2 rounded-xl border border-line bg-cloud/40 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">Esikatselu: {DOC_BUTTONS.find((b) => b.kind === esikatselu)!.label.toLowerCase()}</p>
+                  <a
+                    href={`/taloyhtiot/${id}/kokoukset/${mid}/esikatselu?kind=${esikatselu}`}
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex min-h-9 items-center rounded-full bg-ink px-4 text-xs font-semibold text-paper hover:bg-ink-strong"
+                  >
+                    Avaa uuteen välilehteen
+                  </a>
+                </div>
+                <iframe src={`/taloyhtiot/${id}/kokoukset/${mid}/esikatselu?kind=${esikatselu}`} title="Esikatselu" className="h-[32rem] w-full rounded-lg border border-line bg-paper" />
               </div>
             ) : null}
             {(() => {
@@ -641,7 +658,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               ) : null;
             })()}
             {documents.length === 0 ? (
-              <p className="text-sm text-ink/65">Asiakirjoja ei ole vielä tehty.</p>
+              <p className="text-sm text-ink/65">Tallennettuja asiakirjoja ei vielä ole.</p>
             ) : (
               <ul className="divide-y divide-line text-sm">
                 {documents.map((d) => (

@@ -230,8 +230,12 @@ const FILE_PREFIX: Record<MeetingDocumentKind, string> = {
   minutes: "poytakirja",
 };
 
-/** Luo asiakirjan, tallentaa sen ja palauttaa dokumentin id:n. */
-export async function generateMeetingDocument(run: Runner, userId: string, meetingId: string, kind: MeetingDocumentKind): Promise<{ documentId: string; bytes: Uint8Array } | null> {
+/**
+ * Muodostaa asiakirjan PDF:n liitteineen tallentamatta sitä. Käytetään sekä
+ * esikatseluun (kokoussivun PDF-painikkeet) että lopullisen asiakirjan
+ * tallennukseen (kutsun lähetys, pöytäkirjan allekirjoitus).
+ */
+export async function buildMeetingPdf(run: Runner, meetingId: string, kind: MeetingDocumentKind): Promise<{ bytes: Uint8Array; fileName: string; loaded: LoadedMeeting } | null> {
   const loaded = await run((tx) => loadMeetingForDocuments(tx, meetingId));
   if (!loaded) return null;
   const { meeting } = loaded;
@@ -252,10 +256,20 @@ export async function generateMeetingDocument(run: Runner, userId: string, meeti
           }),
         }
       : rendered;
+  return { bytes: pdf.bytes, fileName: `${FILE_PREFIX[kind]}-${date}.pdf`, loaded };
+}
+
+/** Luo lopullisen asiakirjan, tallentaa sen ja palauttaa dokumentin id:n. */
+export async function generateMeetingDocument(run: Runner, userId: string, meetingId: string, kind: MeetingDocumentKind): Promise<{ documentId: string; bytes: Uint8Array } | null> {
+  const built = await buildMeetingPdf(run, meetingId, kind);
+  if (!built) return null;
+  const { meeting } = built.loaded;
+  const pdf = { bytes: built.bytes };
+  const date = new Date(meeting.starts_at).toISOString().slice(0, 10);
   const stored = await storeFile({
     organizationId: meeting.organization_id,
     companyId: meeting.company_id,
-    fileName: `${FILE_PREFIX[kind]}-${date}.pdf`,
+    fileName: built.fileName,
     mimeType: "application/pdf",
     bytes: Buffer.from(pdf.bytes),
   });

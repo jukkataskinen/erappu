@@ -59,6 +59,11 @@ export async function sendMeetingNotice(run: Runner, userId: string, meetingId: 
     throw err;
   });
   if (!generated) throw new NoticeError("Kokouskutsua ei voitu muodostaa.");
+  // Lopullinen esityslista tallentuu kutsun kanssa; kokoussivun PDF-painikkeet ovat vain esikatselua.
+  await generateMeetingDocument(run, userId, meetingId, "agenda").catch((err) => {
+    if (err instanceof MeetingAttachmentPdfError) throw new NoticeError(err.message);
+    throw err;
+  });
 
   return run(async (tx) => {
     const [m] = await tx.query<{

@@ -8,8 +8,6 @@ import { audit } from "@/lib/audit";
 import { emptyToNull, fail, parseForm } from "@/lib/forms";
 import { assertRealEsinetti, canSimulateSigning, getEsinettiClient, isEsinettiError } from "@/lib/esinetti";
 import { AttachmentError, attachDocument, removeAttachment } from "@/lib/meetings/attachments";
-import { MeetingAttachmentPdfError } from "@/lib/meetings/attachment-pdf";
-import { generateMeetingDocument, type MeetingDocumentKind } from "@/lib/meetings/documents";
 import { addItem, createItemTask, createMeeting, deleteItem, moveItem, prefillAttendees, updateItem } from "@/lib/meetings/mutations";
 import { NoticeError, sendMeetingNotice } from "@/lib/meetings/send-notice";
 import { SigningError, startMinutesSigning } from "@/lib/meetings/signing";
@@ -262,29 +260,6 @@ export async function deleteAttendeeAction(formData: FormData) {
   const attendeeId = uuid.parse(formData.get("delete_attendee_id"));
   await ctx.run((tx) => tx.query("delete from er_meeting_attendees where id = $1 and meeting_id = $2", [attendeeId, meetingId]));
   done(companyId, meetingId, "#osallistujat");
-}
-
-export async function generateDocumentAction(formData: FormData) {
-  const { companyId, meetingId, back } = ids(formData);
-  const ctx = await writer(back);
-  const kind = z.enum(["notice", "agenda", "shareholders", "votes", "minutes"]).parse(formData.get("kind")) as MeetingDocumentKind;
-  if (kind === "shareholders" || kind === "votes" || kind === "minutes") {
-    // Tyhjä osallistujalista (esim. ennen tätä muutosta luotu kokous) esitäytetään ennen luetteloa.
-    await ctx.run(async (tx) => {
-      const [row] = await tx.query<{ n: number }>("select count(*)::int as n from er_meeting_attendees where meeting_id = $1", [meetingId]);
-      if (row && row.n === 0) await prefillAttendees(tx, meetingId);
-    });
-  }
-  let result;
-  try {
-    result = await generateMeetingDocument(ctx.run, ctx.user.id, meetingId, kind);
-  } catch (err) {
-    if (err instanceof MeetingAttachmentPdfError) fail(back, err.message);
-    throw err;
-  }
-  if (!result) fail(back, "Asiakirjaa ei voitu muodostaa tälle kokoukselle.");
-  // Luotu asiakirja avataan esikatseluun kokoussivulle.
-  done(companyId, meetingId, `?asiakirja=${result.documentId}#asiakirjat`);
 }
 
 export async function sendNoticeAction(formData: FormData) {
