@@ -51,3 +51,23 @@ describe("pöytäkirjan allekirjoittajat", () => {
     expect(plan.signers.map((s) => s.role)).toEqual(["Puheenjohtaja", "Pöytäkirjantarkastaja"]);
   });
 });
+
+describe("ennen kokousta", () => {
+  it("puheenjohtaja rekisteristä, kun kokoukselle ei ole kirjattu puheenjohtajaa", () => {
+    const plan = planMinutesSigners(
+      { ...base, chair_name: null, chair_email: null, board_minutes_signers: "all_present" },
+      [
+        { display_name: "Jouttijärvi Olavi", email: "pj@example.test" },
+        { display_name: "Eila Hokkanen", email: "eh@example.test" },
+      ],
+      { registryChair: { name: "Jouttijärvi Olavi", email: "pj@example.test" }, preview: true },
+    );
+    expect(plan.problems).toEqual([]);
+    expect(plan.chairFromRegistry).toBe(true);
+    expect(plan.preview).toBe(true);
+    expect(plan.signers.map((s) => [s.name, s.role])).toEqual([
+      ["Jouttijärvi Olavi", "Puheenjohtaja"],
+      ["Eila Hokkanen", "Läsnä ollut"],
+    ]);
+  });
+});

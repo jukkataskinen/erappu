@@ -495,6 +495,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                     </Link>
                   </p>
                 ) : null}
+                {signerPlan.preview ? <p className="mt-1 text-xs text-ink/60">Ennen kokousta allekirjoittajiksi oletetaan kaikki osallistujat. Lopulliset allekirjoittajat ovat ne, jotka merkitään läsnä olleiksi.</p> : null}
+                {signerPlan.chairFromRegistry ? <p className="mt-1 text-xs text-ink/60">Puheenjohtaja on hallituksen puheenjohtaja rekisteristä. Jos kokouksen puheenjohtaja on joku muu, kirjaa hänet perustietoihin.</p> : null}
                 {signerPlan.signers.length ? (
                   <ul className="mt-1 text-ink/75">
                     {signerPlan.signers.map((s) => (
