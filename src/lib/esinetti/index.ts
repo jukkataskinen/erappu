@@ -24,7 +24,8 @@ import type { CreateRoundInput, EsinettiClient, Round } from "./types";
 let cached: EsinettiClient | null = null;
 
 export function esinettiMode(): "http" | "mock" {
-  return process.env.ESINETTI_MODE === "http" ? "http" : "mock";
+  // Välilyönti tai iso kirjain Vercelin kentässä ei saa pudottaa jäljitelmään.
+  return process.env.ESINETTI_MODE?.trim().toLowerCase() === "http" ? "http" : "mock";
 }
 
 export function getEsinettiClient(): EsinettiClient {
