@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, EmptyState, Field, Input, Notice, Panel, Select, SectionTitle, Table, Td, Textarea, Th } from "@/components/ui";
+import { Badge, Button, EmptyState, Field, Input, Panel, Select, SectionTitle, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { canSimulateSigning, isUsingMockEsinetti } from "@/lib/esinetti";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
