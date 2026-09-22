@@ -125,3 +125,8 @@ tr.row-link :is(a, button, form, input, select, textarea):not(.row-link-main) {
   position: relative;
   z-index: 1;
 }
+
+/* Markkinointisivujen leipätekstin rivinpituus (~66 merkkiä, kuten reilusoppari.fi). */
+.prose-measure {
+  max-width: 66ch;
+}

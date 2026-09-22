@@ -14,9 +14,9 @@ export function LogoMark({ size = 22 }: { size?: number }) {
   );
 }
 
-export function Brand({ size = 22 }: { size?: number }) {
+export function Brand({ size = 22, inverted = false }: { size?: number; inverted?: boolean }) {
   return (
-    <span className="flex items-center gap-2 text-ink">
+    <span className={`flex items-center gap-2 ${inverted ? "text-paper" : "text-ink"}`}>
       <LogoMark size={size} />
       <span className="font-extrabold tracking-tight">
         <span className="text-sky">e</span>Rappu
