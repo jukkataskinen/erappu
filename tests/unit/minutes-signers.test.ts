@@ -71,3 +71,14 @@ describe("ennen kokousta", () => {
     ]);
   });
 });
+
+describe("allekirjoittajien muutosloki", () => {
+  it("kirjaa muutoksen vain, kun puheenjohtaja tai tarkastajat muuttuvat", async () => {
+    const { minutesSignerChange } = await import("@/lib/meetings/minutes-signers");
+    const before = { chair_name: "Olavi Jouttijärvi", chair_email: "pj@example.test", minutes_checkers: [{ name: "Martti Heinonen", email: "mh@example.test" }] };
+    expect(minutesSignerChange(before, { ...before })).toBeNull();
+    const change = minutesSignerChange(before, { ...before, minutes_checkers: [{ name: "Eila Hokkanen", email: "eh@example.test" }] });
+    expect(change?.before.checkers).toEqual(["Martti Heinonen <mh@example.test>"]);
+    expect(change?.after.checkers).toEqual(["Eila Hokkanen <eh@example.test>"]);
+  });
+});

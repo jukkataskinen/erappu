@@ -18,7 +18,7 @@ import { isoToHelsinkiLocal } from "@/lib/meetings/time";
 import { BOARD_ROLE } from "@/lib/registry/labels";
 import { VISIBILITY_LABEL } from "@/lib/documents/labels";
 import { AttachmentLinks, ItemAttachmentEditor } from "./ItemAttachments";
-import { loadMinutesSignerPlan } from "@/lib/meetings/minutes-signers";
+import { listMinutesSignerChanges, loadMinutesSignerPlan } from "@/lib/meetings/minutes-signers";
 import { attendanceItemPosition } from "@/lib/meetings/labels";
 import { BoardAttendance } from "./BoardAttendance";
 import {
@@ -78,7 +78,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
     if (!meeting || meeting.company_id !== id) return null;
-    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails] = await Promise.all([
+    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges] = await Promise.all([
       listItems(tx, mid),
       listAttendees(tx, mid),
       listMeetingDocuments(tx, mid),
@@ -88,12 +88,13 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
       listAttachableDocuments(tx, id),
       loadMinutesSignerPlan(tx, mid),
       tx.query<{ id: string; email: string | null }>("select a.id, p.email from er_meeting_attendees a left join er_parties p on p.id = a.party_id where a.meeting_id = $1", [mid]),
+      listMinutesSignerChanges(tx, mid),
     ]);
-    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails };
+    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges };
   });
   if (!data) notFound();
 
-  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails } = data;
+  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges } = data;
   const emailById = new Map(attendeeEmails.map((a) => [a.id, a.email]));
   const attendancePos = attendanceItemPosition(items);
   const attachmentsByItem = byItem(attachments);
@@ -591,6 +592,19 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                   </li>
                 ))}
               </ul>
+            ) : null}
+            {signerChanges.length ? (
+              <details className="mb-4">
+                <summary className="cursor-pointer text-xs font-semibold text-sky">Puheenjohtajan ja tarkastajien muutokset ({signerChanges.length})</summary>
+                <ul className="mt-2 grid gap-1.5 text-xs text-ink/70">
+                  {signerChanges.map((c) => (
+                    <li key={c.at}>
+                      <span className="font-semibold">{formatDateTime(c.at)}</span>
+                      {c.by ? ` · ${c.by}` : ""}: puheenjohtaja {c.before.chair ?? "–"} → {c.after.chair ?? "–"}; tarkastajat {c.before.checkers.join(", ") || "–"} → {c.after.checkers.join(", ") || "–"}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             ) : null}
             {canWrite && meeting.status === "held" && !activeRound ? (
               <form action={sendForSigningAction}>

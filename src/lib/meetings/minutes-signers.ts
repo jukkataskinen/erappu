@@ -131,3 +131,40 @@ export async function loadMinutesSignerPlan(tx: Sql, meetingId: string): Promise
   const preview = present.length === 0 && (meeting.status === "draft" || meeting.status === "notice_sent");
   return planMinutesSigners(meeting, preview ? attendees : present, { registryChair: registryChair ?? null, preview });
 }
+
+type SignerFields = { chair_name: string | null; chair_email: string | null; minutes_checkers: { name: string | null; email: string | null }[] | null };
+
+const signerSummary = (m: SignerFields) => ({
+  chair: m.chair_name?.trim() ? `${m.chair_name.trim()}${m.chair_email?.trim() ? ` <${m.chair_email.trim()}>` : ""}` : null,
+  checkers: (m.minutes_checkers ?? []).filter((c) => c?.name?.trim()).map((c) => `${c.name!.trim()}${c.email?.trim() ? ` <${c.email.trim()}>` : ""}`),
+});
+
+/**
+ * Puheenjohtajan ja pöytäkirjantarkastajien muutos tapahtumalokiin
+ * (Jukka 22.9.2026). Palauttaa null, jos mikään ei muuttunut.
+ */
+export function minutesSignerChange(before: SignerFields | null, after: SignerFields): { before: ReturnType<typeof signerSummary>; after: ReturnType<typeof signerSummary> } | null {
+  const b = signerSummary(before ?? { chair_name: null, chair_email: null, minutes_checkers: [] });
+  const a = signerSummary(after);
+  if (b.chair === a.chair && b.checkers.join("|") === a.checkers.join("|")) return null;
+  return { before: b, after: a };
+}
+
+export interface MinutesSignerChangeRow {
+  at: string;
+  by: string | null;
+  before: { chair: string | null; checkers: string[] };
+  after: { chair: string | null; checkers: string[] };
+}
+
+/** Kokouksen allekirjoittajamuutokset uusimmasta alkaen. Tapahtumaloki näkyy pääkäyttäjälle ja isännöitsijälle (RLS). */
+export async function listMinutesSignerChanges(tx: Sql, meetingId: string): Promise<MinutesSignerChangeRow[]> {
+  const rows = await tx.query<{ at: string; by: string | null; details: { before: MinutesSignerChangeRow["before"]; after: MinutesSignerChangeRow["after"] } }>(
+    `select l.created_at as at, coalesce(u.full_name, u.email) as by, l.details
+       from er_audit_log l left join er_users u on u.id = l.user_id
+      where l.entity = 'meeting' and l.entity_id = $1 and l.action = 'change_minutes_signers'
+      order by l.created_at desc limit 20`,
+    [meetingId],
+  );
+  return rows.map((r) => ({ at: r.at, by: r.by, before: r.details.before, after: r.details.after }));
+}

@@ -12,6 +12,7 @@ import { addItem, createItemTask, createMeeting, deleteItem, moveItem, prefillAt
 import { NoticeError, sendMeetingNotice } from "@/lib/meetings/send-notice";
 import { SigningError, startMinutesSigning } from "@/lib/meetings/signing";
 import { simulateSigning } from "@/lib/meetings/simulate";
+import { minutesSignerChange } from "@/lib/meetings/minutes-signers";
 import { helsinkiLocalToIso } from "@/lib/meetings/time";
 import type { IsoDate } from "@/lib/tasks/dates";
 
@@ -109,6 +110,10 @@ export async function updateMeetingAction(formData: FormData) {
   // Hallituksen kokouksessa valittu jäsen valitaan osallistujista; nimi ja sähköposti rekisteristä.
   const pickedAttendee = formData.has("checker_attendee_id") ? uuid.safeParse(formData.get("checker_attendee_id")) : null;
   const ok = await ctx.run(async (tx) => {
+    const [before] = await tx.query<{ chair_name: string | null; chair_email: string | null; minutes_checkers: { name: string; email: string }[] }>(
+      "select chair_name, chair_email, minutes_checkers from er_meetings where id = $1 and company_id = $2",
+      [meetingId, companyId],
+    );
     if (pickedAttendee) {
       const [picked] = pickedAttendee.success
         ? await tx.query<{ name: string; email: string | null }>(
@@ -125,7 +130,12 @@ export async function updateMeetingAction(formData: FormData) {
       [meetingId, startsAt, d.location, d.remote_participation, d.remote_url, d.fiscal_year, d.chair_name, d.chair_email, d.secretary_name,
         JSON.stringify(checkers), d.notes, companyId],
     );
-    if (rows[0]) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "meeting", entityId: meetingId });
+    if (rows[0]) {
+      await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "update", entity: "meeting", entityId: meetingId });
+      // Puheenjohtajan ja pöytäkirjantarkastajien muutokset kirjataan erikseen (Jukka 22.9.2026).
+      const change = minutesSignerChange(before ?? null, { chair_name: d.chair_name, chair_email: d.chair_email, minutes_checkers: checkers });
+      if (change) await audit(tx, { organizationId: rows[0].organization_id, userId: ctx.user.id, action: "change_minutes_signers", entity: "meeting", entityId: meetingId, details: change });
+    }
     return rows.length > 0;
   });
   if (!ok) fail("/kokoukset", "Kokousta ei löytynyt.");
