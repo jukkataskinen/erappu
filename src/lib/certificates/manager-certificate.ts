@@ -40,6 +40,8 @@ export interface CertificateOrderInfo {
   purposeText: string | null;
   ordererName: string | null;
   withAttachments: boolean;
+  /** Isännöitsijän kirjanpidosta tarkistama maksutilanne (0115). Menee tuodun reskontran edelle. */
+  payment?: { overdueEur: number; checkedOn: string } | null;
 }
 
 /**
@@ -63,6 +65,12 @@ async function readPaymentStatus(tx: Sql, shareGroupId: string): Promise<string 
   const open = Number(row.open_eur);
   const openText = open > overdue ? `, avoinna yhteensä ${formatEuro(open)}` : "";
   return overdue > 0 ? `Erääntyneitä maksuja ${formatEuro(overdue)}${openText}${dateText}.` : `Ei erääntyneitä maksuja${openText}${dateText}.`;
+}
+
+/** Käsin tarkistettu maksutilanne: "Erääntyneitä maksuja 120,00 € (tilanne 22.9.2026)." */
+export function manualPaymentText(p: { overdueEur: number; checkedOn: string }): string {
+  const dateText = ` (tilanne ${formatDate(p.checkedOn)})`;
+  return p.overdueEur > 0 ? `Erääntyneitä maksuja ${formatEuro(p.overdueEur)}${dateText}.` : `Ei erääntyneitä maksuja${dateText}.`;
 }
 
 type CompanyRow = {
@@ -231,7 +239,8 @@ export async function loadManagerCertificateData(
     ),
   ]);
 
-  const paymentStatus = await readPaymentStatus(tx, shareGroupId);
+  const manualPayment = opts.order?.payment ?? null;
+  const paymentStatus = manualPayment ? manualPaymentText(manualPayment) : await readPaymentStatus(tx, shareGroupId);
   const { charges, totalEur } = computeMonthlyCharges(bases, group);
   const contact = company.org_settings?.contact ?? {};
   const summary = buildingSummary(buildings);

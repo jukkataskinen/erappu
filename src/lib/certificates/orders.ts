@@ -35,12 +35,15 @@ export interface OrderRow {
   purpose: string | null;
   purpose_text: string | null;
   sealed_at: string | null;
+  /** Käsin tarkistettu maksutilanne (0115): erääntyneet euroina, 0 = ei erääntyneitä. */
+  payment_overdue_eur: string | null;
+  payment_checked_on: string | null;
 }
 
 const ORDER_SELECT = `
   select o.id, o.company_id, c.name as company_name, o.share_group_id, g.unit_label, o.kind, o.orderer_name, o.orderer_email, o.orderer_phone,
          o.express, o.status, o.source, o.document_id, o.price_eur, o.created_at, o.delivered_at, o.with_attachments, o.excluded_attachments,
-         o.attachments, o.purpose, o.purpose_text, o.sealed_at::text
+         o.attachments, o.purpose, o.purpose_text, o.sealed_at::text, o.payment_overdue_eur::text, o.payment_checked_on::text
     from er_certificate_orders o
     join er_housing_companies c on c.id = o.company_id
     join er_share_groups g on g.id = o.share_group_id`;
@@ -102,15 +105,20 @@ export async function generateCertificateForOrder(run: Runner, userId: string, o
     const [order] = await tx.query<{
       organization_id: string; company_id: string; share_group_id: string; kind: string; status: string; purpose: string | null; purpose_text: string | null;
       orderer_name: string; with_attachments: boolean; excluded_attachments: string[]; sealed_at: string | null;
+      payment_overdue_eur: string | null; payment_checked_on: string | null;
     }>(
-      `select organization_id, company_id, share_group_id, kind, status, purpose, purpose_text, orderer_name, with_attachments, excluded_attachments, sealed_at
+      `select organization_id, company_id, share_group_id, kind, status, purpose, purpose_text, orderer_name, with_attachments, excluded_attachments, sealed_at,
+              payment_overdue_eur::text, payment_checked_on::text
          from er_certificate_orders where id = $1`,
       [orderId],
     );
     if (!order || order.status === "cancelled") return null;
     if (order.sealed_at) throw new CertificateError("Todistus on jo sinetöity, eikä sitä muodosteta uudelleen. Tee tarvittaessa uusi tilaus.");
     const data = await loadManagerCertificateData(tx, order.share_group_id, {
-      order: { purpose: order.purpose, purposeText: order.purpose_text, ordererName: order.orderer_name, withAttachments: order.with_attachments },
+      order: {
+        purpose: order.purpose, purposeText: order.purpose_text, ordererName: order.orderer_name, withAttachments: order.with_attachments,
+        payment: order.payment_checked_on ? { overdueEur: Number(order.payment_overdue_eur ?? 0), checkedOn: order.payment_checked_on } : null,
+      },
     });
     if (!data) return null;
     const candidates = await findAttachmentCandidates(tx, order.company_id, order.share_group_id);
@@ -170,13 +178,14 @@ export async function saveOrderOptions(
   tx: Sql,
   userId: string,
   orderId: string,
-  opts: { withAttachments: boolean; excluded: string[]; purpose: string | null; purposeText: string | null; price: number | null },
+  opts: { withAttachments: boolean; excluded: string[]; purpose: string | null; purposeText: string | null; price: number | null; payment?: { overdueEur: number; checkedOn: string } | null },
 ): Promise<boolean> {
   const excluded = opts.excluded.filter((k) => (ATTACHMENT_KEYS as string[]).includes(k));
   const rows = await tx.query<{ organization_id: string }>(
-    `update er_certificate_orders set with_attachments = $2, excluded_attachments = $3, purpose = $4, purpose_text = $5, price_eur = coalesce($6, price_eur)
+    `update er_certificate_orders set with_attachments = $2, excluded_attachments = $3, purpose = $4, purpose_text = $5, price_eur = coalesce($6, price_eur),
+            payment_overdue_eur = $7, payment_checked_on = $8
       where id = $1 and sealed_at is null and status in ('new', 'in_progress') returning organization_id`,
-    [orderId, opts.withAttachments, excluded, opts.purpose, opts.purpose === "other" ? opts.purposeText : null, opts.price],
+    [orderId, opts.withAttachments, excluded, opts.purpose, opts.purpose === "other" ? opts.purposeText : null, opts.price, opts.payment?.overdueEur ?? null, opts.payment?.checkedOn ?? null],
   );
   if (!rows[0]) return false;
   await audit(tx, { organizationId: rows[0].organization_id, userId, action: "update_options", entity: "certificate_order", entityId: orderId, details: { withAttachments: opts.withAttachments, excluded } });

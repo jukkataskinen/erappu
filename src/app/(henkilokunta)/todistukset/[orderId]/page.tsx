@@ -9,7 +9,7 @@ import { getOrder, loadPrices } from "@/lib/certificates/orders";
 import { MAX_MERGED_BYTES } from "@/lib/certificates/pdf-merge";
 import { CERTIFICATE_KIND, CERTIFICATE_TEMPLATE_APPROVED, ORDER_STATUS, ORDER_STATUS_TONE } from "@/lib/certificates/pricing";
 import { formatBytes } from "@/lib/documents/labels";
-import { formatDate, formatDateTime, formatEur } from "@/lib/format";
+import { formatDate, formatDateTime, formatEur, isoDateHelsinki } from "@/lib/format";
 import { isUsingMockEsinetti } from "@/lib/esinetti";
 import { markDeliveredAction, saveOrderOptionsAction, sealCertificateAction, setOrderStatusAction } from "../actions";
 
@@ -113,6 +113,32 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
                   </label>
                 </div>
                 <PurposeFields defaultPurpose={order.purpose} defaultText={order.purpose_text} />
+
+                <fieldset className="grid gap-3 rounded-xl border border-line p-3">
+                  <legend className="px-1 text-sm font-semibold">Maksutilanne (erääntyneet vastikkeet)</legend>
+                  <p className="text-xs text-ink/60">
+                    Vastikkeet laskutetaan Procountorissa: tarkista osakeryhmän erääntyneet maksut reskontrasta ja kirjaa ne tähän. Tieto tulee todistukseen muodossa
+                    ”Ei erääntyneitä maksuja (tilanne pp.kk.vvvv)” tai ”Erääntyneitä maksuja X €”.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="grid gap-1 text-sm">
+                      <span className="font-semibold">Tilanne</span>
+                      <select name="payment_state" defaultValue={order.payment_checked_on ? (Number(order.payment_overdue_eur) > 0 ? "overdue" : "none") : ""} className="min-h-10 rounded-xl border border-line bg-paper px-3">
+                        <option value="">Ei tarkistettu</option>
+                        <option value="none">Ei erääntyneitä maksuja</option>
+                        <option value="overdue">Erääntyneitä maksuja</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-sm">
+                      <span className="font-semibold">Erääntyneet (€)</span>
+                      <input name="payment_overdue_eur" inputMode="decimal" defaultValue={Number(order.payment_overdue_eur) > 0 ? String(order.payment_overdue_eur).replace(".", ",") : ""} className="min-h-10 rounded-xl border border-line bg-paper px-3" />
+                    </label>
+                    <label className="grid gap-1 text-sm">
+                      <span className="font-semibold">Tarkistettu</span>
+                      <input name="payment_checked_on" type="date" defaultValue={order.payment_checked_on ?? isoDateHelsinki()} className="min-h-10 rounded-xl border border-line bg-paper px-3" />
+                    </label>
+                  </div>
+                </fieldset>
 
                 <div>
                   <p className="mb-2 text-sm font-semibold">Liitteet (liitteineen-todistuksessa)</p>
