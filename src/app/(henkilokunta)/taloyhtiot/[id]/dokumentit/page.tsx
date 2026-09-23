@@ -46,7 +46,13 @@ export default async function CompanyDocumentsPage({ params, searchParams }: { p
       ) : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <div className="min-w-0">
-          <div className="mb-3 flex justify-end text-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-end gap-4 text-sm">
+            {/* Koko aineiston luovutus (palvelusopimus 10.3): rekisteri CSV:nä ja asiakirjat tiedostoina. */}
+            {ctx.can("owner", "manager", "assistant") ? (
+              <a href={`/taloyhtiot/${id}/aineisto`} className="text-sky" download>
+                Lataa yhtiön aineisto (zip)
+              </a>
+            ) : null}
             <Link href={includeAttachments ? back : `${back}?liitteet=1`} className="text-sky">
               {includeAttachments ? "Piilota liitteet" : "Näytä liitteet"}
             </Link>
