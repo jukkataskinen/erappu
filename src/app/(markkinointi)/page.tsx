@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { FAQ, MANAGER_FEATURES, RESIDENT_FEATURES } from "@/content/marketing";
 import { Container, FaqList, FeatureGrid, PrimaryCta, Section } from "@/components/marketing/Shell";
+import { formatEuro, monthlyPrice, VAT_NOTE, YEARLY_MONTHLY } from "@/content/pricing";
 import { CertificatePreview, MinutesPreview, PortalPreview } from "@/components/marketing/Previews";
 
 export const dynamic = "force-dynamic";
@@ -119,7 +120,33 @@ export default async function Home() {
         </p>
       </Section>
 
-      <Section title="Usein kysyttyä">
+      <Section title="Hinta taloyhtiön koon mukaan" lead={`Perusmaksu taloyhtiöltä ja pieni maksu huoneistolta, vähintään ${formatEuro(YEARLY_MONTHLY.minimum)} kuukaudessa. ${VAT_NOTE}`}>
+        <div className="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-center">
+          <dl className="grid gap-2">
+            <div className="flex justify-between gap-4 border-t border-line pt-2">
+              <dt className="text-ink/70">Taloyhtiö</dt>
+              <dd className="tabular-nums">{formatEuro(YEARLY_MONTHLY.base)} / kk</dd>
+            </div>
+            <div className="flex justify-between gap-4 border-t border-line pt-2">
+              <dt className="text-ink/70">Huoneisto</dt>
+              <dd className="tabular-nums">{formatEuro(YEARLY_MONTHLY.perUnit)} / kk</dd>
+            </div>
+            <div className="flex justify-between gap-4 border-t border-line pt-2">
+              <dt className="text-ink/70">Esimerkki: 15 huoneistoa</dt>
+              <dd className="tabular-nums">{formatEuro(monthlyPrice(15, "yearly"))} / kk</dd>
+            </div>
+          </dl>
+          <p className="rounded-[var(--radius-panel)] border border-line bg-cloud p-6 text-ink/80">
+            Hinnat ovat vuosimaksun hintoja: vuosi etukäteen maksettuna saat 10 prosentin alennuksen.{" "}
+            <Link href="/hinnat" className="font-medium underline underline-offset-4">
+              Laske oma hintasi
+            </Link>
+            .
+          </p>
+        </div>
+      </Section>
+
+      <Section tone="cloud" title="Usein kysyttyä">
         <FaqList items={FAQ.slice(0, 4)} />
         <p className="mt-8">
           <Link href="/ukk" className="font-medium underline underline-offset-4">

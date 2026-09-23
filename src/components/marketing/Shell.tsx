@@ -13,6 +13,7 @@ import { MobileNav } from "./MobileNav";
 export const NAV = [
   { href: "/ominaisuudet", label: "Ominaisuudet" },
   { href: "/ominaisuudet#taloyhtiolle", label: "Taloyhtiölle" },
+  { href: "/hinnat", label: "Hinnat" },
   { href: "/ukk", label: "UKK" },
   { href: "/yhteystiedot", label: "Yhteystiedot" },
 ];
@@ -67,6 +68,7 @@ const FOOTER_LINKS = [
     links: [
       { href: "/ominaisuudet#isannoitsijalle", label: "Isännöitsijälle" },
       { href: "/ominaisuudet#taloyhtiolle", label: "Hallitukselle ja asukkaille" },
+      { href: "/hinnat", label: "Hinnat" },
       { href: "/ukk", label: "Usein kysyttyä" },
     ],
   },
