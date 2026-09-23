@@ -22,8 +22,10 @@ import {
  * GET-pyyntöjä osoitteeseen https://htj-ext.nls.fi/htj1/isannointi/v1
  * (koeympäristö htj-ext-koe.nls.fi). Kutsuva järjestelmä tunnistetaan
  * mTLS-varmenteella, ja pakollinen otsake `htj-isannointitaho` kertoo
- * isännöintitahon Y-tunnuksen. Yhtiökohtainen oikeus tulee järjestelmäluvasta,
- * jonka isännöitsijä antaa Suomi.fi-tunnistuksella (erillinen ohje, kesken).
+ * isännöintitahon tunnisteen. Tunniste on järjestelmäluvituksesta saatu UUID
+ * (ks. docs/htj2.md luku 2), ei Y-tunnus eikä henkilötunnus. Yhtiökohtainen
+ * oikeus tulee järjestelmäluvasta, jonka isännöitsijä antaa MML:n palvelussa
+ * Suomi.fi-tunnistautumisella.
  *
  * Todettu koeympäristössä 19.9.2026: varmenne kelpaa, ilman otsaketta
  * vastaus on 400 "Required header 'htj-isannointitaho'", otsakkeen kanssa
@@ -66,7 +68,12 @@ export function mmlConfigFromEnv(env: NodeJS.ProcessEnv = process.env): MmlConfi
   const key = pem(env, "HTJ_CLIENT_KEY_BASE64", "HTJ_CLIENT_KEY_FILE");
   if (!cert || !key) throw new HtjError("HTJ-varmenne puuttuu (HTJ_CLIENT_CERT_BASE64 ja HTJ_CLIENT_KEY_BASE64 tai *_FILE).", "config");
   const managerBusinessId = (env.HTJ_ISANNOINTITAHO ?? "").trim();
-  if (!/^\d{7}-\d$/.test(managerBusinessId)) throw new HtjError("HTJ_ISANNOINTITAHO puuttuu (isännöintiyrityksen Y-tunnus).", "config");
+  // Järjestelmäluvituksesta saatu isännöintitahon tunniste (UUID), ei Y-tunnus:
+  // henkilöisännöitsijän hetu annetaan vain Suomi.fi-tunnistautumisessa MML:n
+  // palvelussa (HTJ Järjestelmäluvan tekninen ohje, Release-2026-05-04).
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(managerBusinessId)) {
+    throw new HtjError("HTJ_ISANNOINTITAHO puuttuu (järjestelmäluvituksesta saatu isännöintitahon tunniste).", "config");
+  }
   return {
     baseUrl: (env.HTJ_BASE_URL || "https://htj-ext.nls.fi/htj1/isannointi/v1").replace(/\/+$/, ""),
     cert,

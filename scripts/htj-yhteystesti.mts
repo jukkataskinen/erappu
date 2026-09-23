@@ -5,7 +5,7 @@
  *
  *   HTJ_CLIENT_CERT_FILE=data/private/htj/<varmenne>.crt \
  *   HTJ_CLIENT_KEY_FILE=data/private/htj/<varmenne>.key \
- *   HTJ_ISANNOINTITAHO=<isännöintiyrityksen Y-tunnus> \
+ *   HTJ_ISANNOINTITAHO=<järjestelmäluvituksesta saatu isännöintitahon tunniste> \
  *   npm run htj:yhteystesti -- <testiyhtiön Y-tunnus>
  *
  * Oletusosoite on koeympäristö (htj-ext-koe.nls.fi). Varmenne ja avain ovat

@@ -27,14 +27,15 @@ hallinnollisten tietojen käyttö perustuu kahteen asiaan:
    henkilöisännöitsijäksi hoitamiinsa taloyhtiöihin, joten käyttöoikeus syntyy suoraan
    asemavaltuudesta eikä taloyhtiöiltä tarvita erillisiä suomi.fi-valtuuksia. Isännöintitaho
    on siis henkilö, ei isännöintiyhteisö. Jukalla on nimenkirjoitusoikeus, jolla hän voi
-   antaa tarvittavat valtuudet palveluihin. Avoin kysymys MML:lle: mitä tunnistetta
-   henkilöisännöitsijästä käytetään rajapintakutsuissa. Jos se on henkilötunnus, se
-   tallennetaan eRapussa kenttäsalattuna eikä sitä kirjoiteta lokeihin, osoitteisiin eikä
-   gitiin (CLAUDE.md:n sääntö).
+   antaa tarvittavat valtuudet palveluihin. Järjestelmäluvitus kohdistuu isännöintitahoon,
+   joka on joko henkilöisännöitsijä (hetu) tai isännöintiyhteisö (y-tunnus). Henkilötunnusta
+   ei kuitenkaan koskaan lähetetä rajapintakutsuissa: se annetaan vain Suomi.fi-
+   tunnistautumisessa MML:n palvelussa, ja kutsuissa käytetään luvituksesta saatua
+   UUID-tunnistetta (luku 2).
 
 Luvan edellytys on, että järjestelmä on MML:n sertifioitujen, huoneistotietojärjestelmään
 integroituvien järjestelmien luettelossa. Se edellyttää sopimusta MML:n kanssa ja
-hyväksyttyä testiraporttia koeympäristöstä (luku 3).
+hyväksyttyä testiraporttia koeympäristöstä (luku 4).
 
 ### Vahva vai heikko tunnistautuminen
 
@@ -62,7 +63,37 @@ sama kysymys kuin eSinetin Telia Tunnistuksen käytössä (BLOCKERS 6).
 - Valtuuksien puuttuminen on näytettävä selkeästi: yhtiön tietoja ei saa haettua, jos
   valtuutta ei ole.
 
-## 2. Optimistinen lukitus
+## 2. Järjestelmäluvituksen kulku (heikko tunnistautuminen)
+
+Lähde: "HTJ Järjestelmäluvan tekninen ohje" (Release-2026-05-04). Kulku on:
+
+1. eRappu luo satunnaisen `authUUID`:n (ei saa perustua käyttäjän dataan) ja tallentaa sen
+   käyttäjälle.
+2. Käyttäjä ohjataan osoitteeseen `https://jarjestelmalupa-koe.nls.fi` query-parametreilla
+   `target` (järjestelmän tunniste, pääteltävä sertifikaatista – meillä 2237131-2),
+   `authUUID`, `successUrl`, `cancelUrl`, `errorUrl` (osoitteet url-enkoodattuina) ja
+   valinnainen `lang`.
+3. Käyttäjä tunnistautuu Suomi.fi:llä ja hyväksyy luvituksen.
+4. Selain palaa `successUrl`-osoitteeseen. eRapun palvelin vaihtaa authUUID:n tunnisteeseen:
+   `POST https://htj-ext-koe.nls.fi/htj2/luvitus/v1/approve` mTLS:llä, rungossa
+   `{"authUUID": "..."}`, vastauksena `{"isannointitahonTunniste": "<uuid>"}`.
+5. Tunniste tallennetaan salaisuutena ja lähetetään jokaisessa kutsussa otsakkeessa
+   `htj-isannointitaho`. authUUID on kertakäyttöinen eikä palaudu uudelleenohjauksessa,
+   joten se on säilytettävä istunnossa. Käyttämätön luvitus poistetaan automaattisesti.
+6. Voimassaolo: jokainen vastaus sisältää otsakkeen `htj-luvitus-voimassa`, joka kertoo
+   jäljellä olevat päivät. Luvituksen voi uusia ennen vanhenemista.
+7. Tilan voi tarkistaa: `POST /htj2/luvitus/v1/check` rungolla `{"tunnus": "<uuid>"}`,
+   200 = kunnossa, 403 = ei luvitusta.
+
+Kehitysaikana koeympäristössä selaimen jokaisessa pyynnössä pitää olla otsake
+`htj-development-access-key` (saatu 21.9.2026; selaimeen esim. ModHeader-lisäosalla).
+Suomi.fi-testitunnistautumiseen tarvitaan MML:n toimittamat synteettiset hetut – näitä ei
+ole vielä saatu.
+
+Seuraus eRapulle: `HTJ_ISANNOINTITAHO` ei ole Y-tunnus vaan luvituksesta saatu UUID, ja
+tunniste kuuluu käsitellä salaisuutena (ei lokeihin, ei URL-parametreihin).
+
+## 3. Optimistinen lukitus
 
 Päivitettävillä tiedoilla on versionumero, joka tulee mukana haussa ja lisäyksen
 vastauksessa. Päivitys ja poisto on tehtävä versionumerolla; jos joku muu on päivittänyt
@@ -81,7 +112,7 @@ käyttäjälle on näytettävä sekä oma että HTJ:n versio ja annettava valita
 voimaan. Luotonantajien ilmoittamat luotot eivät ole lukituksen piirissä: uusi ilmoitus
 korvaa aina edelliset.
 
-## 3. Koeympäristön testitapaukset ennen tuotantolupaa
+## 4. Koeympäristön testitapaukset ennen tuotantolupaa
 
 MML pyytää vapaamuotoisen testiraportin koeympäristössä ajetuista testeistä. Testit on
 ajettava järjestelmäluvan kanssa. Vaaditut testitapaukset:
@@ -103,7 +134,7 @@ ajettava järjestelmäluvan kanssa. Vaaditut testitapaukset:
 Tämä on samalla eRapun HTJ2-toteutuksen laajuus: KUMU, KPTS, koodistot ja taloudelliset
 tiedot. eRapussa on jo ilmoitusjono näille (M2), mutta se lähettää jäljitelmälle.
 
-## 4. Työjärjestys
+## 5. Työjärjestys
 
 1. Koeympäristön yhteys toimimaan: järjestelmälupa koeympäristöön (nyt 403).
 2. Koodistorajapinta ensin, koska KUMU ja KPTS käyttävät koodistoja.
@@ -112,24 +143,35 @@ tiedot. eRapussa on jo ilmoitusjono näille (M2), mutta se lähettää jäljitel
 5. Sivutus ja validointisäännöt (kaksi Excel-tiedostoa) läpi.
 6. Testiraportti MML:lle, sopimus ja sertifiointi, sitten tuotantolupa.
 
-## 5. Mitä dokumentaatiosta puuttuu vielä
+## 6. Mikä on saatu ja mikä puuttuu
 
-MML (Piia, 23.9.2026): tekniset ohjeet ovat dokumentaation **Release-2026-05-04**
--kansiossa, josta löytyvät järjestelmäluvan tekninen ohje, HTJ2:n tekninen ohje
-isännöinnille sekä skeemat. Saamamme zip sisälsi vain yleisen dokumentaation
-(konseptikuvaukset, validointisäännöt, testitapaukset), joten tuo kansio pitää hakea
-samasta jaosta.
+Release-kansiot saatiin 23.9.2026 (`data/private/htj/htj2/releases/`). Uusin on
+**Release-2026-05-04**, jossa ovat järjestelmäluvan tekninen ohje, HTJ2:n tekninen ohje
+isännöinnille, skeemat (`skeemat-2026-01-26-isannointi.xlsx`) ja OpenAPI-kuvaukset:
+
+| Rajapinta | Polkuja | Palvelimet |
+|---|---|---|
+| HTJ2 Koodisto | 4 | `htj-ext-koe.nls.fi`, `htj-ext-prod.nls.fi` |
+| HTJ2 KUMU (hankkeet, KPTS, osakasremontit, vahvistaminen) | 11 | sama |
+| HTJ2 Taloudelliset tiedot (yhtiölainat, vastikkeet, luoton jyvitys, osakeryhmän muut tiedot) | 10 | sama |
+
+Kaikki kutsut vaativat otsakkeet `htj-isannointitaho` ja `x-correlation-id` (UUID), ja
+poistot tehdään polulla `.../versio/{versioId}` eli optimistisen lukituksen mukaan.
+Mukana tuli myös skeemaesimerkit (KUMU ja taloudelliset) sekä vahvistamisen API:n
+kehitysversiot.
+
+Puuttuu vielä: MML:n synteettiset testihetut Suomi.fi-testitunnistautumiseen ja
+testiyhtiöiden tarkemmat tiedot (Piia selvittää).
 
 Hakemus, sopimus ja tietoturvaliite tulevat vasta, kun pakolliset HTJ2:n testitapaukset ja
 raportit on tehty; MML:n mukaan ne hoituvat tyypillisesti 1–2 viikossa. Koekäyttölupaa voi
 jatkaa pyytämällä verkkopalvelut@maanmittauslaitos.fi. Testiyhtiöiden tarkemmat tiedot MML
 toimittaa erikseen.
 
-## 6. Mitä Jukan pitää tehdä
+## 7. Mitä Jukan pitää tehdä
 
-- Hae dokumentaation Release-2026-05-04 -kansio samasta jaosta kuin yleinen dokumentaatio
-  (järjestelmäluvan tekninen ohje, HTJ2:n tekninen ohje isännöinnille, skeemat). Ilman
-  näitä toteutusta ei voi aloittaa.
+- Pyydä MML:ltä synteettiset testihetut Suomi.fi-testitunnistautumiseen ja vahvistus
+  siitä, että järjestelmämme `target`-tunniste on sertifikaatin mukainen 2237131-2.
 - Järjestelmälupa koeympäristöön, kun integraatio on ohjeen mukaan toteutettu.
 - Valtuudet ovat kunnossa: Jukka on kaupparekisterissä henkilöisännöitsijänä, joten
   asemavaltuus riittää eikä taloyhtiöiltä tarvita suomi.fi-valtuuksia. Tarkistettava vielä,

@@ -87,13 +87,21 @@ describe("MML-asetukset ja polut", () => {
     expect(PATHS.owners("1234567-8", "OHX")).toBe("/yhtiot/1234567-8/osakeryhmat/OHX/omistajat-suppea");
   });
 
-  it("isännöintitahon otsake on pakollinen", () => {
-    expect(mmlHeaders({ managerBusinessId: "1234567-8" }, "00000000-0000-0000-0000-000000000001")).toEqual({ Accept: "application/json", "htj-isannointitaho": "1234567-8", "X-Request-ID": "00000000-0000-0000-0000-000000000001" });
+  // Isännöintitahon tunniste on järjestelmäluvituksesta saatu UUID, ei Y-tunnus
+  // (HTJ Järjestelmäluvan tekninen ohje, Release-2026-05-04).
+  it("isännöintitahon otsake on pakollinen ja tunniste on luvituksen UUID", () => {
+    const tunniste = "e598eaff-f60e-4a6b-b275-740b7d0d6f22";
+    expect(mmlHeaders({ managerBusinessId: tunniste }, "00000000-0000-0000-0000-000000000001")).toEqual({
+      Accept: "application/json",
+      "htj-isannointitaho": tunniste,
+      "X-Request-ID": "00000000-0000-0000-0000-000000000001",
+    });
     const base = { HTJ_CLIENT_CERT_BASE64: Buffer.from("c").toString("base64"), HTJ_CLIENT_KEY_BASE64: Buffer.from("k").toString("base64") };
     expect(() => mmlConfigFromEnv({ ...base } as unknown as NodeJS.ProcessEnv)).toThrow(HtjError);
-    expect(mmlConfigFromEnv({ ...base, HTJ_ISANNOINTITAHO: "1234567-8", HTJ_BASE_URL: "https://htj-ext-koe.nls.fi/htj1/isannointi/v1/" } as unknown as NodeJS.ProcessEnv)).toMatchObject({
+    expect(() => mmlConfigFromEnv({ ...base, HTJ_ISANNOINTITAHO: "1234567-8" } as unknown as NodeJS.ProcessEnv)).toThrow(HtjError);
+    expect(mmlConfigFromEnv({ ...base, HTJ_ISANNOINTITAHO: tunniste, HTJ_BASE_URL: "https://htj-ext-koe.nls.fi/htj1/isannointi/v1/" } as unknown as NodeJS.ProcessEnv)).toMatchObject({
       baseUrl: "https://htj-ext-koe.nls.fi/htj1/isannointi/v1",
-      managerBusinessId: "1234567-8",
+      managerBusinessId: tunniste,
     });
   });
 });
