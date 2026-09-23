@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BOARD_BENEFITS, BUYING_FAQ, COST_COMPARISON, PROBLEMS, TRUST } from "@/content/marketing";
+import { BOARD_BENEFITS, BUYING_FAQ, CONTACT, COST_COMPARISON, PROBLEMS, TRUST } from "@/content/marketing";
 import { FaqList, FeatureGrid, PageHero, PrimaryCta, Section } from "@/components/marketing/Shell";
 import { ProposeMessage } from "@/components/marketing/ProposeMessage";
 import { formatEuro, monthlyPrice, VAT_NOTE, YEARLY_MONTHLY } from "@/content/pricing";
@@ -99,7 +99,7 @@ export default function BoardPage() {
       <Section title="Kuka ylläpitää palvelua?">
         <p className="prose-measure text-ink/80">
           Isännöitsijä. Hän hoitaa yhtiön asiat eRapussa kuten tähänkin asti: kokoukset, asiakirjat, todistukset ja lakisääteiset ilmoitukset. Hallitus saa saman tiedon
-          näkyviinsä, eikä hallitukselle siirry töitä. Palvelun toimittaa {`Adepta Tilat Oy`}.
+          näkyviinsä, eikä hallitukselle siirry töitä. Palvelun toimittaa {CONTACT.company}.
         </p>
       </Section>
 

@@ -346,3 +346,18 @@ Verrokkina Kiinteistö-Tahkolan portaali ja sen muutostyöohje. Tekstit kirjoite
 **eRapussa ei ole todistushinnastoa (Jukka).** "Ota koko hinnoittelu pois, sen voi jokainen isännöitsijä päättää itse tai yhdessä hallituksen kanssa." Vakiohinnat (120 € / pika 180 €) poistettiin koodista, ja hinta tulee vain organisaation asetuksista (`certificate_prices`). Ilman asetusta tilaus jää hinnoittelematta: migraatio 0116 sallii `er_certificate_orders.price_eur = null`, julkinen tilauslomake kertoo "Isännöinti ilmoittaa todistuksen hinnan tilauksen jälkeen", ja tilausvahvistuksesta jää hintarivi pois. Vanhojen tilausten hinnat säilyvät. Demodata antaa hinnat organisaation asetuksissa, jotta hinnallinen kulku näkyy esittelyssä.
 
 **Demodata moduuleille M1–M6 (`seedModulesDemo`).** As Oy Esimerkkirinteelle kolme huoltopyyntöä eri vaiheissa tapahtumineen (M1), laskutusasetukset, hyväksytty elokuun ja luonnoksena syyskuun vastikeajo sekä maksutilanne yhdellä erääntyneellä (M3), julkaistu ja luonnostiedote sekä osakkaan aloittama yhteydenotto vastauksineen (M4), pidetty varsinainen yhtiökokous päätöksineen ja ääniluetteloineen sekä valmisteltava hallituksen kokous (M5) ja varauskohteet, varaukset ja 12 kuukauden kulutusseuranta (M6). Kokousten PDF-asiakirjoja ei tehdä skriptissä, koska asiakirjojen kokoaja on `server-only`-moduuli; ne muodostetaan kokoussivulla. Yhtiölle kirjattiin samalla yhtiöjärjestyksen hallitus- ja tarkastajamäärät (0097), jotta esityslista muodostuu oikein. Jokainen osa on idempotentti, ja `npm run db:seed:demo <hakemisto>` ajaa demon myös erilliseen kantaan.
+
+## 2026-09-23 Järjestelmätoimittaja on Adepta Oy
+
+**Jukan päätös:** eRapun järjestelmätoimittaja ja MML:n sopimusosapuoli on **Adepta Oy**
+(Y-tunnus 2237131-2). Tämä korvaa 14.9.2026 kirjatun päätöksen, jonka mukaan toimittaja
+olisi ollut Adepta Tilat Oy.
+
+Peruste ja seuraus: MML:n koekäyttövarmenne on myönnetty Adepta Oy:lle (`O=2237131-2,
+OU=Adepta Oy`), ja järjestelmäluvituksen `target`-parametrin on vastattava varmennetta.
+Näin koeympäristön varmenne, tuotantovarmenne, tuotantosopimus ja `target` ovat kaikki
+saman yhtiön nimissä eikä varmennetta tarvitse uusia tuotantoon siirryttäessä.
+
+Markkinointisivujen "Palvelun toimittaa" ja tietosuojaselosteen rekisterinpitäjä
+(verkkosivuston osalta) muuttuivat samalla Adepta Oy:ksi. eSinetin organisaatio ja
+Supabase-tili jäävät ennalleen; ne ovat eri asia kuin järjestelmätoimittajuus.

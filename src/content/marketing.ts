@@ -12,7 +12,7 @@
  */
 
 export const CONTACT = {
-  company: "Adepta Tilat Oy",
+  company: "Adepta Oy",
   /** Tarkistettava ennen julkaisua: minne esittelypyynnöt ohjataan. */
   email: "jukka.taskinen@adepta.fi",
   person: "Jukka Taskinen",

@@ -76,10 +76,9 @@ Lähde: "HTJ Järjestelmäluvan tekninen ohje" (Release-2026-05-04). Kulku on:
    `target` yksilöi **isännöintijärjestelmän** (ei isännöintitahoa) ja on jokaiselle
    järjestelmälle staattinen. Arvon on vastattava mTLS-varmenteen arvoa. Koeympäristön
    varmenne on myönnetty Adepta Oy:lle (`O=2237131-2, OU=Adepta Oy`, voimassa 18.9.2026–
-   18.9.2027), joten koeympäristössä `target = 2237131-2`. **Päätettävä ennen
-   tuotantohakemusta:** DECISIONS 14.9.2026 mukaan MML-sopimusosapuoli ja
-   järjestelmätoimittaja on Adepta Tilat Oy, jolloin tuotantovarmenne tulisi sen
-   Y-tunnuksella ja `target` vaihtuu. Varmenne ja target seuraavat aina sopimusosapuolta.
+   18.9.2027), joten `target = 2237131-2`. Järjestelmätoimittaja ja MML:n sopimusosapuoli
+   on Adepta Oy (DECISIONS 23.9.2026), joten sama tunnus pätee myös tuotannossa eikä
+   varmennetta tarvitse uusia toiseen yhtiöön.
 3. Käyttäjä tunnistautuu Suomi.fi:llä ja hyväksyy luvituksen.
 4. Selain palaa `successUrl`-osoitteeseen. eRapun palvelin vaihtaa authUUID:n tunnisteeseen:
    `POST https://htj-ext-koe.nls.fi/htj2/luvitus/v1/approve` mTLS:llä, rungossa
@@ -178,9 +177,8 @@ toimittaa erikseen.
 ## 7. Mitä Jukan pitää tehdä
 
 - Pyydä MML:ltä synteettiset testihetut Suomi.fi-testitunnistautumiseen.
-- Päätä, kumman yhtiön nimissä järjestelmätoimittajuus on: koeympäristön varmenne on
-  Adepta Oy:llä (2237131-2), mutta DECISIONS 14.9.2026 mukaan sopimusosapuoli on Adepta
-  Tilat Oy. Tuotantovarmenne ja `target` tulevat sen mukaan.
+- Tuotantohakemus aikanaan Adepta Oy:n nimissä (DECISIONS 23.9.2026), jolloin varmenne ja
+  `target` pysyvät samoina kuin koekäytössä.
 - Järjestelmälupa koeympäristöön, kun integraatio on ohjeen mukaan toteutettu.
 - Valtuudet ovat kunnossa: Jukka on kaupparekisterissä henkilöisännöitsijänä, joten
   asemavaltuus riittää eikä taloyhtiöiltä tarvita suomi.fi-valtuuksia. Tarkistettava vielä,

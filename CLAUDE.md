@@ -1,6 +1,6 @@
 # eRappu – rakennusohje Claude Codelle
 
-eRappu on Adepta Tilat Oy:n monivuokralainen isännöintijärjestelmä. Ensimmäinen asiakas on Adepta Oy:n isännöinti (11 taloyhtiötä Toivakassa ja Joutsassa), myöhemmin muut pienet isännöintiyritykset. Järjestelmä korvaa Access-tietokannan `taloyhtiöt.accdb`. Toteutussuunnitelma: https://claude.ai/code/artifact/b03507c4-c350-47d1-b40d-9c4052a513a0 ja `docs/suunnitelma.html`.
+eRappu on Adepta Oy:n monivuokralainen isännöintijärjestelmä (järjestelmätoimittaja, DECISIONS 23.9.2026). Ensimmäinen asiakas on Adepta Oy:n isännöinti (11 taloyhtiötä Toivakassa ja Joutsassa), myöhemmin muut pienet isännöintiyritykset. Järjestelmä korvaa Access-tietokannan `taloyhtiöt.accdb`. Toteutussuunnitelma: https://claude.ai/code/artifact/b03507c4-c350-47d1-b40d-9c4052a513a0 ja `docs/suunnitelma.html`.
 
 **Älä kysy käyttäjältä mitään, mikä on tässä päätetty.** Jos joudut tekemään päätöksen, jota tässä ei ole, tee se tämän dokumentin hengessä ja kirjaa se `DECISIONS.md`:ään. Jos et voi edetä puuttuvan tunnuksen, sopimuksen tai Jukan päätöksen takia, kirjaa asia `BLOCKERS.md`:hen ja jatka seuraavaan tehtävään.
 
@@ -43,7 +43,7 @@ Säännöt:
 | Migraatiot | `supabase/migrations/NNNN_nimi.sql`. Paikallisesti ajetaan automaattisesti (`src/lib/db/migrate.ts`), Supabaseen Supabase CLI:llä. `supabase/local/0000_supabase_shim.sql` vain PGlitelle. |
 | Kirjautuminen | `AUTH_MODE=auth0`: portfolion jaettu Auth0-tenant (henkilökunta salasana + MFA, portaali passwordless). `AUTH_MODE=dev`: käyttäjän valinta listasta, estetty tuotannossa. `getCurrentUser`, `requireStaff`, `requirePortal` (`src/lib/auth/current-user.ts`). |
 | Roolit | Organisaatio: `owner` (pääkäyttäjä), `manager` (isännöitsijä), `accountant` (kirjanpitäjä: talous ja HTJ2-tiedot, ei rekisterin muokkausta, ei henkilötunnuksia), `assistant`. Portaali: `board`, `owner`, `resident`, `provider`; oikeudet johdetaan rekisteristä (`src/lib/registry/portal-access.ts`). |
-| HTJ | Osakeluettelot on siirretty HTJ:hin → HTJ on omistustietojen päälähde. `HTJ_MODE=mock` oletuksena. Oikea rajapinta vaatii MML-sopimuksen (Adepta Tilat Oy) ja mTLS-varmenteen. HTJ2-ilmoitukset (vastikkeet, lainat, KuMu, KPTS) ovat myöhässä (määräaika 30.6.2026): järjestelmä tuottaa yhtiökohtaisen yhteenvedon käsin ilmoittamista varten, kunnes rajapinta on käytössä. |
+| HTJ | Osakeluettelot on siirretty HTJ:hin → HTJ on omistustietojen päälähde. `HTJ_MODE=mock` oletuksena. Oikea rajapinta vaatii MML-sopimuksen (Adepta Oy) ja mTLS-varmenteen. HTJ2-ilmoitukset (vastikkeet, lainat, KuMu, KPTS) ovat myöhässä (määräaika 30.6.2026): järjestelmä tuottaa yhtiökohtaisen yhteenvedon käsin ilmoittamista varten, kunnes rajapinta on käytössä. |
 | Allekirjoitukset | eSinetti API (`ESINETTI_MODE=mock` oletuksena). Adepta Oy myy eSinetin Adepta Tilat Oy:lle. eRappu tekee PDF:n itse (@react-pdf/renderer), eSinetti kerää allekirjoitukset ja sinetöi. Asiakas kopioidaan Reilusopparista (`src/lib/esinetti`). |
 | Kirjanpito | Procountor 31.12.2027 asti: vain CSV-vienti ja maksutilanteen CSV-tuonti. 1.1.2028 alkaen Adepta PPR API:n kautta. Ei Fennoaa. |
 | Sähköposti | `er_outbound_messages`-jono + `dispatchQueued` (`src/lib/messaging`). `EMAIL_MODE=console` oletuksena. |
