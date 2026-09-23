@@ -122,6 +122,8 @@ export interface ProviderTask {
   providerName: string;
   costEur: string | null;
   acknowledgedAt: string | Date | null;
+  /** Palveluntuottajan lupaus: mihin päivään mennessä työ on viimeistään tehty. */
+  promisedOn: string | null;
 }
 
 /** Palvelun roolilla. Rajaus: linkin organisaatio, pyyntö ja nykyinen palveluntuottaja. */
@@ -132,13 +134,14 @@ export async function resolveProviderTask(tx: Sql, token: string): Promise<Provi
     id: string; organization_id: string; company_id: string; number: number; title: string; description: string; category: Category;
     urgency: Urgency; status: RequestStatus; company_name: string; address: string | null; unit_label: string | null;
     may_use_master_key: boolean; has_pets: boolean; reporter_phone: string | null; due_on: string | null; provider_name: string;
-    cost_eur: string | null; provider_acknowledged_at: string | Date | null;
+    cost_eur: string | null; provider_acknowledged_at: string | Date | null; provider_promised_on: string | null;
   }>(
     `select r.id, r.organization_id, r.company_id, r.number, r.title, r.description, r.category, r.urgency, r.status,
             c.name as company_name,
             nullif(concat_ws(', ', c.street_address, nullif(concat_ws(' ', c.postal_code, c.city), '')), '') as address,
             coalesce(g.unit_label, r.unit_text) as unit_label, r.may_use_master_key, r.has_pets, r.reporter_phone,
-            r.due_on::text as due_on, p.name as provider_name, r.cost_eur, r.provider_acknowledged_at
+            r.due_on::text as due_on, p.name as provider_name, r.cost_eur, r.provider_acknowledged_at,
+            r.provider_promised_on::text as provider_promised_on
        from er_service_requests r
        join er_housing_companies c on c.id = r.company_id
        join er_service_providers p on p.id = r.provider_id and p.organization_id = r.organization_id
@@ -151,7 +154,7 @@ export async function resolveProviderTask(tx: Sql, token: string): Promise<Provi
     linkId: link.id, requestId: r.id, organizationId: r.organization_id, companyId: r.company_id, number: r.number, title: r.title,
     description: r.description, category: r.category, urgency: r.urgency, status: r.status, companyName: r.company_name, address: r.address,
     unitLabel: r.unit_label, mayUseMasterKey: r.may_use_master_key, hasPets: r.has_pets, reporterPhone: r.reporter_phone, dueOn: r.due_on,
-    providerName: r.provider_name, costEur: r.cost_eur, acknowledgedAt: r.provider_acknowledged_at,
+    providerName: r.provider_name, costEur: r.cost_eur, acknowledgedAt: r.provider_acknowledged_at, promisedOn: r.provider_promised_on,
   };
 }
 

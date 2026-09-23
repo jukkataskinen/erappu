@@ -36,6 +36,32 @@ export function statusChangeMessage(opts: {
   return { subject: `Huoltopyyntö #${opts.number}: ${STATUS_LABEL[opts.status]}`, body: lines.join("\n") };
 }
 
+/**
+ * Ilmoittajalle: palveluntuottaja on ottanut työn vastaan ja kertonut, mihin
+ * päivään mennessä työ on viimeistään tehty. `promisedOn` on valmiiksi
+ * muotoiltu päivä. Palveluntuottajan vapaa tarkennus jää portaaliin, ei
+ * sähköpostiin.
+ */
+export function providerPromiseMessage(opts: {
+  number: number;
+  category: Category;
+  companyName: string;
+  promisedOn: string;
+  portalRequestId?: string | null;
+  baseUrl?: string;
+}): MessageText {
+  const base = opts.baseUrl ?? appBaseUrl();
+  const lines = [
+    "Hei,",
+    "",
+    `huoltopyyntösi #${opts.number} (${CATEGORY_LABEL[opts.category]}, ${opts.companyName}) on otettu työn alle.`,
+    `Työ tehdään viimeistään ${opts.promisedOn}.`,
+  ];
+  if (opts.portalRequestId) lines.push("", `Näet pyynnön tiedot portaalissa: ${base}/portaali/huoltopyynnot/${opts.portalRequestId}`);
+  lines.push("", "Tämä on automaattinen viesti isännöinnistä.");
+  return { subject: `Huoltopyyntö #${opts.number}: työ tehdään viimeistään ${opts.promisedOn}`, body: lines.join("\n") };
+}
+
 export function receivedConfirmationMessage(opts: { number: number; category: Category; companyName: string }): MessageText {
   return {
     subject: `Huoltopyyntö #${opts.number} vastaanotettu`,

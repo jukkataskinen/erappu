@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, freshDb, one, seedTwoOrgs, type Fixture } from "../helpers/db";
 import type { Database, Sql } from "@/lib/db/types";
-import { addComment, changeStatus, createRequest, orderFromProvider, updateAssignment, type NewRequest } from "@/lib/service-requests/mutations";
+import { addComment, changeStatus, createRequest, orderFromProvider, promiseCompletion, updateAssignment, type NewRequest } from "@/lib/service-requests/mutations";
+import { getRequest } from "@/lib/service-requests/queries";
 import { resolveProviderTask, resolvePublicForm, rotatePublicFormLink } from "@/lib/service-requests/links";
 import { hitRateLimit } from "@/lib/service-requests/rate-limit";
 import { createAccessLink } from "@/lib/security/access-links";
@@ -274,6 +275,60 @@ describe("huoltopyynnöt: linkit ja kutsurajoitin", () => {
     );
     const forged = await db.asService((tx) => tx.query<{ provider_actor: boolean }>("select provider_actor from er_service_request_events where request_id = $1 and body = 'x'", [r.id]));
     expect(forged[0].provider_actor).toBe(false);
+  });
+
+  it("ilmoittaja näkee oman pyyntönsä palveluntuottajan nimen, ei muiden", async () => {
+    const mine = await portalCreate(owner1, groupA1, { providerId: providerA });
+    const other = await staffCreate(f.managerA.sub, f.companyA, { providerId: providerA });
+    await db.asUser(f.managerA.sub, (tx) =>
+      updateAssignment(tx, { requestId: mine.id, assigneeUserId: null, providerId: providerA, dueOn: null, urgency: "normal", category: "plumbing", shareGroupId: groupA1, actor: { userId: f.managerA.id } }),
+    );
+    expect((await db.asUser(owner1.sub, (tx) => getRequest(tx, mine.id)))?.provider_name).toBe("Huolto A");
+    // Toisen pyyntö ei näy ilmoittajalle lainkaan.
+    expect(await db.asUser(owner1.sub, (tx) => getRequest(tx, other.id))).toBeNull();
+  });
+
+  it("vastaanottokuittaus tallentaa lupauksen, näyttää sen ilmoittajalle ja nollautuu uudessa tilauksessa", async () => {
+    const r = await staffCreate(f.managerA.sub, f.companyA, { providerId: providerA, reporterEmail: "ilmoittaja@example.test" });
+    await db.asUser(f.managerA.sub, (tx) => orderFromProvider(tx, { requestId: r.id, actor: { userId: f.managerA.id }, channel: "share" }));
+    await db.asService((tx) =>
+      promiseCompletion(tx, { requestId: r.id, promisedOn: "2026-10-15", note: "Käyn aamupäivällä.", actor: { userId: null, providerActor: true } }),
+    );
+
+    const [row] = await db.asService((tx) =>
+      tx.query<{ promised: string | null; acknowledged: string | Date | null }>(
+        "select provider_promised_on::text as promised, provider_acknowledged_at as acknowledged from er_service_requests where id = $1",
+        [r.id],
+      ),
+    );
+    expect(row.promised).toBe("2026-10-15");
+    expect(row.acknowledged).not.toBeNull();
+
+    // Merkintä on ilmoittajan ja hallituksen näkyvissä, ei vain sisäinen.
+    const [ev] = await db.asService((tx) =>
+      tx.query<{ body: string; visibility: string; provider_actor: boolean }>(
+        "select body, visibility, provider_actor from er_service_request_events where request_id = $1 and type = 'comment'",
+        [r.id],
+      ),
+    );
+    expect(ev).toMatchObject({ visibility: "reporter", provider_actor: true });
+    expect(ev.body).toContain("Työ tehdään viimeistään 15.10.2026.");
+    expect(ev.body).toContain("Käyn aamupäivällä.");
+    const mails = await db.asService((tx) => tx.query<{ subject: string }>("select subject from er_outbound_messages where subject_id = $1", [r.id]));
+    expect(mails.some((m) => m.subject.includes("15.10.2026"))).toBe(true);
+
+    // Uusi tilaus nollaa lupauksen: aikataulu kysytään uudelleen.
+    await db.asUser(f.managerA.sub, (tx) => orderFromProvider(tx, { requestId: r.id, actor: { userId: f.managerA.id }, channel: "share" }));
+    const [after] = await db.asService((tx) =>
+      tx.query<{ promised: string | null }>("select provider_promised_on::text as promised from er_service_requests where id = $1", [r.id]),
+    );
+    expect(after.promised).toBeNull();
+
+    // Valmiiseen tehtävään ei voi enää kuitata aikataulua.
+    await db.asService((tx) => changeStatus(tx, { requestId: r.id, to: "done", actor: { userId: null, providerActor: true }, mode: "provider" }));
+    await expect(
+      db.asService((tx) => promiseCompletion(tx, { requestId: r.id, promisedOn: "2026-10-20", actor: { userId: null, providerActor: true } })),
+    ).rejects.toThrow(/Valmista tai suljettua/);
   });
 
   it("vanhentunut linkki ei avaudu", async () => {

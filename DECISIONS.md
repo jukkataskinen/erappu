@@ -376,3 +376,19 @@ tapahtumalokiin. Avain ja sovellustunnukset ovat vain Vercelin ympäristömuuttu
 Tausta: Supabasen päivittäinen varmuuskopio kattaa vain tietokannan – Storage-tiedostot
 eivät sisälly siihen ("Storage objects are not included"). Ilman tätä ajoa asiakirjat olisivat
 yhden tallennuspalvelun varassa.
+
+## 2026-09-23 Huoltomies lupaa ajankohdan kuitatessaan työn vastaan
+
+**Jukan päätös:** kun palveluntuottaja merkitsee työtilauksen vastaanotetuksi, hänen on
+kerrottava, milloin homma viimeistään tehdään. Tieto näkyy kaikille osapuolille.
+
+Toteutus: tehtävälinkin vastaanottokuittaus on lomake, jossa päivä on pakollinen kenttä ja
+tarkennus vapaaehtoinen. Päivä tallentuu pyynnölle (`provider_promised_on`) ja kirjataan
+ilmoittajalle näkyvänä merkintänä, joten sama ajankohta näkyy isännöitsijän näkymässä,
+portaalin etenemisjanassa ja tapahtumissa. Ilmoittaja saa siitä myös sähköpostin.
+Aikataulun voi päivittää samalta lomakkeelta, jos se muuttuu; uusi tilaus nollaa lupauksen,
+koska silloin ajankohta on kysyttävä uudelleen.
+
+Samalla korjattiin, ettei ilmoittaja nähnyt portaalissa palveluntuottajan nimeä lainkaan
+(RLS päästi palveluntuottajat vain hallitukselle): oman pyynnön tilaaja näkyy nyt myös
+osakkaalle ja asukkaalle.

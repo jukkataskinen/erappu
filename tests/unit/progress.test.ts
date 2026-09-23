@@ -28,6 +28,17 @@ describe("etenemisjana", () => {
     expect(requestProgress("in_progress").note).toBeNull();
   });
 
+  // Palveluntuottajan lupaus näkyy ilmoittajalle janan tarkennuksessa (Jukka 23.9.2026).
+  it("huoltopyyntö: lupaus kertoo, milloin työ tehdään viimeistään", () => {
+    expect(requestProgress("ordered", "Toivakan Kiinteistöhuolto Oy", "2026-09-26").note).toBe(
+      "Työ on tilattu: Toivakan Kiinteistöhuolto Oy. Työ tehdään viimeistään 26.9.2026.",
+    );
+    expect(requestProgress("in_progress", null, "2026-10-01").note).toBe("Työ tehdään viimeistään 1.10.2026.");
+    expect(requestProgress("waiting", null, "2026-10-01").note).toBe("Odottaa, esimerkiksi osia tai kulkuoikeutta. Työ tehdään viimeistään 1.10.2026.");
+    expect(requestProgress("received", null, "2026-09-26").note).toBe("Työ tehdään viimeistään 26.9.2026.");
+    expect(requestProgress("received").note).toBeNull();
+  });
+
   it("jokaisella tilalla on jana tai päättymisteksti", () => {
     for (const s of STATUSES) {
       const p = requestProgress(s);

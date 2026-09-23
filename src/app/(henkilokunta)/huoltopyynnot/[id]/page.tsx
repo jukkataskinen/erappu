@@ -109,6 +109,7 @@ export default async function ServiceRequestPage({ params, searchParams }: { par
                 { label: "Lemmikkejä", value: <YesNo value={request.has_pets} /> },
                 { label: "Saapui", value: formatDateTime(request.created_at) },
                 { label: "Määräaika", value: request.due_on ? <span className={request.overdue ? "font-semibold text-coral" : ""}>{formatDate(request.due_on)}</span> : "–" },
+                { label: "Palveluntuottajan lupaus", value: request.provider_promised_on ? `Työ tehdään viimeistään ${formatDate(request.provider_promised_on)}` : "–" },
                 { label: "Valmistui", value: formatDateTime(request.completed_at) },
                 { label: "Suljettu", value: formatDateTime(request.closed_at) },
                 { label: "Avattu uudelleen", value: request.reopened_count ? `${request.reopened_count} kertaa` : "–" },
@@ -300,6 +301,7 @@ export default async function ServiceRequestPage({ params, searchParams }: { par
                     <p className="text-xs text-ink/60">
                       Tilattu {formatDateTime(request.ordered_at)}
                       {request.provider_acknowledged_at ? `, kuitattu ${formatDateTime(request.provider_acknowledged_at)}` : ", ei vielä kuitattu"}.
+                      {request.provider_promised_on ? ` Palveluntuottaja tekee työn viimeistään ${formatDate(request.provider_promised_on)}.` : ""}
                       {link ? ` Linkki voimassa ${formatDate(link.expires_at)} asti${link.last_used_at ? `, avattu viimeksi ${formatDateTime(link.last_used_at)}` : ""}.` : ""}
                     </p>
                   ) : null}

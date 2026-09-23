@@ -97,6 +97,7 @@ export interface RequestDetail extends RequestListRow {
   cost_eur: string | null;
   ordered_at: Ts | null;
   provider_acknowledged_at: Ts | null;
+  provider_promised_on: string | null;
   completed_at: Ts | null;
   closed_at: Ts | null;
   reopened_count: number;
@@ -114,7 +115,8 @@ export async function getRequest(tx: Sql, id: string): Promise<RequestDetail | n
             r.created_at, r.organization_id, r.description, r.share_group_id, r.unit_text, r.reporter_user_id,
             r.reporter_name, r.reporter_phone, r.reporter_email, r.may_use_master_key, r.has_pets,
             r.assignee_user_id, r.provider_id, r.cost_responsibility, r.cost_eur, r.ordered_at,
-            r.provider_acknowledged_at, r.completed_at, r.closed_at, r.reopened_count,
+            r.provider_acknowledged_at, r.provider_promised_on::text as provider_promised_on,
+            r.completed_at, r.closed_at, r.reopened_count,
             nullif(concat_ws(', ', c.street_address, nullif(concat_ws(' ', c.postal_code, c.city), '')), '') as company_address
        from er_service_requests r
        join er_housing_companies c on c.id = r.company_id

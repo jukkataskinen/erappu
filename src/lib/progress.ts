@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format";
 import type { RenovationStatus } from "@/lib/maintenance/renovation";
 import type { RequestStatus } from "@/lib/service-requests/labels";
 
@@ -53,23 +54,26 @@ export function renovationProgress(status: RenovationStatus): Progress {
 export const REQUEST_STEPS = ["Vastaanotettu", "Tilattu", "Työn alla", "Valmis"];
 
 /**
- * `provider` on tilauksen saaneen palveluntuottajan nimi. Ilmoittajalle
- * kerrotaan, keneltä työ on tilattu (Jukka 23.9.2026): muuten jana kertoo vain,
- * että työ on tilattu jollekin.
+ * `provider` on tilauksen saaneen palveluntuottajan nimi ja `promisedOn`
+ * (VVVV-KK-PP) hänen lupaamansa takaraja. Ilmoittajalle kerrotaan, keneltä työ
+ * on tilattu ja milloin se viimeistään tehdään (Jukka 23.9.2026): muuten jana
+ * kertoo vain, että työ on tilattu jollekin.
  */
-export function requestProgress(status: RequestStatus, provider?: string | null): Progress {
+export function requestProgress(status: RequestStatus, provider?: string | null, promisedOn?: string | null): Progress {
   const tilaaja = provider?.trim() || null;
+  const lupaus = promisedOn ? `Työ tehdään viimeistään ${formatDate(promisedOn)}.` : null;
+  const note = (...osat: (string | null)[]) => osat.filter(Boolean).join(" ") || null;
   switch (status) {
     case "new":
       return build(REQUEST_STEPS, 0, false, "Odottaa isännöinnin käsittelyä.");
     case "received":
-      return build(REQUEST_STEPS, 1, false);
+      return build(REQUEST_STEPS, 1, false, lupaus);
     case "ordered":
-      return build(REQUEST_STEPS, 2, false, tilaaja ? `Työ on tilattu: ${tilaaja}.` : "Työ on tilattu korjaajalta.");
+      return build(REQUEST_STEPS, 2, false, note(tilaaja ? `Työ on tilattu: ${tilaaja}.` : "Työ on tilattu korjaajalta.", lupaus));
     case "in_progress":
-      return build(REQUEST_STEPS, 3, false, tilaaja ? `${tilaaja} tekee työtä.` : null);
+      return build(REQUEST_STEPS, 3, false, note(tilaaja ? `${tilaaja} tekee työtä.` : null, lupaus));
     case "waiting":
-      return build(REQUEST_STEPS, 3, false, "Odottaa, esimerkiksi osia tai kulkuoikeutta.");
+      return build(REQUEST_STEPS, 3, false, note("Odottaa, esimerkiksi osia tai kulkuoikeutta.", lupaus));
     case "done":
       return build(REQUEST_STEPS, 3, true, "Kuittaa korjatuksi, jos vika on poissa.");
     case "closed":

@@ -3,14 +3,14 @@ import { Brand } from "@/components/Brand";
 import { FormError } from "@/components/FormError";
 import { Button, DefinitionList, Field, Input, Notice, Panel, SectionTitle, Textarea } from "@/components/ui";
 import { getDb } from "@/lib/db";
-import { formatDate, formatDateTime, formatEur } from "@/lib/format";
+import { formatDate, formatDateTime, formatEur, isoDateHelsinki } from "@/lib/format";
 import { PhotoForm } from "@/lib/service-requests/components/PhotoForm";
 import { PhotoInput } from "@/lib/service-requests/components/PhotoInput";
 import { PhotoGrid, StatusBadge, Timeline, UrgencyBadge, YesNo } from "@/lib/service-requests/components/parts";
 import { CATEGORY_LABEL } from "@/lib/service-requests/labels";
 import { listProviderEvents, listProviderPhotos, resolveProviderTask } from "@/lib/service-requests/links";
-import { providerTransition } from "@/lib/service-requests/status";
-import { providerComment, providerCost, providerPhotos, providerStatus } from "./actions";
+import { isOpen, providerTransition } from "@/lib/service-requests/status";
+import { providerAcknowledge, providerComment, providerCost, providerPhotos, providerStatus } from "./actions";
 
 export const metadata = { title: "Työtilaus" };
 export const dynamic = "force-dynamic";
@@ -36,10 +36,11 @@ export default async function ProviderTaskPage({ params, searchParams }: { param
     );
   }
   const { task, events, photos } = data;
-  const canAck = providerTransition(task.status, "acknowledge") !== null && !task.acknowledgedAt;
+  const canPromise = isOpen(task.status);
   const canStart = providerTransition(task.status, "start") !== null;
   const canComplete = providerTransition(task.status, "complete") !== null;
   const closed = task.status === "closed" || task.status === "rejected";
+  const today = isoDateHelsinki();
   const photoHref = (id: string) => `/tehtava/${token}/kuva/${id}`;
 
   return (
@@ -72,6 +73,7 @@ export default async function ProviderTaskPage({ params, searchParams }: { param
             { label: "Määräaika", value: task.dueOn ? formatDate(task.dueOn) : "–" },
             { label: "Kirjattu kustannus", value: formatEur(task.costEur) },
             { label: "Kuitattu", value: task.acknowledgedAt ? formatDateTime(task.acknowledgedAt) : "Ei vielä" },
+            { label: "Lupasit tehdä viimeistään", value: task.promisedOn ? formatDate(task.promisedOn) : "Ei vielä kerrottu" },
           ]}
         />
         {task.description ? <p className="mt-4 whitespace-pre-wrap break-words">{task.description}</p> : null}
@@ -91,12 +93,29 @@ export default async function ProviderTaskPage({ params, searchParams }: { param
       ) : (
         <>
           <Panel className="mt-6">
-            <SectionTitle>Kuittaus</SectionTitle>
-            <form action={providerStatus} className="grid gap-2 sm:grid-cols-3">
+            <SectionTitle>{task.promisedOn ? "Aikataulu" : "Vastaanotto"}</SectionTitle>
+            <form action={providerAcknowledge} className="grid gap-3">
               <input type="hidden" name="token" value={token} />
-              <Button type="submit" name="action" value="acknowledge" variant="secondary" disabled={!canAck}>
-                Vastaanotettu
-              </Button>
+              <Field
+                label="Työ tehdään viimeistään"
+                htmlFor="promised_on"
+                hint="Pakollinen. Päivä näkyy isännöinnille ja ilmoittajalle. Jos aikataulu muuttuu, anna tästä uusi päivä."
+              >
+                <Input id="promised_on" name="promised_on" type="date" required min={today} defaultValue={task.promisedOn ?? ""} disabled={!canPromise} />
+              </Field>
+              <Textarea name="note" maxLength={500} rows={2} aria-label="Tarkennus aikatauluun" placeholder="Vapaaehtoinen tarkennus, esim. käyn aamupäivällä" disabled={!canPromise} />
+              <div>
+                <Button type="submit" variant={task.acknowledgedAt ? "secondary" : "primary"} disabled={!canPromise}>
+                  {task.acknowledgedAt ? "Päivitä aikataulu" : "Vastaanotettu"}
+                </Button>
+              </div>
+            </form>
+          </Panel>
+
+          <Panel className="mt-6">
+            <SectionTitle>Työn kulku</SectionTitle>
+            <form action={providerStatus} className="grid gap-2 sm:grid-cols-2">
+              <input type="hidden" name="token" value={token} />
               <Button type="submit" name="action" value="start" variant="secondary" disabled={!canStart}>
                 Aloitettu
               </Button>

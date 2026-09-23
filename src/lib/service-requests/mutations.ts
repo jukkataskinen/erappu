@@ -1,11 +1,12 @@
 import "server-only";
 import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { formatDate } from "@/lib/format";
 import { queueMessage } from "@/lib/messaging";
 import { createAccessLink, revokeAccessLinks } from "@/lib/security/access-links";
 import type { Category, CostResponsibility, EventVisibility, RequestStatus, Urgency } from "./labels";
-import { PROVIDER_LINK_DAYS, providerOrderMessage, providerShareText, receivedConfirmationMessage, statusChangeMessage } from "./messages";
-import { canStaffTransition, notifyReporterOfStatus } from "./status";
+import { PROVIDER_LINK_DAYS, providerOrderMessage, providerPromiseMessage, providerShareText, receivedConfirmationMessage, statusChangeMessage } from "./messages";
+import { canStaffTransition, isOpen, notifyReporterOfStatus } from "./status";
 
 /**
  * Huoltopyynnön muutokset. Jokainen muutos, sen tapahtuma ja siihen liittyvä
@@ -42,6 +43,8 @@ interface LockedRequest {
   share_group_id: string | null;
   cost_responsibility: CostResponsibility;
   cost_eur: string | null;
+  provider_acknowledged_at: string | Date | null;
+  provider_promised_on: string | null;
 }
 
 export async function lockRequest(tx: Sql, id: string): Promise<LockedRequest> {
@@ -50,7 +53,7 @@ export async function lockRequest(tx: Sql, id: string): Promise<LockedRequest> {
             nullif(concat_ws(', ', c.street_address, nullif(concat_ws(' ', c.postal_code, c.city), '')), '') as company_address,
             r.number, r.status, r.category, r.urgency, r.source, r.reporter_user_id, r.reporter_email,
             r.provider_id, p.name as provider_name, p.email as provider_email, r.assignee_user_id, r.due_on::text as due_on,
-            r.share_group_id, r.cost_responsibility, r.cost_eur
+            r.share_group_id, r.cost_responsibility, r.cost_eur, r.provider_acknowledged_at, r.provider_promised_on::text as provider_promised_on
        from er_service_requests r
        join er_housing_companies c on c.id = r.company_id
        left join er_service_providers p on p.id = r.provider_id
@@ -156,6 +159,47 @@ export async function changeStatus(
   return { changed: true };
 }
 
+/**
+ * Palveluntuottajan kuittaus tehtävälinkistä: vastaanotto ja lupaus siitä,
+ * mihin päivään mennessä työ on viimeistään tehty. Päivä on pakollinen, koska
+ * ilmoittajan tärkein kysymys on "milloin tämä korjataan" (Jukka 23.9.2026).
+ * Merkintä kirjataan ilmoittajalle näkyvänä, jotta kaikki osapuolet lukevat
+ * saman ajankohdan, ja ilmoittajalle lähtee viesti uudesta ajankohdasta.
+ * Aikataulun voi päivittää myöhemmin antamalla uuden päivän.
+ */
+export async function promiseCompletion(
+  tx: Sql,
+  opts: { requestId: string; promisedOn: string; note?: string | null; actor: Actor },
+): Promise<{ first: boolean }> {
+  const r = await lockRequest(tx, opts.requestId);
+  if (!isOpen(r.status)) throw new RequestError("Valmista tai suljettua tehtävää ei voi kuitata.");
+  const rows = await tx.query(
+    `update er_service_requests set provider_acknowledged_at = coalesce(provider_acknowledged_at, now()), provider_promised_on = $2
+      where id = $1 returning id`,
+    [r.id, opts.promisedOn],
+  );
+  if (rows.length === 0) throw new RequestError("Kuittausta ei voitu kirjata.");
+
+  const first = !r.provider_acknowledged_at;
+  const pvm = formatDate(opts.promisedOn);
+  const note = opts.note?.trim() || null;
+  const body = [first ? `Tilaus vastaanotettu. Työ tehdään viimeistään ${pvm}.` : `Uusi arvio: työ tehdään viimeistään ${pvm}.`, note]
+    .filter(Boolean)
+    .join(" ");
+  await addComment(tx, { requestId: r.id, body, visibility: "reporter", actor: opts.actor });
+
+  if (r.reporter_email) {
+    const msg = providerPromiseMessage({
+      number: r.number, category: r.category, companyName: r.company_name, promisedOn: pvm,
+      portalRequestId: r.reporter_user_id ? r.id : null,
+    });
+    await queueMessage(tx, { organizationId: r.organization_id, recipient: r.reporter_email, subject: msg.subject, body: msg.body, subjectTable: "er_service_requests", subjectId: r.id });
+    // Merkintä isännöinnille, ei palveluntuottajan tehtävälinkkiin.
+    await addEvent(tx, { requestId: r.id, type: "notification", body: "Ilmoitus työn ajankohdasta jonossa ilmoittajalle.", visibility: "internal", actor: { userId: null } });
+  }
+  return { first };
+}
+
 export async function updateAssignment(
   tx: Sql,
   opts: { requestId: string; assigneeUserId: string | null; providerId: string | null; dueOn: string | null; urgency: Urgency; category: Category; shareGroupId: string | null; actor: Actor },
@@ -230,7 +274,7 @@ export async function orderFromProvider(
     });
     await queueMessage(tx, { organizationId: r.organization_id, recipient: r.provider_email!, subject: msg.subject, body: msg.body, subjectTable: "er_service_requests", subjectId: r.id });
   }
-  await tx.query("update er_service_requests set ordered_at = now(), provider_acknowledged_at = null where id = $1", [r.id]);
+  await tx.query("update er_service_requests set ordered_at = now(), provider_acknowledged_at = null, provider_promised_on = null where id = $1", [r.id]);
   const via = channel === "email" ? "sähköpostilla" : channel === "marketplace" ? "torilta" : "jakolinkkinä (esim. WhatsApp)";
   await addEvent(tx, { requestId: r.id, type: "notification", body: `Tilaus ${via}: ${r.provider_name ?? "palveluntuottaja"}.`, visibility: "internal", actor: opts.actor });
   if (["new", "received", "waiting"].includes(r.status)) {

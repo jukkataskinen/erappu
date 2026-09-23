@@ -4,7 +4,7 @@ import { FormError } from "@/components/FormError";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { Button, DefinitionList, Notice, Panel, SectionTitle, Textarea } from "@/components/ui";
 import { requirePortal } from "@/lib/auth/current-user";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { requestProgress } from "@/lib/progress";
 import { PhotoForm } from "@/lib/service-requests/components/PhotoForm";
 import { PhotoInput } from "@/lib/service-requests/components/PhotoInput";
@@ -47,7 +47,7 @@ export default async function PortalRequestPage({ params, searchParams }: { para
         <UrgencyBadge urgency={request.urgency} />
         <span>#{request.number}</span>
       </div>
-      <ProgressSteps progress={requestProgress(request.status, request.provider_name)} className="mt-4 max-w-xl" />
+      <ProgressSteps progress={requestProgress(request.status, request.provider_name, request.provider_promised_on)} className="mt-4 max-w-xl" />
 
       <div className="mt-4">
         <FormError message={virhe} />
@@ -96,6 +96,7 @@ export default async function PortalRequestPage({ params, searchParams }: { para
             ...(request.provider_name
               ? [{ label: "Työ tilattu", value: `${request.provider_name}${request.ordered_at ? `, ${formatDateTime(request.ordered_at)}` : ""}` }]
               : []),
+            ...(request.provider_promised_on ? [{ label: "Työ tehdään viimeistään", value: formatDate(request.provider_promised_on) }] : []),
             { label: "Yleisavaimella", value: <YesNo value={request.may_use_master_key} /> },
             { label: "Lemmikkejä", value: <YesNo value={request.has_pets} /> },
             ...(mine ? [] : [{ label: "Lähde", value: "Asukkaan tai osakkaan ilmoitus" }]),

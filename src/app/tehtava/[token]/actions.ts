@@ -4,10 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { getDb } from "@/lib/db";
+import { isoDateHelsinki } from "@/lib/format";
 import { fail } from "@/lib/forms";
 import { guarded } from "@/lib/service-requests/errors";
 import { resolveProviderTask, type ProviderTask } from "@/lib/service-requests/links";
-import { addComment, changeStatus, RequestError, updateCost } from "@/lib/service-requests/mutations";
+import { addComment, changeStatus, promiseCompletion, RequestError, updateCost } from "@/lib/service-requests/mutations";
 import { photoFiles, savePhotos } from "@/lib/service-requests/photos";
 import { optEur } from "@/lib/service-requests/schemas";
 import { providerTransition } from "@/lib/service-requests/status";
@@ -43,21 +44,46 @@ async function withTask(token: string, fn: (tx: Sql, task: ProviderTask) => Prom
 
 export async function providerStatus(formData: FormData) {
   const token = tokenFrom(formData);
-  const action = z.enum(["acknowledge", "start", "complete"]).safeParse(formData.get("action"));
+  const action = z.enum(["start", "complete"]).safeParse(formData.get("action"));
   if (!action.success) fail(`/tehtava/${token}`, "Tuntematon toiminto.");
   await withTask(token, async (tx, task) => {
     const next = providerTransition(task.status, action.data);
     if (!next) throw new RequestError("Toimintoa ei voi tehdä tehtävän nykyisessä tilassa.");
-    if (action.data === "acknowledge") {
+    if (action.data === "start") {
       await tx.query("update er_service_requests set provider_acknowledged_at = coalesce(provider_acknowledged_at, now()) where id = $1", [task.requestId]);
-      await addComment(tx, { requestId: task.requestId, body: "Tilaus vastaanotettu.", visibility: "provider", actor: PROVIDER });
-    } else {
-      if (action.data === "start") {
-        await tx.query("update er_service_requests set provider_acknowledged_at = coalesce(provider_acknowledged_at, now()) where id = $1", [task.requestId]);
-      }
-      await changeStatus(tx, { requestId: task.requestId, to: next, actor: PROVIDER, mode: "provider" });
     }
+    await changeStatus(tx, { requestId: task.requestId, to: next, actor: PROVIDER, mode: "provider" });
     await audit(tx, { organizationId: task.organizationId, userId: null, action: `provider_${action.data}`, entity: "service_request", entityId: task.requestId, details: { link_id: task.linkId } });
+  });
+}
+
+/** Lupaus enintään näin pitkälle; pidemmät aikataulut sovitaan isännöinnin kanssa. */
+const PROMISE_MAX_DAYS = 180;
+
+/**
+ * Vastaanottokuittaus. Palveluntuottajan on kerrottava, mihin päivään mennessä
+ * työ on viimeistään tehty (Jukka 23.9.2026); päivä näkyy isännöinnille ja
+ * ilmoittajalle. Samalla lomakkeella päivitetään aikataulu, jos se muuttuu.
+ */
+export async function providerAcknowledge(formData: FormData) {
+  const token = tokenFrom(formData);
+  const back = `/tehtava/${token}`;
+  const promised = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(String(formData.get("promised_on") ?? "").trim());
+  if (!promised.success) fail(back, "Kerro päivä, jolloin työ on viimeistään tehty.");
+  const note = z.string().trim().max(500).safeParse(String(formData.get("note") ?? ""));
+  if (!note.success) fail(back, "Tarkennus on liian pitkä.");
+  const today = isoDateHelsinki();
+  if (promised.data < today) fail(back, "Päivä ei voi olla menneisyydessä.");
+  const last = new Date(`${today}T12:00:00Z`);
+  last.setUTCDate(last.getUTCDate() + PROMISE_MAX_DAYS);
+  if (promised.data > last.toISOString().slice(0, 10)) fail(back, `Anna päivä ${PROMISE_MAX_DAYS} päivän sisällä. Pidemmästä aikataulusta sovi isännöinnin kanssa.`);
+
+  await withTask(token, async (tx, task) => {
+    const { first } = await promiseCompletion(tx, { requestId: task.requestId, promisedOn: promised.data, note: note.data, actor: PROVIDER });
+    await audit(tx, {
+      organizationId: task.organizationId, userId: null, action: first ? "provider_acknowledge" : "provider_promise",
+      entity: "service_request", entityId: task.requestId, details: { link_id: task.linkId, promised_on: promised.data },
+    });
   });
 }
 
