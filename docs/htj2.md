@@ -23,6 +23,15 @@ hallinnollisten tietojen käyttö perustuu kahteen asiaan:
    (isännöitsijäksi merkitty henkilö tai isännöintiyhteisö) tai erikseen annetusta
    suomi.fi-valtuudesta "taloyhtiön tietojen hallinnointi".
 
+   **Adeptan tilanne (Jukka 23.9.2026):** Jukka Taskinen on merkitty kaupparekisteriin
+   henkilöisännöitsijäksi hoitamiinsa taloyhtiöihin, joten käyttöoikeus syntyy suoraan
+   asemavaltuudesta eikä taloyhtiöiltä tarvita erillisiä suomi.fi-valtuuksia. Isännöintitaho
+   on siis henkilö, ei isännöintiyhteisö. Jukalla on nimenkirjoitusoikeus, jolla hän voi
+   antaa tarvittavat valtuudet palveluihin. Avoin kysymys MML:lle: mitä tunnistetta
+   henkilöisännöitsijästä käytetään rajapintakutsuissa. Jos se on henkilötunnus, se
+   tallennetaan eRapussa kenttäsalattuna eikä sitä kirjoiteta lokeihin, osoitteisiin eikä
+   gitiin (CLAUDE.md:n sääntö).
+
 Luvan edellytys on, että järjestelmä on MML:n sertifioitujen, huoneistotietojärjestelmään
 integroituvien järjestelmien luettelossa. Se edellyttää sopimusta MML:n kanssa ja
 hyväksyttyä testiraporttia koeympäristöstä (luku 3).
@@ -108,5 +117,6 @@ tiedot. eRapussa on jo ilmoitusjono näille (M2), mutta se lähettää jäljitel
 - Sopimus MML:n kanssa eRapun lisäämisestä integroituvien järjestelmien luetteloon
   (Adepta Tilat Oy järjestelmätoimittajana).
 - Järjestelmälupa koeympäristöön, jotta kehitys pääsee eteenpäin.
-- Valtuudet kuntoon: onko Adepta merkitty kaupparekisteriin isännöitsijäksi kussakin
-  yhtiössä, vai tarvitaanko suomi.fi-valtuus "taloyhtiön tietojen hallinnointi".
+- Valtuudet ovat kunnossa: Jukka on kaupparekisterissä henkilöisännöitsijänä, joten
+  asemavaltuus riittää eikä taloyhtiöiltä tarvita suomi.fi-valtuuksia. Tarkistettava vielä,
+  koskeeko tämä kaikkia 11 yhtiötä, ja mitä tunnistetta kutsuissa käytetään.
