@@ -27,7 +27,7 @@ export function PriceCalculator() {
               aria-pressed={billing === option}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${billing === option ? "bg-ink text-paper" : "text-ink/70 hover:text-ink"}`}
             >
-              {option === "yearly" ? "Vuosi etukäteen −10 %" : "Kuukausilaskutus"}
+              {option === "yearly" ? "Vuosi etukäteen" : "Kuukausilaskutus"}
             </button>
           ))}
         </div>

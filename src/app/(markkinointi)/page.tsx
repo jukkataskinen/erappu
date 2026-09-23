@@ -137,7 +137,7 @@ export default async function Home() {
             </div>
           </dl>
           <p className="rounded-[var(--radius-panel)] border border-line bg-cloud p-6 text-ink/80">
-            Hinnat ovat vuosimaksun hintoja: vuosi etukäteen maksettuna saat 10 prosentin alennuksen.{" "}
+            Taulukon hinnat ovat vuosimaksun hintoja, kun vuosi maksetaan etukäteen. Kuukausilaskutuksessa hinta on hieman korkeampi.{" "}
             <Link href="/hinnat" className="font-medium underline underline-offset-4">
               Laske oma hintasi
             </Link>

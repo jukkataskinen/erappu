@@ -1,27 +1,24 @@
 /**
  * eRapun hinnoittelu (Jukka 23.9.2026). Hinnat ovat alv 0 %.
  *
- * Perushinnat ovat vuosimaksun hintoja: vuosi etukäteen maksettuna asiakas
- * saa 10 %:n alennuksen. Kuukausilaskutuksen hinta lasketaan näistä
- * (hinta / 0,9), jotta luvut eivät ole kahdessa paikassa eri.
+ * Kaksi hinnastoa (Jukan antamat luvut, ei laskettuja): vuosi etukäteen
+ * maksettuna hinta on noin kymmenyksen halvempi kuin kuukausilaskutuksessa.
  */
 
 export const VAT_NOTE = "Hinnat ovat arvonlisäverottomia (alv 0 %).";
 
-/** Vuosimaksulla (10 % alennus): euroa kuukaudessa per taloyhtiö. */
+/** Vuosimaksu, vuosi etukäteen: euroa kuukaudessa per taloyhtiö. */
 export const YEARLY_MONTHLY = {
   base: 14.9,
   perUnit: 1.5,
   minimum: 24.9,
 };
 
-export const YEARLY_DISCOUNT = 0.1;
-
-/** Kuukausilaskutuksen hinnat: vuosimaksun hinta ilman alennusta. */
+/** Kuukausilaskutus: euroa kuukaudessa per taloyhtiö. */
 export const MONTHLY = {
-  base: YEARLY_MONTHLY.base / (1 - YEARLY_DISCOUNT),
-  perUnit: YEARLY_MONTHLY.perUnit / (1 - YEARLY_DISCOUNT),
-  minimum: YEARLY_MONTHLY.minimum / (1 - YEARLY_DISCOUNT),
+  base: 16.5,
+  perUnit: 1.69,
+  minimum: 27.95,
 };
 
 export type Billing = "yearly" | "monthly";

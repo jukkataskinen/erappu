@@ -23,7 +23,7 @@ const PRICING_FAQ = [
   },
   {
     question: "Miten laskutus toimii?",
-    answer: "Vuosimaksu laskutetaan etukäteen kerran vuodessa ja siitä saa 10 prosentin alennuksen. Kuukausilaskutuksessa maksu peritään kuukausittain ilman alennusta.",
+    answer: "Vuosimaksu laskutetaan etukäteen kerran vuodessa, ja se on noin kymmenyksen edullisempi. Kuukausilaskutuksessa maksu peritään kuukausittain.",
   },
 ];
 
@@ -33,7 +33,7 @@ export default function PricingPage() {
       <PageHero
         eyebrow="Hinnat"
         title="Hinta taloyhtiön koon mukaan."
-        lead={`Perusmaksu taloyhtiöltä ja pieni maksu huoneistolta. Vuosi etukäteen maksettuna hinta on ${formatEuro(YEARLY_MONTHLY.base)} kuukaudessa taloyhtiöltä ja ${formatEuro(YEARLY_MONTHLY.perUnit)} huoneistolta, vähintään ${formatEuro(YEARLY_MONTHLY.minimum)} kuukaudessa.`}
+        lead={`Perusmaksu taloyhtiöltä ja pieni maksu huoneistolta. Vuosi etukäteen maksettuna ${formatEuro(YEARLY_MONTHLY.base)} kuukaudessa taloyhtiöltä ja ${formatEuro(YEARLY_MONTHLY.perUnit)} huoneistolta, vähintään ${formatEuro(YEARLY_MONTHLY.minimum)} kuukaudessa. Kuukausilaskutuksessa ${formatEuro(MONTHLY.base)}, ${formatEuro(MONTHLY.perUnit)} ja vähintään ${formatEuro(MONTHLY.minimum)}.`}
       />
 
       <Section title="Laske hinta">
@@ -44,7 +44,7 @@ export default function PricingPage() {
         <div className="grid gap-6 md:grid-cols-2">
           {(
             [
-              { title: "Vuosi etukäteen", note: "10 prosentin alennus", rates: YEARLY_MONTHLY, highlight: true },
+              { title: "Vuosi etukäteen", note: "Edullisin hinta, laskutus kerran vuodessa", rates: YEARLY_MONTHLY, highlight: true },
               { title: "Kuukausilaskutus", note: "Ei sitoutumista vuodeksi", rates: MONTHLY, highlight: false },
             ] as const
           ).map((plan) => (

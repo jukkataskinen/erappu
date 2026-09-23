@@ -11,11 +11,10 @@ describe("hinnoittelu", () => {
     expect(monthlyPrice(3, "yearly")).toBeCloseTo(24.9, 2);
   });
 
-  it("kuukausilaskutus on vuosimaksu ilman 10 %:n alennusta", () => {
-    expect(cents(MONTHLY.base)).toBe(16.56);
-    expect(cents(MONTHLY.perUnit)).toBe(1.67);
-    expect(cents(MONTHLY.minimum)).toBe(27.67);
-    expect(monthlyPrice(15, "yearly")).toBeCloseTo(monthlyPrice(15, "monthly") * 0.9, 6);
+  it("kuukausilaskutuksen hinnat ovat Jukan antamat ja vuosimaksua kalliimmat", () => {
+    expect(MONTHLY).toEqual({ base: 16.5, perUnit: 1.69, minimum: 27.95 });
+    expect(cents(monthlyPrice(15, "monthly"))).toBe(41.85);
+    expect(monthlyPrice(15, "monthly")).toBeGreaterThan(monthlyPrice(15, "yearly"));
   });
 
   it("usean yhtiön yhteenveto ja vuosimaksun säästö", () => {
@@ -23,7 +22,8 @@ describe("hinnoittelu", () => {
     expect(sum.perCompanyMonth).toBeCloseTo(37.4, 2);
     expect(sum.totalMonth).toBeCloseTo(374, 2);
     expect(sum.totalYear).toBeCloseTo(4488, 2);
-    expect(sum.yearlySaving).toBeCloseTo((monthlyPrice(15, "monthly") - monthlyPrice(15, "yearly")) * 120, 4);
+    // 10 yhtiötä × 12 kk × (41,85 − 37,40).
+    expect(cents(sum.yearlySaving)).toBe(534);
   });
 
   it("vuosimaksun hinnat ovat Jukan antamat", () => {
