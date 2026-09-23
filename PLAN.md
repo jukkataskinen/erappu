@@ -44,7 +44,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Korjaukset-välilehti: kunnossapito- ja muutostyöhistoria, KPTS 5 vuotta
 - [x] Muutostyöilmoitukset: portaalista osakkaalta, käsittely, valmistuminen historiaan
 - [x] Widgetit ja testit
-- [~] Oikeat MML-polut, JSON-skeemat ja työlajikoodisto `src/lib/htj/mml.ts`:ään ja `src/lib/maintenance/work-types.ts`:ään (`TODO(MML-skeema)`, `TODO(MML-koodisto)`) – BLOCKERS 1
+- [~] Oikeat MML-polut, JSON-skeemat ja työlajikoodisto `src/lib/htj/mml.ts`:ään ja `src/lib/maintenance/work-types.ts`:ään (`TODO(MML-skeema)`, `TODO(MML-koodisto)`) – BLOCKERS 1. HTJ2-dokumentaatio saatu 23.9.2026, työjärjestys `docs/htj2.md`: koodistot, KPTS, KUMU, taloudelliset tiedot, optimistinen lukitus versionumeroilla ja koeympäristön testiraportti
 
 ## M3 Talous
 - [x] Vastikeperusteet: historia, voimassa oleva peruste, muutos päätöksellä
