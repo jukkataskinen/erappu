@@ -15,6 +15,8 @@
     "test:watch": "vitest",
     "db:reset": "tsx scripts/db-reset.mts",
     "db:seed:demo": "tsx scripts/seed-demo.mts",
+    "kopioi:tuotannosta": "tsx scripts/kopioi-tuotannosta.mts",
+    "portaali:esikatselu": "tsx scripts/portaali-esikatselu.mts",
     "access:export": "powershell -ExecutionPolicy Bypass -File scripts/access/export-access.ps1",
     "access:import": "tsx scripts/access/import-access.mts",
     "access:finance": "tsx scripts/access/import-finance.mts",

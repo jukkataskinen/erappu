@@ -23,3 +23,6 @@ test-results/
 .claude/worktrees/
 .vercel
 .env*
+
+# Kertakäyttöiset apuskriptit
+scratchpad/
