@@ -97,6 +97,35 @@ export const RESIDENT_FEATURES: Feature[] = [
   { title: "Tilojen varaukset", body: "Sauna, pesutupa tai kerhohuone varataan kalenterista. Päällekkäisiä varauksia ei synny." },
 ];
 
+/**
+ * Vertailukohtia hinnalle (Jukka 23.9.2026): mitä samat asiat maksavat
+ * erikseen ostettuina. Luvut ovat suuntaa antavia ja arvonlisäverottomia
+ * kuten eRapun hinnat.
+ */
+export interface ComparisonRow {
+  label: string;
+  price: string;
+  note: string;
+}
+
+export const COST_COMPARISON: ComparisonRow[] = [
+  {
+    label: "Vastuunjakotaulukko verkkoversiona",
+    price: "150 € / vuosi",
+    note: "eRapussa taulukko kuuluu palveluun, ja yhtiön omat poikkeukset merkitään siihen.",
+  },
+  {
+    label: "Pelastussuunnitelman ylläpito ja nähtävilläolo",
+    price: "100 € / vuosi",
+    note: "eRapussa suunnitelma tehdään yhtiön omista tiedoista ja näkyy asukkaille portaalissa.",
+  },
+  {
+    label: "Kokouskutsut ja tiedotteet paperilla, 10 osakasta",
+    price: "30–50 € / vuosi",
+    note: "Postimerkit ja kopiot. eRapussa kutsut ja tiedotteet lähtevät sähköpostilla.",
+  },
+];
+
 /** Luottamus: vain se, mikä on totta ja tarkistettavissa. */
 export const TRUST: Feature[] = [
   { title: "Suomalainen palvelu, tiedot EU:ssa", body: "Palvelu, tietokanta ja asiakirjat ovat EU:n alueella. Taloyhtiön tiedot ovat taloyhtiön omia." },

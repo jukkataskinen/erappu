@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BOARD_BENEFITS, BUYING_FAQ, PROBLEMS, TRUST } from "@/content/marketing";
+import { BOARD_BENEFITS, BUYING_FAQ, COST_COMPARISON, PROBLEMS, TRUST } from "@/content/marketing";
 import { FaqList, FeatureGrid, PageHero, PrimaryCta, Section } from "@/components/marketing/Shell";
 import { ProposeMessage } from "@/components/marketing/ProposeMessage";
 import { formatEuro, monthlyPrice, VAT_NOTE, YEARLY_MONTHLY } from "@/content/pricing";
@@ -71,6 +71,28 @@ export default function BoardPage() {
           <Link href="/hinnat" className="font-medium underline underline-offset-4">
             Laske oman taloyhtiösi hinta
           </Link>
+        </p>
+      </Section>
+
+      <Section
+        title="Mihin hintaa kannattaa verrata?"
+        lead="Taloyhtiö maksaa osasta näitä asioita jo nyt, erillisinä palveluina ja postimerkkeinä. Alla suuntaa antavat vuosihinnat, kun ne ostetaan yksitellen."
+      >
+        <dl className="grid max-w-3xl gap-5">
+          {COST_COMPARISON.map((row) => (
+            <div key={row.label} className="border-t border-line pt-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                <dt className="font-medium">{row.label}</dt>
+                <dd className="tabular-nums text-ink/70">{row.price}</dd>
+              </div>
+              <p className="mt-1 text-sm text-ink/70">{row.note}</p>
+            </div>
+          ))}
+        </dl>
+        <p className="prose-measure mt-8 text-ink/80">
+          Nämä kolme yhdessä ovat noin 280–300 euroa vuodessa. Kymmenen huoneiston taloyhtiöllä eRappu maksaa{" "}
+          <span className="tabular-nums">{formatEuro(monthlyPrice(10, "yearly") * 12)} vuodessa</span> vuosimaksulla, ja samaan hintaan kuuluvat myös
+          asiakirjapankki, kokoukset ja pöytäkirjojen sähköinen allekirjoitus, huoltopyynnöt, vuosikello, kulutusseuranta ja osakkaiden portaali. {VAT_NOTE}
         </p>
       </Section>
 
