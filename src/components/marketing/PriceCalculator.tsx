@@ -39,10 +39,10 @@ export function PriceCalculator() {
             id={`${id}-units`}
             type="range"
             min={1}
-            max={120}
+            max={50}
             value={units}
             onChange={(e) => setUnits(Number(e.target.value))}
-            className="w-full accent-[var(--color-ink)]"
+            className="w-full max-w-[280px] accent-[var(--color-ink)]"
           />
           <span className="text-sm text-ink/70">{units} huoneistoa</span>
         </label>
