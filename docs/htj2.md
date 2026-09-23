@@ -166,8 +166,12 @@ poistot tehdään polulla `.../versio/{versioId}` eli optimistisen lukituksen mu
 Mukana tuli myös skeemaesimerkit (KUMU ja taloudelliset) sekä vahvistamisen API:n
 kehitysversiot.
 
-Puuttuu vielä: MML:n synteettiset testihetut Suomi.fi-testitunnistautumiseen ja
-testiyhtiöiden tarkemmat tiedot (Piia selvittää).
+Puuttuu vielä: MML:n synteettiset testihetut Suomi.fi-testitunnistautumiseen ja omat
+testiyhtiöt. MML (Piia 23.9.2026): verkkosivujen kolme yhteistä testiyhtiötä (6583621-2,
+3058343-8, 6306462-6) ovat HTJ1:n valtuutusavainaikaisia ja poistumassa. Koska tulemme
+suoraan järjestelmäluvan kanssa HTJ1:een ja HTJ2:een, saamme omat dedikoidut testiyhtiöt;
+ne on tilattu ja toimitetaan valmistuttuaan. Näitä yhteisiä yhtiöitä ei siis kannata
+käyttää.
 
 Hakemus, sopimus ja tietoturvaliite tulevat vasta, kun pakolliset HTJ2:n testitapaukset ja
 raportit on tehty; MML:n mukaan ne hoituvat tyypillisesti 1–2 viikossa. Koekäyttölupaa voi
