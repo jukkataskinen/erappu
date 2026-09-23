@@ -92,6 +92,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Portaalin "Oma huoneisto" -sivu
 - [x] Organisaation asetukset
 - [x] Tapahtumaloki-näkymä
+- [ ] **Asiakirjojen varmuuskopio OneDriveen (tehdään pian, Jukka 23.9.2026).** Supabasen varmuuskopio kattaa vain tietokannan, ei Storagen tiedostoja. Ajastettu ajo kokoaa jokaisen yhtiön aineistozipin, salaa sen (AES-256, avain Vercelin ympäristömuuttujissa) ja vie Microsoft Graphilla Adeptan OneDriveen. Yksi yhtiö kerrallaan, tulos lokiin. Vaatii sovellusrekisteröinnin Entra ID:hen. Palvelusopimuksen kohta 5.3 lupaa tämän.
 - [x] Yhtiön aineiston luovutus zip-tiedostona (23.9.2026, palvelusopimus 10.3): rekisteritaulut CSV:nä, asiakirjat alkuperäisinä, lukuohje ja luettelo; henkilötunnukset jäävät pois, koska ne ovat omassa taulussaan RLS:n ulottumattomissa. Painike yhtiön Dokumentit-sivulla, lataus kirjataan lokiin (`/taloyhtiot/[id]/aineisto`)
 - [x] Testit
 

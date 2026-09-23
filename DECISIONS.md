@@ -361,3 +361,18 @@ saman yhtiön nimissä eikä varmennetta tarvitse uusia tuotantoon siirryttäess
 Markkinointisivujen "Palvelun toimittaa" ja tietosuojaselosteen rekisterinpitäjä
 (verkkosivuston osalta) muuttuivat samalla Adepta Oy:ksi. eSinetin organisaatio ja
 Supabase-tili jäävät ennalleen; ne ovat eri asia kuin järjestelmätoimittajuus.
+
+## 2026-09-23 Asiakirjojen varmuuskopio OneDriveen
+
+**Jukan päätös:** asiakirjatiedostojen varmuuskopio viedään Adeptan OneDriveen, ei uuteen
+pilvipalveluun. Peruste: Microsoft 365 on jo käytössä, joten käsittelijäluetteloon ei tule
+uutta toimittajaa eikä uutta laskua.
+
+Toteutus: ajastettu ajo kokoaa jokaisen yhtiön aineiston samalla koodilla kuin käsin tehtävä
+luovutus (`buildCompanyArchive`), salaa zipin AES-256:lla ja vie sen Microsoft Graphilla
+OneDriveen. Yksi yhtiö kerrallaan, jotta yksi iso yhtiö ei kaada ajoa aikarajaan, ja tulos
+tapahtumalokiin. Avain ja sovellustunnukset ovat vain Vercelin ympäristömuuttujissa.
+
+Tausta: Supabasen päivittäinen varmuuskopio kattaa vain tietokannan – Storage-tiedostot
+eivät sisälly siihen ("Storage objects are not included"). Ilman tätä ajoa asiakirjat olisivat
+yhden tallennuspalvelun varassa.
