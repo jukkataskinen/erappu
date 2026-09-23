@@ -1,10 +1,14 @@
 /**
- * erappu.fi:n markkinointisivujen sisältö yhdessä paikassa (Jukka 22.9.2026).
+ * erappu.fi:n markkinointisivujen sisältö yhdessä paikassa.
  *
- * Linja: myydään helppoutta ja vaivattomuutta. Jokainen väite vastaa
- * toimintoa, joka eRapussa oikeasti on: ei lupauksia tulevista
- * ominaisuuksista eikä keksittyjä lukuja. Hinnat puuttuvat tarkoituksella,
- * kunnes Jukka päättää hinnoittelun.
+ * Kohderyhmä ja järjestys (Jukka 23.9.2026, toteutusehdotus): ostaja on
+ * taloyhtiö ja päättäjä hallitus, joten etusivu etenee ongelmasta hallituksen
+ * hyötyyn, käyttötapaukseen, hintaan ja luottamukseen. Isännöitsijä on
+ * myyntikanava ja päivittäinen käyttäjä, joten hänellä on oma sivunsa.
+ *
+ * Jokainen väite vastaa toimintoa, joka eRapussa oikeasti on. Lupauksia
+ * tukipalvelusta tai varmuuskopioista ei kirjoiteta ennen kuin Jukka on
+ * päättänyt ne.
  */
 
 export const CONTACT = {
@@ -14,10 +18,46 @@ export const CONTACT = {
   person: "Jukka Taskinen",
 };
 
+export const TAGLINE = "Selkeää ja läpinäkyvää isännöintiä.";
+
 export interface Feature {
   title: string;
   body: string;
 }
+
+/** Ongelma, jonka hallitus tunnistaa omasta arjestaan. */
+export const PROBLEMS: Feature[] = [
+  { title: "Tieto on monessa paikassa", body: "Pöytäkirjat sähköpostissa, tarjoukset liitteinä, huoneistotiedot Excelissä ja sopimukset mapissa." },
+  { title: "Asiat unohtuvat", body: "Kunnossapitotarveselvitys, pelastussuunnitelman tarkistus ja ilmoitukset huoneistotietojärjestelmään muistetaan vasta, kun joku kysyy." },
+  { title: "Samat kysymykset toistuvat", body: "Osakas soittaa hallituksen jäsenelle, koska ei tiedä, kuka korjaa mitä ja mitä kokouksessa päätettiin." },
+  { title: "Allekirjoitukset kiertävät paperilla", body: "Pöytäkirja odottaa allekirjoittajia viikkoja, ja alkuperäinen kappale on yhdellä ihmisellä." },
+];
+
+/** Mitä hallitus saa. Nämä ovat sivuston tärkein osa. */
+export const BOARD_BENEFITS: Feature[] = [
+  { title: "Tieto löytyy", body: "Yhtiöjärjestys, pöytäkirjat, tilinpäätökset, sopimukset ja huoneistotiedot ovat samassa paikassa, ja jokainen hallituksen jäsen pääsee niihin itse." },
+  { title: "Asiat eivät unohdu", body: "Vuosikello näyttää, mitä yhtiössä pitää tehdä ja milloin. Hallitus näkee, mikä on tehty ja mikä on myöhässä." },
+  { title: "Päätökset pysyvät tallessa", body: "Kokouksen asialista, liitteet ja päätökset kirjataan samaan paikkaan, ja pöytäkirja allekirjoitetaan pankkitunnuksilla." },
+  { title: "Vähemmän yhteydenottoja", body: "Osakkaat ja asukkaat näkevät tiedotteet, asiakirjat ja vastuunjaon portaalista, joten hallitukselle jää vähemmän selvittelyä." },
+  { title: "Velvoitteet hoituvat ajallaan", body: "Kunnossapitotarveselvitys, pelastussuunnitelma, palovaroittimet ja huoneistotietojärjestelmän ilmoitukset ovat tehtävälistalla määräpäivineen." },
+  { title: "Näet mitä yhtiössä tapahtuu", body: "Huoltopyynnöt, korjaukset, muutostyöilmoitukset ja talouden tilanne ovat hallituksen nähtävillä ilman erillistä kyselyä." },
+];
+
+export const BEFORE = [
+  "Pöytäkirjat sähköpostin liitteinä",
+  "Huoneistotiedot Excelissä",
+  "Tarjoukset ja sopimukset mapissa",
+  "Allekirjoitukset postissa",
+  "Asukkaiden soitot hallitukselle",
+];
+
+export const AFTER = [
+  "Päätökset ja pöytäkirjat yhdessä paikassa",
+  "Huoneisto- ja osaketiedot ajan tasalla",
+  "Asiakirjat haettavissa milloin vain",
+  "Allekirjoitukset pankkitunnuksilla",
+  "Asukkaat löytävät tiedot itse",
+];
 
 /** Isännöitsijän arki: mitä eRappu tekee puolestasi. */
 export const MANAGER_FEATURES: Feature[] = [
@@ -49,30 +89,22 @@ export const MANAGER_FEATURES: Feature[] = [
 
 /** Hallitukselle ja osakkaille: mitä he näkevät. */
 export const RESIDENT_FEATURES: Feature[] = [
-  {
-    title: "Huoltopyyntö puhelimella",
-    body: "Asukas kuvaa vian ja lähettää pyynnön. Tila näkyy koko ajan, eikä kenenkään tarvitse soitella perään.",
-  },
-  {
-    title: "Tiedotteet ja asiakirjat yhdessä paikassa",
-    body: "Yhtiöjärjestys, pöytäkirjat, pelastussuunnitelma ja tiedotteet löytyvät portaalista silloin, kun niitä tarvitaan.",
-  },
-  {
-    title: "Kuka korjaa mitä",
-    body: "Vastuunjakotaulukko kuvina: napauta kohdetta, niin näet, kuuluuko korjaus yhtiölle vai osakkaalle ja miksi.",
-  },
-  {
-    title: "Muutostyöilmoitus lomakkeella",
-    body: "Remonttia suunnitteleva osakas ilmoittaa työstä portaalissa ja saa yhtiön ehdot kirjallisena.",
-  },
-  {
-    title: "Hallitus näkee saman kuin isännöitsijä",
-    body: "Kokousten asialistat liitteineen, vuosikello ja yhtiön tehtävät ovat hallituksen nähtävillä. Kokouksessa liitteen voi avata pykälän kohdalta.",
-  },
-  {
-    title: "Tilojen varaukset",
-    body: "Sauna, pesutupa tai kerhohuone varataan kalenterista. Päällekkäisiä varauksia ei synny.",
-  },
+  { title: "Huoltopyyntö puhelimella", body: "Asukas kuvaa vian ja lähettää pyynnön. Tila näkyy koko ajan, eikä kenenkään tarvitse soitella perään." },
+  { title: "Tiedotteet ja asiakirjat yhdessä paikassa", body: "Yhtiöjärjestys, pöytäkirjat, pelastussuunnitelma ja tiedotteet löytyvät portaalista silloin, kun niitä tarvitaan." },
+  { title: "Kuka korjaa mitä", body: "Vastuunjakotaulukko kuvina: napauta kohdetta, niin näet, kuuluuko korjaus yhtiölle vai osakkaalle ja miksi." },
+  { title: "Muutostyöilmoitus lomakkeella", body: "Remonttia suunnitteleva osakas ilmoittaa työstä portaalissa ja saa yhtiön ehdot kirjallisena." },
+  { title: "Hallitus näkee saman kuin isännöitsijä", body: "Kokousten asialistat liitteineen, vuosikello ja yhtiön tehtävät ovat hallituksen nähtävillä. Kokouksessa liitteen voi avata pykälän kohdalta." },
+  { title: "Tilojen varaukset", body: "Sauna, pesutupa tai kerhohuone varataan kalenterista. Päällekkäisiä varauksia ei synny." },
+];
+
+/** Luottamus: vain se, mikä on totta ja tarkistettavissa. */
+export const TRUST: Feature[] = [
+  { title: "Suomalainen palvelu, tiedot EU:ssa", body: "Palvelu, tietokanta ja asiakirjat ovat EU:n alueella. Taloyhtiön tiedot ovat taloyhtiön omia." },
+  { title: "Henkilötiedot suojattu", body: "Henkilötunnuksia ei tallenneta selväkielisinä, ja arkaluonteiset kentät salataan. Portaaliin kirjaudutaan sähköpostiin tulevalla kertakoodilla." },
+  { title: "Jokainen muutos kirjataan", body: "Tapahtumaloki kertoo, kuka muutti mitä ja milloin. Allekirjoitusten muutokset kirjataan erikseen." },
+  { title: "Oikeudet roolin mukaan", body: "Isännöitsijä, kirjanpitäjä, hallitus, osakas ja asukas näkevät vain sen, mikä heille kuuluu." },
+  { title: "Allekirjoitukset vahvalla tunnistuksella", body: "Pöytäkirjat ja sopimukset allekirjoitetaan pankkitunnuksilla, ja asiakirja sinetöidään muuttumattomaksi." },
+  { title: "Tiedot ovat aina saatavilla", body: "Asiakirjat voi ladata itselleen PDF:nä, eikä palvelu ole ainoa paikka, jossa taloyhtiön aineisto on." },
 ];
 
 export interface FaqItem {
@@ -80,10 +112,42 @@ export interface FaqItem {
   answer: string;
 }
 
+/** Oston esteet: hallituksen jäsenen kysymykset ennen päätöstä. */
+export const BUYING_FAQ: FaqItem[] = [
+  {
+    question: "Kuka maksaa eRapun?",
+    answer: "Taloyhtiö. Hinta on taloyhtiökohtainen, ja lasku menee suoraan yhtiölle. Päätös tehdään yhtiössä, ei isännöintitoimistossa.",
+  },
+  {
+    question: "Kuka ylläpitää tietoja?",
+    answer: "Isännöitsijä. Hän hoitaa yhtiön asiat eRapussa kuten tähänkin asti, ja hallitus saa saman tiedon näkyviinsä. Hallitukselta ei siirry töitä.",
+  },
+  {
+    question: "Pitääkö hallituksen opetella uusi järjestelmä?",
+    answer: "Ei. Hallituksen jäsen kirjautuu sähköpostiin tulevalla koodilla ja näkee kokoukset, asiakirjat ja tehtävät. Mitään ei tarvitse asentaa.",
+  },
+  {
+    question: "Miten käyttöönotto tapahtuu?",
+    answer: "Isännöitsijä siirtää yhtiön tiedot eRappuun: osakeluettelon, yhtiöjärjestyksen, lainat ja asiakirjat. Hallitus ja osakkaat saavat kutsun portaaliin, kun tiedot ovat valmiina.",
+  },
+  {
+    question: "Voiko palvelun lopettaa?",
+    answer: "Voi. Asiakirjat ja rekisteritiedot saa mukaan, eikä taloyhtiö menetä aineistoaan. Sopimuksen kesto ja irtisanomisaika sovitaan tarjouksessa.",
+  },
+  {
+    question: "Missä tiedot säilytetään?",
+    answer: "EU:n alueella. Sovellus ja tietokanta toimivat eurooppalaisilla palvelimilla, ja allekirjoitukset tehdään suomalaisessa eSinetti-palvelussa.",
+  },
+  {
+    question: "Miten tietoturva on hoidettu?",
+    answer: "Kirjautuminen on henkilökohtainen, oikeudet määräytyvät roolin mukaan ja jokainen muutos kirjataan tapahtumalokiin. Henkilötunnuksia ei tallenneta selväkielisinä.",
+  },
+];
+
 export const FAQ: FaqItem[] = [
   {
     question: "Kenelle eRappu on tarkoitettu?",
-    answer: "Isännöintitoimistoille ja niiden hallinnoimille taloyhtiöille. Isännöitsijä hoitaa yhtiöt eRapussa, ja hallitus, osakkaat ja asukkaat käyttävät samaa palvelua portaalin kautta.",
+    answer: "Taloyhtiöille ja niitä hoitaville isännöintitoimistoille. Isännöitsijä hoitaa yhtiön asiat eRapussa, ja hallitus, osakkaat ja asukkaat käyttävät samaa palvelua portaalin kautta.",
   },
   {
     question: "Tarvitaanko asennuksia tai ohjelmia?",
@@ -97,14 +161,7 @@ export const FAQ: FaqItem[] = [
     question: "Kuka päättää, kuka allekirjoittaa pöytäkirjan?",
     answer: "Yhtiöjärjestys. eRapussa kirjataan jokaiselle yhtiölle sen oma sääntö, esimerkiksi kaikki läsnä olleet tai puheenjohtaja ja valittu jäsen, ja allekirjoittajat valitaan sen mukaan.",
   },
-  {
-    question: "Missä tiedot ovat?",
-    answer: "EU:ssa. Henkilötunnuksia ei tallenneta selväkielisinä, ja jokainen muutos kirjautuu tapahtumalokiin.",
-  },
-  {
-    question: "Voiko nykyiset tiedot tuoda mukaan?",
-    answer: "Voi. Taloyhtiöt, osakeluettelo, lainat ja asiakirjat siirretään käyttöönoton yhteydessä, joten aloitat valmiista rekisteristä etkä tyhjästä.",
-  },
+  ...BUYING_FAQ,
 ];
 
 export const FEATURE_PAGE_SECTIONS = [

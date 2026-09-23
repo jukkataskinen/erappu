@@ -11,8 +11,8 @@ import { MobileNav } from "./MobileNav";
  */
 
 export const NAV = [
+  { href: "/hallitukselle", label: "Hallitukselle" },
   { href: "/ominaisuudet", label: "Ominaisuudet" },
-  { href: "/ominaisuudet#taloyhtiolle", label: "Taloyhtiölle" },
   { href: "/hinnat", label: "Hinnat" },
   { href: "/ukk", label: "UKK" },
   { href: "/yhteystiedot", label: "Yhteystiedot" },
@@ -66,8 +66,8 @@ const FOOTER_LINKS = [
   {
     title: "Palvelu",
     links: [
+      { href: "/hallitukselle", label: "Hallituksen jäsenelle" },
       { href: "/ominaisuudet#isannoitsijalle", label: "Isännöitsijälle" },
-      { href: "/ominaisuudet#taloyhtiolle", label: "Hallitukselle ja asukkaille" },
       { href: "/hinnat", label: "Hinnat" },
       { href: "/ukk", label: "Usein kysyttyä" },
     ],
@@ -76,6 +76,8 @@ const FOOTER_LINKS = [
     title: "Yhteys",
     links: [
       { href: "/yhteystiedot", label: "Pyydä esittely" },
+      { href: "/hallitukselle#ehdota", label: "Ehdota taloyhtiöllesi" },
+      { href: "/tietosuoja", label: "Tietosuoja" },
       { href: "/kirjaudu", label: "Kirjaudu" },
     ],
   },

@@ -10,7 +10,7 @@ export default function FeaturesPage() {
   return (
     <>
       <PageHero
-        eyebrow="Ominaisuudet"
+        eyebrow="Isännöitsijälle ja taloyhtiölle"
         title="Kaikki taloyhtiön asiat yhdessä paikassa."
         lead="Isännöitsijä hoitaa yhtiöt eRapussa, ja hallitus, osakkaat ja asukkaat käyttävät samaa palvelua omasta näkymästään. Tiedot kirjataan kerran, ja ne ovat käytössä kaikkialla."
       >

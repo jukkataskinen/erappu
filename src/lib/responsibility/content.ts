@@ -472,8 +472,8 @@ const SAUNA: ResponsibilityItem[] = [
     text: "Kiuas on huoneiston laite eikä yhtiön perusjärjestelmä, joten huoneistokohtaisen saunan kiuas on osakkaan vastuulla.",
     law: "AOYL 4:3 § 1 mom",
     note: "Yhtiön hankkima ja vastuulleen hyväksymä kiuas on yhtiön (AOYL 4:2 § 3 mom). Yhtiön yhteisen saunan kiuas on aina yhtiön.",
-    x: 210,
-    y: 400,
+    x: 185,
+    y: 373,
   },
   {
     key: "sauna-lauteet",
@@ -483,8 +483,8 @@ const SAUNA: ResponsibilityItem[] = [
     text: "Lauteet ja paneloinnit ovat huoneiston sisäosia ja pintarakenteita, joten osakas vastaa niistä.",
     law: "AOYL 4:3 § 1 mom",
     note: "Jos paneeli puretaan yhtiön vastuulla olevan vian takia, yhtiö palauttaa sen perustasoon (AOYL 4:2 § 2 ja 3 mom).",
-    x: 700,
-    y: 310,
+    x: 641,
+    y: 334,
   },
   {
     key: "sauna-lattiakaivo",
@@ -494,8 +494,8 @@ const SAUNA: ResponsibilityItem[] = [
     text: "Kaivo kuuluu viemärijärjestelmään ja vedeneristys rakenteen eristeisiin, joten molemmat ovat yhtiön vastuulla.",
     law: "AOYL 4:2 § 2 mom",
     note: "Kaivon puhdistus on asukkaan tavanomaista hoitoa (AOYL 4:3 § 2 mom).",
-    x: 480,
-    y: 580,
+    x: 481,
+    y: 554,
   },
   {
     key: "sauna-valaisin",
@@ -504,8 +504,8 @@ const SAUNA: ResponsibilityItem[] = [
     responsibility: "shared",
     text: "Kiinteä sähköjohto ja rasia ovat yhtiön sähköjärjestelmää. Valaisin, sen suojus ja lamppu ovat huoneiston varusteita ja osakkaan.",
     law: "AOYL 4:2 § 2 mom ja 4:3 § 1 mom",
-    x: 880,
-    y: 80,
+    x: 856,
+    y: 45,
   },
   {
     key: "sauna-sahkoliitanta",
@@ -515,8 +515,8 @@ const SAUNA: ResponsibilityItem[] = [
     text: "Kiukaan syöttökaapeli, kytkentärasia ja ohjauskeskus ovat osa yhtiön sähköjärjestelmää, joten yhtiö vastaa niistä.",
     law: "AOYL 4:2 § 2 mom",
     note: "Kiukaan vaihdosta on ilmoitettava yhtiölle etukäteen kirjallisesti (AOYL 4:7 §). Liitännän saa tehdä vain sähköalan ammattilainen.",
-    x: 85,
-    y: 240,
+    x: 79,
+    y: 199,
   },
 ];
 

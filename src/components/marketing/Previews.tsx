@@ -119,3 +119,39 @@ export function CertificatePreview() {
     </div>
   );
 }
+
+/** Hallituksen jäsenen etusivu portaalissa: tehtävät, kokous ja asiakirjat. */
+export function BoardHomePreview() {
+  const tasks = [
+    { title: "Kunnossapitotarveselvitys yhtiökokoukseen", due: "Määräpäivä 12.4.", tone: "amber" as const },
+    { title: "Pelastussuunnitelman tarkistus", due: "Tehty 21.3.", tone: "moss" as const },
+    { title: "Palovaroittimien tarkastus", due: "Määräpäivä 30.9.", tone: "sky" as const },
+  ];
+  return (
+    <div className="rounded-[var(--radius-panel)] border border-line bg-paper p-5" role="img" aria-label="Esimerkki: hallituksen jäsenen näkymä eRapussa">
+      <p className="text-xs text-ink/55">As Oy Esimerkkirinne · hallitus</p>
+      <p className="mt-0.5 font-semibold">Yhtiön tehtävät</p>
+      <ul className="mt-3 grid gap-2 text-sm">
+        {tasks.map((t) => (
+          <li key={t.title} className="flex items-start justify-between gap-3 border-t border-line pt-2">
+            <span className="flex items-start gap-2">
+              <span className="mt-1.5">
+                <Dot tone={t.tone} />
+              </span>
+              {t.title}
+            </span>
+            <span className="shrink-0 text-xs text-ink/50">{t.due}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-5 text-xs font-medium text-ink/60">Seuraava kokous</p>
+      <p className="mt-1 text-sm">Hallituksen kokous 24.9. klo 18 · asialista ja liitteet valmiina</p>
+      <p className="mt-4 text-xs font-medium text-ink/60">Viimeksi lisätyt asiakirjat</p>
+      <ul className="mt-1 grid gap-1 text-sm text-sky">
+        <li>Pöytäkirja (allekirjoitettu) 12.6.</li>
+        <li>Tilinpäätös 2025</li>
+        <li>Pelastussuunnitelma</li>
+      </ul>
+    </div>
+  );
+}
