@@ -56,6 +56,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Widgetit ja testit
 - [~] Procountorin tarkka myyntilaskujen tuontipohja CSV-vientiin (TODO(Procountor-tuontipohja) `src/lib/finance/accounting/csv.ts`)
 - [x] Portaalin valikkoon linkki `/portaali/talous` (yhteinen `src/config/nav.ts`); puhelimella alapalkin ulkopuoliset osiot Oma-sivulla (19.9.2026)
+- [ ] Huoneistokohtainen maksaja vesilaskulle (Jukka 23.9.2026, Kotipesä 3): laskutusajo ottaa maksajaksi aina osakkaan, mutta vesilasku voi mennä asukkaalle. Tarvitaan valinta huoneistolle ennen kuin vesilaskutus siirtyy Procountorista eRappuun – BLOCKERS 14
 
 ## M4 Viestintä ja dokumentit
 - [x] Tiedotteet: kohderyhmät (yhtiö, rakennus, rooli), kanavat, julkaisu, lähetysraportti
