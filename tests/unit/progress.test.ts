@@ -19,6 +19,15 @@ describe("etenemisjana", () => {
     expect(requestProgress("rejected").ended).not.toBeNull();
   });
 
+  // Ilmoittajalle kerrotaan, keneltä työ on tilattu (Jukka 23.9.2026).
+  it("huoltopyyntö: tilaus kertoo palveluntuottajan nimen", () => {
+    expect(requestProgress("ordered", "Toivakan Kiinteistöhuolto Oy").note).toBe("Työ on tilattu: Toivakan Kiinteistöhuolto Oy.");
+    expect(requestProgress("in_progress", "Toivakan Kiinteistöhuolto Oy").note).toBe("Toivakan Kiinteistöhuolto Oy tekee työtä.");
+    expect(requestProgress("ordered").note).toBe("Työ on tilattu korjaajalta.");
+    expect(requestProgress("ordered", "   ").note).toBe("Työ on tilattu korjaajalta.");
+    expect(requestProgress("in_progress").note).toBeNull();
+  });
+
   it("jokaisella tilalla on jana tai päättymisteksti", () => {
     for (const s of STATUSES) {
       const p = requestProgress(s);

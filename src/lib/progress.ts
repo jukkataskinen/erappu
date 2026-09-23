@@ -52,16 +52,22 @@ export function renovationProgress(status: RenovationStatus): Progress {
 
 export const REQUEST_STEPS = ["Vastaanotettu", "Tilattu", "Työn alla", "Valmis"];
 
-export function requestProgress(status: RequestStatus): Progress {
+/**
+ * `provider` on tilauksen saaneen palveluntuottajan nimi. Ilmoittajalle
+ * kerrotaan, keneltä työ on tilattu (Jukka 23.9.2026): muuten jana kertoo vain,
+ * että työ on tilattu jollekin.
+ */
+export function requestProgress(status: RequestStatus, provider?: string | null): Progress {
+  const tilaaja = provider?.trim() || null;
   switch (status) {
     case "new":
       return build(REQUEST_STEPS, 0, false, "Odottaa isännöinnin käsittelyä.");
     case "received":
       return build(REQUEST_STEPS, 1, false);
     case "ordered":
-      return build(REQUEST_STEPS, 2, false, "Työ on tilattu korjaajalta.");
+      return build(REQUEST_STEPS, 2, false, tilaaja ? `Työ on tilattu: ${tilaaja}.` : "Työ on tilattu korjaajalta.");
     case "in_progress":
-      return build(REQUEST_STEPS, 3, false);
+      return build(REQUEST_STEPS, 3, false, tilaaja ? `${tilaaja} tekee työtä.` : null);
     case "waiting":
       return build(REQUEST_STEPS, 3, false, "Odottaa, esimerkiksi osia tai kulkuoikeutta.");
     case "done":

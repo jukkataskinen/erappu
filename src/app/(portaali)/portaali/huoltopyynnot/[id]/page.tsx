@@ -47,7 +47,7 @@ export default async function PortalRequestPage({ params, searchParams }: { para
         <UrgencyBadge urgency={request.urgency} />
         <span>#{request.number}</span>
       </div>
-      <ProgressSteps progress={requestProgress(request.status)} className="mt-4 max-w-xl" />
+      <ProgressSteps progress={requestProgress(request.status, request.provider_name)} className="mt-4 max-w-xl" />
 
       <div className="mt-4">
         <FormError message={virhe} />
@@ -93,6 +93,9 @@ export default async function PortalRequestPage({ params, searchParams }: { para
             { label: "Kohde", value: `${request.company_name}${request.unit_label ? `, ${request.unit_label}` : ""}` },
             { label: "Aihe", value: CATEGORY_LABEL[request.category] },
             { label: "Tehty", value: formatDateTime(request.created_at) },
+            ...(request.provider_name
+              ? [{ label: "Työ tilattu", value: `${request.provider_name}${request.ordered_at ? `, ${formatDateTime(request.ordered_at)}` : ""}` }]
+              : []),
             { label: "Yleisavaimella", value: <YesNo value={request.may_use_master_key} /> },
             { label: "Lemmikkejä", value: <YesNo value={request.has_pets} /> },
             ...(mine ? [] : [{ label: "Lähde", value: "Asukkaan tai osakkaan ilmoitus" }]),
