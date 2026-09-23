@@ -76,7 +76,8 @@ export async function submitCertificateOrder(formData: FormData) {
         "Hei,",
         "",
         `olemme vastaanottaneet tilauksesi: ${kindLabel.toLowerCase()}, ${group.company_name}, huoneisto ${group.unit_label}.`,
-        `${data.with_attachments ? "Todistus liitteineen" : "Todistus ilman liitteitä"}, ${data.express ? "pikatoimitus" : "normaali toimitus"}. Hinta ${formatEur(price)}.`,
+        // Hinta mainitaan vain, jos isännöinti on antanut sen asetuksissa (0116).
+        `${data.with_attachments ? "Todistus liitteineen" : "Todistus ilman liitteitä"}, ${data.express ? "pikatoimitus" : "normaali toimitus"}.${price === null ? "" : ` Hinta ${formatEur(price)}.`}`,
         "",
         "Ilmoitamme, kun todistus on valmis.",
       ].join("\n"),

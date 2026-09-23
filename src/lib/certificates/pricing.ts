@@ -1,22 +1,19 @@
 /**
  * Todistusten hinnat ja tilat.
  *
- * TODO(Jukka): hinnasto. Vakiot ovat paikkamerkkejä, kunnes Adeptan
- * isännöinnin hinnasto on vahvistettu (DECISIONS 2026-09-15). Organisaation
- * asetuksissa (`certificate_prices`) annetut hinnat ohittavat vakiot.
+ * eRapussa ei ole omaa hinnastoa (Jukka 23.9.2026): jokainen isännöitsijä
+ * päättää todistuksen hinnan itse tai yhdessä hallituksen kanssa. Hinnat
+ * tulevat vain organisaation asetuksista (`certificate_prices`). Jos niitä ei
+ * ole annettu, tilaus jää hinnoittelematta (`price_eur` on tyhjä) ja hinta
+ * sovitaan laskutuksessa.
  */
-export const CERTIFICATE_PRICE_EUR = 120;
-export const CERTIFICATE_EXPRESS_PRICE_EUR = 180;
 
 /**
  * Isännöitsijäntodistuspohjan juridinen hyväksyntä. Kun tämä on epätosi,
- * PDF:ään tulee "LUONNOS – sisältö tarkistettava" (BLOCKERS 4).
+ * PDF:ään tulee "LUONNOS – sisältö tarkistettava". Jukka hyväksyi sisällön
+ * 23.9.2026 (BLOCKERS 4).
  */
-export const CERTIFICATE_TEMPLATE_APPROVED = false;
-
-export function certificatePrice(express: boolean): number {
-  return express ? CERTIFICATE_EXPRESS_PRICE_EUR : CERTIFICATE_PRICE_EUR;
-}
+export const CERTIFICATE_TEMPLATE_APPROVED = true;
 
 export interface CertificatePriceSettings {
   standard_eur?: number | null;
@@ -25,29 +22,42 @@ export interface CertificatePriceSettings {
   with_attachments_eur?: number | null;
 }
 
+/** Null = isännöinti ei ole antanut hintaa, jolloin tilausta ei hinnoitella. */
 export interface ResolvedPrices {
-  standard: number;
-  express: number;
-  withAttachments: number;
+  standard: number | null;
+  express: number | null;
+  withAttachments: number | null;
 }
 
 const valid = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
 
 export function resolvePrices(settings: CertificatePriceSettings | null | undefined): ResolvedPrices {
-  const standard = valid(settings?.standard_eur) ? settings.standard_eur : CERTIFICATE_PRICE_EUR;
-  const express = valid(settings?.express_eur) ? settings.express_eur : CERTIFICATE_EXPRESS_PRICE_EUR;
+  const standard = valid(settings?.standard_eur) ? settings.standard_eur : null;
+  const express = valid(settings?.express_eur) ? settings.express_eur : null;
   const withAttachments = valid(settings?.with_attachments_eur) ? settings.with_attachments_eur : standard;
   return { standard, express, withAttachments };
 }
 
+/** Onko organisaatio antanut yhtään hintaa. */
+export function hasPrices(prices: ResolvedPrices): boolean {
+  return prices.standard !== null || prices.express !== null || prices.withAttachments !== null;
+}
+
+/** Pikatoimituksen lisä tavalliseen hintaan nähden, tai null jos kumpaakaan ei ole annettu. */
+export function expressSurcharge(prices: ResolvedPrices): number | null {
+  if (prices.express === null || prices.standard === null) return null;
+  return Math.max(0, prices.express - prices.standard);
+}
+
 /**
- * Tilauksen hinta. Pikatoimitus on lisä tavalliseen hintaan nähden
- * (pika − tavallinen), joten liitteineen pikana = liitteineen + pikalisä.
+ * Tilauksen hinta annetuista hinnoista, tai null jos hintaa ei ole annettu.
+ * Pikatoimitus on lisä tavalliseen hintaan nähden (pika − tavallinen), joten
+ * liitteineen pikana = liitteineen + pikalisä.
  */
-export function orderPrice(prices: ResolvedPrices, opts: { express: boolean; withAttachments: boolean }): number {
-  const base = opts.withAttachments ? prices.withAttachments : prices.standard;
-  const surcharge = opts.express ? Math.max(0, prices.express - prices.standard) : 0;
-  return Math.round((base + surcharge) * 100) / 100;
+export function orderPrice(prices: ResolvedPrices, opts: { express: boolean; withAttachments: boolean }): number | null {
+  const base = (opts.withAttachments ? prices.withAttachments : prices.standard) ?? prices.standard;
+  if (base === null) return opts.express ? prices.express : null;
+  return Math.round((base + (opts.express ? expressSurcharge(prices) ?? 0 : 0)) * 100) / 100;
 }
 
 export const CERTIFICATE_KIND: Record<string, string> = {

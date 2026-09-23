@@ -159,4 +159,20 @@ describe("isännöitsijäntodistus liitteineen (kanta)", () => {
     const [o] = await db.asService((tx) => tx.query<{ attachments: unknown }>("select attachments from er_certificate_orders where id = $1", [orderId]));
     expect(parseStoredEntries(o.attachments).find((e) => e.key === "articles")?.status).toBe("available");
   });
+
+  // 0116: isännöinti päättää hinnan itse, joten tilaus voi olla hinnoittelematta.
+  it("tilauksen voi tallentaa ilman hintaa", async () => {
+    const orderId = await db.asService(async (tx) =>
+      (await one<{ id: string }>(
+        tx,
+        `insert into er_certificate_orders (organization_id, company_id, share_group_id, orderer_name, orderer_email, with_attachments, purpose)
+         values ($1,$2,$3,'Testi Tilaaja','tilaaja@example.test',false,'sale') returning id`,
+        [f.orgA, f.companyA, groupA],
+      )).id,
+    );
+    const [o] = await db.asService((tx) => tx.query<{ price_eur: string | null }>("select price_eur::text from er_certificate_orders where id = $1", [orderId]));
+    expect(o.price_eur).toBeNull();
+    const result = await generateCertificateForOrder(runAs(f.managerA.sub), f.managerA.id, orderId, deps);
+    expect(result).not.toBeNull();
+  });
 });

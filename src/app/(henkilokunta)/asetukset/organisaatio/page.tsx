@@ -56,6 +56,10 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
             </div>
             <div>
               <SectionTitle>Isännöitsijäntodistuksen oletushinnat</SectionTitle>
+              <p className="mb-3 text-sm text-ink/60">
+                eRapussa ei ole valmista hinnastoa: hinnan päättää isännöinti itse tai yhdessä hallituksen kanssa. Tyhjä kenttä = tilausta ei hinnoitella, jolloin
+                hinta sovitaan laskutuksessa.
+              </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Todistus (€, sis. alv)" htmlFor="certificate_standard_eur">
                   <Input id="certificate_standard_eur" name="certificate_standard_eur" inputMode="decimal" defaultValue={prices.standard_eur ?? ""} />
@@ -84,7 +88,10 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
               { label: "Osoite", value: [contact.street_address, [contact.postal_code, contact.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null },
               { label: "Todistus", value: prices.standard_eur != null ? formatEur(prices.standard_eur) : null },
               { label: "Pikatoimitus", value: prices.express_eur != null ? formatEur(prices.express_eur) : null },
-              { label: "Todistus liitteineen", value: prices.with_attachments_eur != null ? formatEur(prices.with_attachments_eur) : "Sama kuin todistus" },
+              {
+                label: "Todistus liitteineen",
+                value: prices.with_attachments_eur != null ? formatEur(prices.with_attachments_eur) : prices.standard_eur != null ? "Sama kuin todistus" : null,
+              },
             ]}
           />
           <p className="mt-4 text-sm text-ink/60">Organisaation tietoja muuttaa pääkäyttäjä.</p>

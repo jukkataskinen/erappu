@@ -156,11 +156,19 @@ describe("todistuksen kokoaminen liitteineen", () => {
   });
 });
 
-describe("hinnasto", () => {
+describe("hinnat", () => {
+  it("ilman isännöinnin hintoja tilausta ei hinnoitella", () => {
+    const none = resolvePrices(null);
+    expect(none).toEqual({ standard: null, express: null, withAttachments: null });
+    expect(orderPrice(none, { express: false, withAttachments: true })).toBeNull();
+    expect(orderPrice(none, { express: true, withAttachments: false })).toBeNull();
+  });
+
   it("liitteineen oletuksena sama hinta, pikalisä erikseen", () => {
-    const defaults = resolvePrices(null);
-    expect(defaults).toEqual({ standard: 120, express: 180, withAttachments: 120 });
-    expect(orderPrice(defaults, { express: false, withAttachments: true })).toBe(120);
+    const own = resolvePrices({ standard_eur: 120, express_eur: 180 });
+    expect(own.withAttachments).toBe(120);
+    expect(orderPrice(own, { express: false, withAttachments: true })).toBe(120);
+    expect(orderPrice(own, { express: true, withAttachments: false })).toBe(180);
     const custom = resolvePrices({ standard_eur: 130, express_eur: 190, with_attachments_eur: 160 });
     expect(orderPrice(custom, { express: true, withAttachments: true })).toBe(220);
     expect(orderPrice(custom, { express: false, withAttachments: false })).toBe(130);

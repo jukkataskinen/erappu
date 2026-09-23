@@ -200,7 +200,7 @@ describe("pöytäkirjan allekirjoitus: webhookin käsittely", () => {
 });
 
 describe("isännöitsijäntodistus", () => {
-  it("kokoaa tiedot ilman maksutilannetaulua ja renderöi luonnoksen", async () => {
+  it("kokoaa tiedot ilman maksutilannetaulua ja renderöi hyväksytyn todistuksen", async () => {
     const data = await db.asUser(f.managerA.sub, async (tx) => {
       const d = await loadManagerCertificateData(tx, groupA1, { issuedOn: "2026-09-15" });
       // Transaktio on yhä käyttökelpoinen maksutilannekyselyn jälkeen.
@@ -211,7 +211,8 @@ describe("isännöitsijäntodistus", () => {
     expect(data!.unit).toMatchObject({ label: "A 1", shareCount: 600, shareRanges: "1–600" });
     expect(data!.finance.charges[0].monthly).toBe("228,90 €");
     expect(data!.finance.paymentStatus).toBeNull();
-    expect(data!.approved).toBe(false);
+    // Jukka hyväksyi todistuspohjan 23.9.2026, joten luonnosmerkintää ei tule.
+    expect(data!.approved).toBe(true);
     const pdf = await renderManagerCertificate(data!);
     expect(Buffer.from(pdf.bytes.subarray(0, 4)).toString("latin1")).toBe("%PDF");
     // Toisen organisaation isännöitsijä ei saa tietoja.

@@ -5,7 +5,7 @@ import { groupOwnersForVoting } from "@/lib/meetings/attendees";
 import { buildNoticeMessage, splitNoticeRecipients, type NoticeParty } from "@/lib/meetings/notice";
 import { helsinkiLocalToIso, isoToHelsinkiLocal } from "@/lib/meetings/time";
 import { computeMonthlyCharges } from "@/lib/certificates/charges";
-import { certificatePrice, CERTIFICATE_TEMPLATE_APPROVED } from "@/lib/certificates/pricing";
+import { CERTIFICATE_TEMPLATE_APPROVED, resolvePrices } from "@/lib/certificates/pricing";
 import { allowRequest, resetRateLimitForTests } from "@/lib/certificates/rate-limit";
 
 describe("äänileikkuri (AOYL 6:27 §)", () => {
@@ -168,10 +168,9 @@ describe("isännöitsijäntodistuksen vastikkeet ja tilaukset", () => {
     expect(totalEur).toBe(283.4);
   });
 
-  it("hinnat ja luonnosmerkintä", () => {
-    expect(certificatePrice(false)).toBe(120);
-    expect(certificatePrice(true)).toBe(180);
-    expect(CERTIFICATE_TEMPLATE_APPROVED).toBe(false);
+  it("todistuspohja on hyväksytty eikä valmista hinnastoa ole", () => {
+    expect(CERTIFICATE_TEMPLATE_APPROVED).toBe(true);
+    expect(resolvePrices(null)).toEqual({ standard: null, express: null, withAttachments: null });
   });
 
   it("kutsurajoitin", () => {

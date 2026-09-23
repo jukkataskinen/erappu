@@ -1,7 +1,7 @@
 import { Brand } from "@/components/Brand";
 import { FormError } from "@/components/FormError";
 import { Button, Field, Input, Notice, Panel, Select } from "@/components/ui";
-import { CERTIFICATE_KIND } from "@/lib/certificates/pricing";
+import { CERTIFICATE_KIND, expressSurcharge } from "@/lib/certificates/pricing";
 import { loadPrices } from "@/lib/certificates/orders";
 import { getDb } from "@/lib/db";
 import { formatEur } from "@/lib/format";
@@ -100,11 +100,21 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
                 <Input id="orderer_phone" name="orderer_phone" type="tel" autoComplete="tel" />
               </Field>
               <div className="rounded-xl border border-line bg-cloud/60 p-4 text-sm">
-                <p>
-                  Hinta <span className="font-semibold">{formatEur(data.prices.standard)}</span>, liitteineen{" "}
-                  <span className="font-semibold">{formatEur(data.prices.withAttachments)}</span>, pikatoimitus lisää{" "}
-                  <span className="font-semibold">{formatEur(Math.max(0, data.prices.express - data.prices.standard))}</span>.
-                </p>
+                {/* Hinta näytetään vain, jos isännöinti on antanut sen asetuksissa (0116). */}
+                {data.prices.standard !== null || data.prices.withAttachments !== null ? (
+                  <p>
+                    Hinta <span className="font-semibold">{formatEur(data.prices.standard)}</span>, liitteineen{" "}
+                    <span className="font-semibold">{formatEur(data.prices.withAttachments)}</span>
+                    {expressSurcharge(data.prices) !== null ? (
+                      <>
+                        , pikatoimitus lisää <span className="font-semibold">{formatEur(expressSurcharge(data.prices))}</span>
+                      </>
+                    ) : null}
+                    .
+                  </p>
+                ) : (
+                  <p>Isännöinti ilmoittaa todistuksen hinnan tilauksen jälkeen.</p>
+                )}
                 <div className="mt-3 grid gap-2">
                   <label className="flex items-center gap-2">
                     <input type="radio" name="with_attachments" value="no" defaultChecked /> Ilman liitteitä
@@ -120,7 +130,7 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
               </div>
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" name="terms" required className="mt-1" />
-                <span>Hyväksyn, että todistus laskutetaan hinnaston mukaan ja että tietojani käytetään tilauksen käsittelyyn.</span>
+                <span>Hyväksyn, että todistus laskutetaan isännöinnin ilmoittaman hinnan mukaan ja että tietojani käytetään tilauksen käsittelyyn.</span>
               </label>
               <div>
                 <Button>Lähetä tilaus</Button>

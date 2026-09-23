@@ -26,7 +26,7 @@ export interface OrderRow {
   status: string;
   source: string;
   document_id: string | null;
-  price_eur: string;
+  price_eur: string | null;
   created_at: string;
   delivered_at: string | null;
   with_attachments: boolean;
@@ -66,7 +66,7 @@ export async function listOrders(tx: Sql, organizationId: string, opts: { openOn
   );
 }
 
-/** Organisaation todistushinnat asetuksista (vakiot, jos asetuksia ei ole). */
+/** Organisaation todistushinnat asetuksista. Ilman asetusta hintoja ei ole (0116). */
 export async function loadPrices(tx: Sql, organizationId: string): Promise<ResolvedPrices> {
   const [row] = await tx.query<{ prices: CertificatePriceSettings | null }>("select settings -> 'certificate_prices' as prices from er_organizations where id = $1", [organizationId]);
   return resolvePrices(row?.prices ?? null);

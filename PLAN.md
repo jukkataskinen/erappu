@@ -71,7 +71,7 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] eSinetti-asiakas (mock ja http), Reilusopparin mallin mukaan
 - [x] Isännöitsijäntodistus PDF (VNa 365/2010 -rakenne), todistustilaukset julkisella lomakkeella
 - [x] Widgetit ja testit
-- [~] Pohjien juridinen hyväksyntä, todistuksen toimitustapa ja hinnasto – BLOCKERS 4 ja 9
+- [~] Todistuksen toimitustapa ja verkkomaksu – BLOCKERS 9 (pohjat hyväksytty 23.9.2026, hinnasto poistettu: hinta organisaation asetuksista)
 
 ## M6 Arki
 - [x] Vuosikello: toistuvat tehtävät taloyhtiöittäin (tilinpäätös, yhtiökokous, HTJ-päivitys, vakuutukset)
@@ -95,16 +95,16 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 
 ## Myöhemmin (vaatii Jukan päätöksen tai ulkoisen sopimuksen)
 - [~] Oikea HTJ-rajapinta (MML-sopimus, varmenne) – BLOCKERS 1
-- [~] Auth0-sovellus ja Supabase-projekti tuotantoon – BLOCKERS 2
-- [~] eSinetti-tenant ja API-avain – BLOCKERS 3
-- [~] Kokouskutsun, pöytäkirjan ja isännöitsijäntodistuksen juridinen tarkistus – BLOCKERS 4
+- [x] Auth0-sovellus ja Supabase-projekti tuotantoon (BLOCKERS 2 ratkaistu)
+- [x] eSinetti-tenant ja API-avain (BLOCKERS 3 ratkaistu 22.9.2026)
+- [x] Kokouskutsun, pöytäkirjan ja isännöitsijäntodistuksen juridinen tarkistus (Jukka 22.–23.9.2026)
 - [~] PPR-integraatio – BLOCKERS 5
 
 ## Integraatio 15.9.2026
 - [x] Kaikki moduulit M1–M7 yhdistetty päähaaraan
 - [x] Yhteiset valikot (henkilökunta, portaali ja puhelimen alapalkki), Vercel-ajastukset
 - [x] Tuotantokäännös (next build) ja savutesti 48 sivulle (scripts/smoke-routes.mts)
-- [ ] Demodata myös M1–M6-moduuleille (huoltopyynnöt, tiedotteet, kokoukset, varauskohteet)
+- [x] Demodata myös M1–M6-moduuleille (23.9.2026, `seedModulesDemo`): huoltopyynnöt tapahtumineen, vastikeajot ja maksutilanne, tiedotteet ja osakkaan yhteydenotto, pidetty yhtiökokous ja valmisteltava hallituksen kokous, varauskohteet ja varaukset, kulutusseuranta
 - [x] Demodata syyskuun 2026 moduuleille As Oy Esimerkkirinteelle: vesimittarit, ennakot ja lukukierrokset (avoin kierros portaalilukemalla), turvallisuustiedot, muutostyöohjeen asetukset, muutostyön valvonta, isännöinnin aloittama viesti ja vakiovuosikello (`seedSeptemberModulesDemo`, idempotentti)
 
 ## Sopimuspohjat ja massaluonti

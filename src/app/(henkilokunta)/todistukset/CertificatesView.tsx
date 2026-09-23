@@ -221,10 +221,12 @@ export async function CertificatesView({
                 <fieldset className="grid gap-2">
                   <legend className="mb-1 text-sm font-semibold">Liitteet</legend>
                   <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="with_attachments" value="no" defaultChecked /> Ilman liitteitä · {formatEur(prices.standard)}
+                    <input type="radio" name="with_attachments" value="no" defaultChecked /> Ilman liitteitä
+                    {prices.standard === null ? "" : ` · ${formatEur(prices.standard)}`}
                   </label>
                   <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="with_attachments" value="yes" /> Liitteineen · {formatEur(prices.withAttachments)} (liitteet valitaan seuraavaksi)
+                    <input type="radio" name="with_attachments" value="yes" /> Liitteineen
+                    {prices.withAttachments === null ? "" : ` · ${formatEur(prices.withAttachments)}`} (liitteet valitaan seuraavaksi)
                   </label>
                 </fieldset>
                 <PurposeFields />

@@ -100,14 +100,14 @@ export default async function CertificateOrderPage({ params, searchParams }: { p
                   <label className="flex items-start gap-3 rounded-xl border border-line p-3 text-sm">
                     <input type="radio" name="with_attachments" value="no" defaultChecked={!order.with_attachments} className="mt-1" />
                     <span>
-                      <span className="block font-semibold">Ilman liitteitä · {formatEur(prices.standard)}</span>
+                      <span className="block font-semibold">Ilman liitteitä{prices.standard === null ? "" : ` · ${formatEur(prices.standard)}`}</span>
                       <span className="text-ink/60">Liiteluettelo kertoo, mitkä asiakirjat ovat saatavilla isännöitsijältä.</span>
                     </span>
                   </label>
                   <label className="flex items-start gap-3 rounded-xl border border-line p-3 text-sm">
                     <input type="radio" name="with_attachments" value="yes" defaultChecked={order.with_attachments} className="mt-1" />
                     <span>
-                      <span className="block font-semibold">Liitteineen · {formatEur(prices.withAttachments)}</span>
+                      <span className="block font-semibold">Liitteineen{prices.withAttachments === null ? "" : ` · ${formatEur(prices.withAttachments)}`}</span>
                       <span className="text-ink/60">Todistus ja valitut liitteet yhtenä PDF:nä.</span>
                     </span>
                   </label>
