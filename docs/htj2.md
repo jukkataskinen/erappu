@@ -112,11 +112,25 @@ tiedot. eRapussa on jo ilmoitusjono näille (M2), mutta se lähettää jäljitel
 5. Sivutus ja validointisäännöt (kaksi Excel-tiedostoa) läpi.
 6. Testiraportti MML:lle, sopimus ja sertifiointi, sitten tuotantolupa.
 
-## 5. Mitä Jukan pitää tehdä
+## 5. Mitä dokumentaatiosta puuttuu vielä
 
-- Sopimus MML:n kanssa eRapun lisäämisestä integroituvien järjestelmien luetteloon
-  (Adepta Tilat Oy järjestelmätoimittajana).
-- Järjestelmälupa koeympäristöön, jotta kehitys pääsee eteenpäin.
+MML (Piia, 23.9.2026): tekniset ohjeet ovat dokumentaation **Release-2026-05-04**
+-kansiossa, josta löytyvät järjestelmäluvan tekninen ohje, HTJ2:n tekninen ohje
+isännöinnille sekä skeemat. Saamamme zip sisälsi vain yleisen dokumentaation
+(konseptikuvaukset, validointisäännöt, testitapaukset), joten tuo kansio pitää hakea
+samasta jaosta.
+
+Hakemus, sopimus ja tietoturvaliite tulevat vasta, kun pakolliset HTJ2:n testitapaukset ja
+raportit on tehty; MML:n mukaan ne hoituvat tyypillisesti 1–2 viikossa. Koekäyttölupaa voi
+jatkaa pyytämällä verkkopalvelut@maanmittauslaitos.fi. Testiyhtiöiden tarkemmat tiedot MML
+toimittaa erikseen.
+
+## 6. Mitä Jukan pitää tehdä
+
+- Hae dokumentaation Release-2026-05-04 -kansio samasta jaosta kuin yleinen dokumentaatio
+  (järjestelmäluvan tekninen ohje, HTJ2:n tekninen ohje isännöinnille, skeemat). Ilman
+  näitä toteutusta ei voi aloittaa.
+- Järjestelmälupa koeympäristöön, kun integraatio on ohjeen mukaan toteutettu.
 - Valtuudet ovat kunnossa: Jukka on kaupparekisterissä henkilöisännöitsijänä, joten
   asemavaltuus riittää eikä taloyhtiöiltä tarvita suomi.fi-valtuuksia. Tarkistettava vielä,
   koskeeko tämä kaikkia 11 yhtiötä, ja mitä tunnistetta kutsuissa käytetään.
