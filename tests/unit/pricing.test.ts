@@ -17,13 +17,13 @@ describe("hinnoittelu", () => {
     expect(monthlyPrice(15, "monthly")).toBeGreaterThan(monthlyPrice(15, "yearly"));
   });
 
-  it("usean yhtiön yhteenveto ja vuosimaksun säästö", () => {
-    const sum = priceSummary(10, 15, "yearly");
-    expect(sum.perCompanyMonth).toBeCloseTo(37.4, 2);
-    expect(sum.totalMonth).toBeCloseTo(374, 2);
-    expect(sum.totalYear).toBeCloseTo(4488, 2);
-    // 10 yhtiötä × 12 kk × (41,85 − 37,40).
-    expect(cents(sum.yearlySaving)).toBe(534);
+  it("yhden taloyhtiön laskelma ja vuosimaksun säästö", () => {
+    const sum = priceSummary(15, "yearly");
+    expect(cents(sum.month)).toBe(37.4);
+    expect(cents(sum.year)).toBe(448.8);
+    expect(cents(sum.perUnitMonth)).toBe(2.49);
+    // 12 kk × (41,85 − 37,40).
+    expect(cents(sum.yearlySaving)).toBe(53.4);
   });
 
   it("vuosimaksun hinnat ovat Jukan antamat", () => {

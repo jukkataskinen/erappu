@@ -29,17 +29,19 @@ export function monthlyPrice(units: number, billing: Billing): number {
   return Math.max(p.minimum, p.base + p.perUnit * Math.max(0, units));
 }
 
-/** Koko laskelma: yksi yhtiö ja kaikki yhtiöt, kuukaudessa ja vuodessa. */
-export function priceSummary(companies: number, units: number, billing: Billing) {
-  const perCompanyMonth = monthlyPrice(units, billing);
-  const count = Math.max(1, companies);
+/**
+ * Yhden taloyhtiön laskelma. Hinta on aina taloyhtiökohtainen: päätös
+ * tehdään yhtiössä ja lasku menee yhtiölle, joten laskurissa ei lasketa
+ * isännöintitoimiston koko kantaa.
+ */
+export function priceSummary(units: number, billing: Billing) {
+  const month = monthlyPrice(units, billing);
   return {
-    perCompanyMonth,
-    perCompanyYear: perCompanyMonth * 12,
-    totalMonth: perCompanyMonth * count,
-    totalYear: perCompanyMonth * 12 * count,
+    month,
+    year: month * 12,
+    perUnitMonth: month / Math.max(1, units),
     /** Paljonko vuosimaksu säästää kuukausilaskutukseen verrattuna. */
-    yearlySaving: billing === "yearly" ? (monthlyPrice(units, "monthly") - perCompanyMonth) * 12 * count : 0,
+    yearlySaving: billing === "yearly" ? (monthlyPrice(units, "monthly") - month) * 12 : 0,
   };
 }
 
