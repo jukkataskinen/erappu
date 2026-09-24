@@ -101,15 +101,20 @@ export interface AttendeeRow {
   present: boolean;
   remote: boolean;
   proxy_document_id: string | null;
+  /** Läsnäolijalle kirjattu sähköposti; tyhjänä käytetään rekisterin osoitetta. */
+  email: string | null;
+  /** Osoite henkilörekisteristä, jos läsnäolija on rekisterin henkilö. */
+  party_email: string | null;
 }
 
 export async function listAttendees(tx: Sql, meetingId: string): Promise<AttendeeRow[]> {
   return tx.query<AttendeeRow>(
     `select a.id, a.party_id, a.represented_party_id, a.display_name, a.proxy_name, a.share_group_ids, a.shares, a.votes, a.present, a.remote,
-            a.proxy_document_id,
+            a.proxy_document_id, a.email, p.email as party_email,
             (select string_agg(g.unit_label, ', ' order by length(g.unit_label), g.unit_label)
                from er_share_groups g where g.id = any(a.share_group_ids)) as unit_labels
        from er_meeting_attendees a
+       left join er_parties p on p.id = a.party_id
       where a.meeting_id = $1
       order by a.display_name`,
     [meetingId],

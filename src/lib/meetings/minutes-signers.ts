@@ -7,8 +7,10 @@ import type { Sql } from "@/lib/db";
  * hallituksen siihen valitsema jäsen tai läsnä ollut isännöitsijä. Tämä ja
  * "puheenjohtaja ja valittu jäsen" toteutetaan kokouksen puheenjohtajalla ja
  * pöytäkirjantarkastajilla. "Kaikki läsnä olleet" ottaa allekirjoittajiksi
- * jokaisen läsnä olleeksi merkityn osallistujan, ja sähköposti tulee
- * rekisteristä. Yhtiökokouksen pöytäkirjaa sääntö ei koske.
+ * jokaisen läsnä olleeksi merkityn osallistujan; sähköposti tulee
+ * rekisteristä tai läsnäolijalle kirjatusta osoitteesta (0119), jotta myös
+ * käsin lisätty läsnäolija – isännöitsijä – voi allekirjoittaa.
+ * Yhtiökokouksen pöytäkirjaa sääntö ei koske.
  */
 
 export const BOARD_MINUTES_SIGNERS = ["chair_and_member", "all_present"] as const;
@@ -56,6 +58,8 @@ interface MeetingForSigners {
 interface PresentAttendee {
   display_name: string;
   email: string | null;
+  /** Rekisterin henkilö vai käsin lisätty läsnäolija (esim. isännöitsijä). */
+  party_id?: string | null;
 }
 
 /** Puhdas funktio: allekirjoittajat kokouksen tiedoista ja läsnä olleista. */
@@ -90,9 +94,10 @@ export function planMinutesSigners(
         continue;
       }
       if (signers.some((s) => s.email.toLowerCase() === email.toLowerCase())) continue;
-      signers.push({ name: a.display_name, email, role: "Hallituksen jäsen" });
+      // Käsin lisätty läsnäolija ei ole hallituksen jäsen (yleensä isännöitsijä).
+      signers.push({ name: a.display_name, email, role: a.party_id === null ? "Läsnä ollut" : "Hallituksen jäsen" });
     }
-    if (missing.length) problems.push(`Sähköposti puuttuu: ${missing.join(", ")}. Lisää se henkilön tietoihin rekisterissä.`);
+    if (missing.length) problems.push(`Sähköposti puuttuu: ${missing.join(", ")}. Lisää se läsnäolijan riville tai henkilön tietoihin rekisterissä.`);
     if (!problems.length && signers.length < 2 && present.length > 1) problems.push("Allekirjoittajia on vain yksi.");
   } else {
     for (const c of meeting.minutes_checkers ?? []) {
@@ -116,7 +121,8 @@ export async function loadMinutesSignerPlan(tx: Sql, meetingId: string): Promise
   );
   if (!meeting) return null;
   const attendees = await tx.query<PresentAttendee & { present: boolean }>(
-    `select a.display_name, p.email, a.present from er_meeting_attendees a left join er_parties p on p.id = a.party_id
+    `select a.display_name, coalesce(a.email, p.email) as email, a.party_id, a.present
+       from er_meeting_attendees a left join er_parties p on p.id = a.party_id
       where a.meeting_id = $1 order by a.display_name`,
     [meetingId],
   );

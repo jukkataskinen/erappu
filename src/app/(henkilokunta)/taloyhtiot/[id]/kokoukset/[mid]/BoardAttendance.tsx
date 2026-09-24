@@ -7,6 +7,10 @@ import { addAttendeeAction, deleteAttendeeAction, prefillAttendeesAction, saveAt
  * Hallituksen kokouksen läsnäolot siinä asialistan kohdassa, jossa ne
  * todetaan (Jukka 22.9.2026). Läsnä olleet kirjataan pöytäkirjaan samaan
  * pykälään, ja yhtiöjärjestyksen mukaan he voivat olla myös allekirjoittajat.
+ *
+ * Rekisterin henkilöillä sähköposti tulee rekisteristä; käsin lisätylle
+ * läsnäolijalle (tyypillisesti isännöitsijä) se annetaan tässä, koska ilman
+ * osoitetta allekirjoituskutsua ei voi lähettää (Jukka 24.9.2026).
  */
 export function BoardAttendance({ hidden, attendees, canWrite, signersNote }: { hidden: ReactNode; attendees: AttendeeRow[]; canWrite: boolean; signersNote: string | null }) {
   const present = attendees.filter((a) => a.present);
@@ -37,6 +41,19 @@ export function BoardAttendance({ hidden, attendees, canWrite, signersNote }: { 
                 <input type="hidden" name={`proxy_${a.id}`} value={a.proxy_name ?? ""} />
                 <input type="hidden" name={`shares_${a.id}`} value={a.shares} />
                 <span className="min-w-44 font-semibold">{a.display_name}</span>
+                {a.party_email ? null : (
+                  <label className="flex items-center gap-1.5 text-xs text-ink/70">
+                    Sähköposti
+                    <Input
+                      name={`email_${a.id}`}
+                      type="email"
+                      defaultValue={a.email ?? ""}
+                      disabled={!canWrite}
+                      placeholder="allekirjoitusta varten"
+                      className="min-h-9 w-56 text-sm"
+                    />
+                  </label>
+                )}
                 <label className="flex items-center gap-1.5">
                   <input type="checkbox" name={`present_${a.id}`} defaultChecked={a.present} disabled={!canWrite} className="h-5 w-5" /> Läsnä
                 </label>
@@ -68,6 +85,9 @@ export function BoardAttendance({ hidden, attendees, canWrite, signersNote }: { 
             {hidden}
             <Field label="Nimi" htmlFor="display_name">
               <Input id="display_name" name="display_name" required />
+            </Field>
+            <Field label="Sähköposti" htmlFor="attendee_email" hint="Tarvitaan, jos hän allekirjoittaa pöytäkirjan.">
+              <Input id="attendee_email" name="email" type="email" />
             </Field>
             <Button variant="secondary" className="min-h-10">
               Lisää

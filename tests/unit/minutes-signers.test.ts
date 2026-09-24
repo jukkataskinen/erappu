@@ -41,6 +41,22 @@ describe("pöytäkirjan allekirjoittajat", () => {
     expect(plan.problems[0]).toMatch(/Sähköposti puuttuu: Eila Hokkanen/);
   });
 
+  // Isännöitsijä lisätään läsnäolijaksi käsin, joten hänellä ei ole rekisterin
+  // henkilöä; sähköposti tulee läsnäolijan riviltä (Jukka 24.9.2026).
+  it("käsin lisätty läsnäolija allekirjoittaa omalla sähköpostillaan", () => {
+    const plan = planMinutesSigners({ ...base, board_minutes_signers: "all_present" }, [
+      { display_name: "Olavi Jouttijärvi", email: "pj@example.test", party_id: "p1" },
+      { display_name: "Eila Hokkanen", email: "eh@example.test", party_id: "p2" },
+      { display_name: "Jukka Taskinen, isännöitsijä", email: "jukka.taskinen@adepta.fi", party_id: null },
+    ]);
+    expect(plan.problems).toEqual([]);
+    expect(plan.signers.map((s) => [s.name, s.role])).toEqual([
+      ["Olavi Jouttijärvi", "Puheenjohtaja"],
+      ["Eila Hokkanen", "Hallituksen jäsen"],
+      ["Jukka Taskinen, isännöitsijä", "Läsnä ollut"],
+    ]);
+  });
+
   it("kaikki läsnä olleet vaatii läsnäolomerkinnät", () => {
     expect(planMinutesSigners({ ...base, board_minutes_signers: "all_present" }, []).problems[0]).toMatch(/läsnä olleet/);
   });

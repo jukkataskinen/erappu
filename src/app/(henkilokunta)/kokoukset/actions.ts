@@ -221,6 +221,7 @@ const attendeeSchema = z.object({
   remote: z.preprocess((v) => v === "on", z.boolean()),
   proxy_name: optText(200),
   shares: z.coerce.number().int().min(0).max(100_000_000),
+  email: optEmail,
 });
 
 /** Kaikki osallistujarivit tallennetaan yhdellä lomakkeella (ääniluettelon vahvistus kokouksessa). */
@@ -235,6 +236,8 @@ export async function saveAttendeesAction(formData: FormData) {
       remote: formData.get(`remote_${id}`),
       proxy_name: formData.get(`proxy_${id}`) ?? "",
       shares: formData.get(`shares_${id}`) ?? "0",
+      // Oma sähköposti vain siellä, missä kenttä on lomakkeella; muuten nykyinen arvo säilyy.
+      email: formData.has(`email_${id}`) ? formData.get(`email_${id}`) : undefined,
     }),
   );
   if (rows.some((r) => !r.success)) fail(back, "Tarkista osallistujien tiedot.");
@@ -243,8 +246,10 @@ export async function saveAttendeesAction(formData: FormData) {
       if (!r.success) continue;
       const a = r.data;
       await tx.query(
-        "update er_meeting_attendees set present = $3, remote = $4, proxy_name = $5, shares = $6, votes = $6 where id = $1 and meeting_id = $2",
-        [a.attendee_id, meetingId, a.present || a.remote, a.remote, a.proxy_name, a.shares],
+        `update er_meeting_attendees set present = $3, remote = $4, proxy_name = $5, shares = $6, votes = $6,
+                email = case when $7::boolean then $8 else email end
+          where id = $1 and meeting_id = $2`,
+        [a.attendee_id, meetingId, a.present || a.remote, a.remote, a.proxy_name, a.shares, formData.has(`email_${a.attendee_id}`), a.email],
       );
     }
   });
@@ -254,12 +259,16 @@ export async function saveAttendeesAction(formData: FormData) {
 export async function addAttendeeAction(formData: FormData) {
   const { companyId, meetingId, back } = ids(formData);
   const ctx = await writer(back);
-  const d = parseForm(z.object({ display_name: z.string().min(1, "Anna nimi.").max(200), shares: z.coerce.number().int().min(0).default(0) }), formData, back);
+  const d = parseForm(
+    z.object({ display_name: z.string().min(1, "Anna nimi.").max(200), shares: z.coerce.number().int().min(0).default(0), email: optEmail }),
+    formData,
+    back,
+  );
   await ctx.run((tx) =>
     tx.query(
-      `insert into er_meeting_attendees (organization_id, meeting_id, display_name, shares, votes, present)
-       select organization_id, id, $2, $3, $3, true from er_meetings where id = $1`,
-      [meetingId, d.display_name, d.shares],
+      `insert into er_meeting_attendees (organization_id, meeting_id, display_name, shares, votes, present, email)
+       select organization_id, id, $2, $3, $3, true, $4 from er_meetings where id = $1`,
+      [meetingId, d.display_name, d.shares, d.email],
     ),
   );
   done(companyId, meetingId, "#osallistujat");
