@@ -45,12 +45,24 @@ const TITLE: Record<MeetingDocumentBase["kind"], string> = {
   board: "Hallituksen kokouksen pöytäkirja",
 };
 
-export function Minutes({ data }: { data: MinutesData }) {
+/**
+ * Allekirjoitusrivit: puheenjohtaja, sihteeri ja muut allekirjoittajat tässä
+ * järjestyksessä. Jos sihteeri (yleensä isännöitsijä) oli läsnä, hän on jo
+ * allekirjoittajissa sihteerin roolissa eikä häntä lisätä toiseen kertaan
+ * (Jukka 24.9.2026).
+ */
+export function minutesSignatories(data: Pick<MinutesData, "kind" | "chairName" | "secretaryName" | "checkerNames" | "signatories">): { role: string; name: string }[] {
   const general = data.kind !== "board";
-  const attendancePosition = attendanceItemPosition(data.items);
-  const signatories = data.signatories?.length
-    ? [...data.signatories.slice(0, 1), ...(data.secretaryName ? [{ role: "Sihteeri", name: data.secretaryName }] : []), ...data.signatories.slice(1)]
-    : [
+  if (data.signatories?.length) {
+    const [chair, ...rest] = data.signatories;
+    const secretary = rest.find((s) => s.role === "Sihteeri");
+    return [
+      chair,
+      ...(secretary ? [secretary] : data.secretaryName ? [{ role: "Sihteeri", name: data.secretaryName }] : []),
+      ...rest.filter((s) => s !== secretary),
+    ];
+  }
+  return [
     { role: "Puheenjohtaja", name: data.chairName ?? "" },
     ...(data.secretaryName ? [{ role: "Sihteeri", name: data.secretaryName }] : []),
     ...(data.checkerNames.length > 0
@@ -60,7 +72,12 @@ export function Minutes({ data }: { data: MinutesData }) {
           { role: "Pöytäkirjantarkastaja", name: "" },
         ]),
   ];
+}
 
+export function Minutes({ data }: { data: MinutesData }) {
+  const general = data.kind !== "board";
+  const attendancePosition = attendanceItemPosition(data.items);
+  const signatories = minutesSignatories(data);
   return (
     <DocumentRoot title={TITLE[data.kind]} subject={data.companyName} date={data.issuedOn}>
       <Page size="A4" style={pageStyle}>

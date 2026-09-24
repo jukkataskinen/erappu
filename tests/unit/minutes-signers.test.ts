@@ -57,6 +57,24 @@ describe("pöytäkirjan allekirjoittajat", () => {
     ]);
   });
 
+  // Isännöitsijä on usein myös sihteeri: pöytäkirjaan ei saa tulla kahta riviä
+  // samalle henkilölle (Jukka 24.9.2026).
+  it("sihteeri allekirjoittaa sihteerinä, vaikka nimi on kirjoitettu eri tavalla", () => {
+    const plan = planMinutesSigners(
+      { ...base, board_minutes_signers: "all_present", secretary_name: "Jukka Taskinen" },
+      [
+        { display_name: "Olavi Jouttijärvi", email: "pj@example.test", party_id: "p1" },
+        { display_name: "Heinonen Martti", email: "mh@example.test", party_id: "p2" },
+        { display_name: "Jukka Taskinen, isännöitsijä", email: "jt@example.test", party_id: null },
+      ],
+    );
+    expect(plan.signers.map((s) => [s.name, s.role])).toEqual([
+      ["Olavi Jouttijärvi", "Puheenjohtaja"],
+      ["Heinonen Martti", "Hallituksen jäsen"],
+      ["Jukka Taskinen, isännöitsijä", "Sihteeri"],
+    ]);
+  });
+
   it("kaikki läsnä olleet vaatii läsnäolomerkinnät", () => {
     expect(planMinutesSigners({ ...base, board_minutes_signers: "all_present" }, []).problems[0]).toMatch(/läsnä olleet/);
   });
@@ -96,5 +114,44 @@ describe("allekirjoittajien muutosloki", () => {
     const change = minutesSignerChange(before, { ...before, minutes_checkers: [{ name: "Eila Hokkanen", email: "eh@example.test" }] });
     expect(change?.before.checkers).toEqual(["Martti Heinonen <mh@example.test>"]);
     expect(change?.after.checkers).toEqual(["Eila Hokkanen <eh@example.test>"]);
+  });
+});
+
+describe("pöytäkirjan allekirjoitusrivit", () => {
+  it("isännöitsijä-sihteeri on rivillä kerran, puheenjohtajan jälkeen", async () => {
+    const { minutesSignatories } = await import("@/documents/Minutes");
+    const rows = minutesSignatories({
+      kind: "board",
+      chairName: "Olavi Jouttijärvi",
+      secretaryName: "Jukka Taskinen",
+      checkerNames: [],
+      signatories: [
+        { role: "Puheenjohtaja", name: "Olavi Jouttijärvi" },
+        { role: "Hallituksen jäsen", name: "Eila Hokkanen" },
+        { role: "Hallituksen jäsen", name: "Heinonen Martti" },
+        { role: "Sihteeri", name: "Jukka Taskinen, isännöitsijä" },
+      ],
+    });
+    expect(rows.map((r) => [r.name, r.role])).toEqual([
+      ["Olavi Jouttijärvi", "Puheenjohtaja"],
+      ["Jukka Taskinen, isännöitsijä", "Sihteeri"],
+      ["Eila Hokkanen", "Hallituksen jäsen"],
+      ["Heinonen Martti", "Hallituksen jäsen"],
+    ]);
+  });
+
+  it("poissa ollut sihteeri saa oman rivinsä", async () => {
+    const { minutesSignatories } = await import("@/documents/Minutes");
+    const rows = minutesSignatories({
+      kind: "board",
+      chairName: "Olavi Jouttijärvi",
+      secretaryName: "Jukka Taskinen",
+      checkerNames: [],
+      signatories: [
+        { role: "Puheenjohtaja", name: "Olavi Jouttijärvi" },
+        { role: "Hallituksen jäsen", name: "Eila Hokkanen" },
+      ],
+    });
+    expect(rows.map((r) => r.role)).toEqual(["Puheenjohtaja", "Sihteeri", "Hallituksen jäsen"]);
   });
 });

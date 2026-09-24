@@ -228,6 +228,8 @@ const attendeeSchema = z.object({
 export async function saveAttendeesAction(formData: FormData) {
   const { companyId, meetingId, back } = ids(formData);
   const ctx = await writer(back);
+  // "Merkitse kaikki läsnä": hallituksen kokouksessa tavallisin tapaus.
+  const markAll = formData.get("mark_all") === "1";
   const rowIds = formData.getAll("attendee_id").filter((v): v is string => typeof v === "string");
   const rows = rowIds.map((id) =>
     attendeeSchema.safeParse({
@@ -249,7 +251,7 @@ export async function saveAttendeesAction(formData: FormData) {
         `update er_meeting_attendees set present = $3, remote = $4, proxy_name = $5, shares = $6, votes = $6,
                 email = case when $7::boolean then $8 else email end
           where id = $1 and meeting_id = $2`,
-        [a.attendee_id, meetingId, a.present || a.remote, a.remote, a.proxy_name, a.shares, formData.has(`email_${a.attendee_id}`), a.email],
+        [a.attendee_id, meetingId, markAll || a.present || a.remote, a.remote, a.proxy_name, a.shares, formData.has(`email_${a.attendee_id}`), a.email],
       );
     }
   });

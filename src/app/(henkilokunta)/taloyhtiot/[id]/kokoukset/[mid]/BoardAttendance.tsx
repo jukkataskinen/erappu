@@ -69,9 +69,12 @@ export function BoardAttendance({ hidden, attendees, canWrite, signersNote }: { 
             ))}
           </ul>
           {canWrite ? (
-            <div>
+            <div className="flex flex-wrap gap-2">
               <Button variant="secondary" className="min-h-9 px-4 text-xs">
                 Tallenna läsnäolot
+              </Button>
+              <Button type="submit" name="mark_all" value="1" variant="ghost" className="min-h-9 px-4 text-xs">
+                Merkitse kaikki läsnä
               </Button>
             </div>
           ) : null}

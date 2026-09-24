@@ -45,12 +45,32 @@ export interface MinutesSignerPlan {
   chairFromRegistry: boolean;
 }
 
-const nameKey = (name: string) => name.toLowerCase().split(/\s+/).filter(Boolean).sort().join(" ");
+const nameWords = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[,.;:()]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+/**
+ * Sama henkilö eri kirjoitusasuilla: "Jouttijärvi Olavi" = "Olavi Jouttijärvi",
+ * ja käsin kirjoitettu "Jukka Taskinen, isännöitsijä" = "Jukka Taskinen".
+ * Vaatii vähintään kaksi yhteistä sanaa, jotta pelkkä etunimi ei riitä.
+ */
+export function sameName(a: string, b: string): boolean {
+  const x = nameWords(a);
+  const y = nameWords(b);
+  if (x.length < 2 || y.length < 2) return false;
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return short.every((w) => long.includes(w));
+}
 
 interface MeetingForSigners {
   kind: string;
   chair_name: string | null;
   chair_email: string | null;
+  /** Kokouksen sihteeri, yleensä isännöitsijä. Allekirjoittaa sihteerinä, ei kahdesti. */
+  secretary_name?: string | null;
   minutes_checkers: { name: string; email: string }[];
   board_minutes_signers: string | null;
 }
@@ -87,7 +107,7 @@ export function planMinutesSigners(
     const missing: string[] = [];
     for (const a of present) {
       const email = a.email?.trim();
-      const isChair = chair && ((email && email.toLowerCase() === chair.email.toLowerCase()) || nameKey(a.display_name) === nameKey(chair.name));
+      const isChair = chair && ((email && email.toLowerCase() === chair.email.toLowerCase()) || sameName(a.display_name, chair.name));
       if (isChair) continue;
       if (!email) {
         missing.push(a.display_name);
@@ -109,13 +129,21 @@ export function planMinutesSigners(
       problems.push(board ? "Anna hallituksen valitseman jäsenen nimi ja sähköposti (pöytäkirjantarkastaja)." : "Anna vähintään yhden pöytäkirjantarkastajan nimi ja sähköposti.");
     }
   }
+  // Sihteeri (yleensä isännöitsijä) allekirjoittaa sihteerinä eikä erillisenä
+  // läsnäolijana: pöytäkirjaan ei tule kahta riviä samalle henkilölle.
+  const secretary = meeting.secretary_name?.trim();
+  if (secretary) {
+    for (const s of signers) {
+      if (s.role !== "Puheenjohtaja" && sameName(s.name, secretary)) s.role = "Sihteeri";
+    }
+  }
   return { rule, ruleLabel: rule ? boardMinutesSignersLabel(rule === "law" ? null : rule) : null, signers, problems, preview: preview && rule === "all_present", chairFromRegistry: !ownChair && !!fallback };
 }
 
 /** Kokouksen allekirjoittajat tietokannasta (käyttäjän RLS-transaktiossa). */
 export async function loadMinutesSignerPlan(tx: Sql, meetingId: string): Promise<MinutesSignerPlan | null> {
   const [meeting] = await tx.query<MeetingForSigners & { status: string; company_id: string }>(
-    `select m.kind, m.status, m.company_id, m.chair_name, m.chair_email, m.minutes_checkers, c.board_minutes_signers
+    `select m.kind, m.status, m.company_id, m.chair_name, m.chair_email, m.secretary_name, m.minutes_checkers, c.board_minutes_signers
        from er_meetings m join er_housing_companies c on c.id = m.company_id where m.id = $1`,
     [meetingId],
   );
