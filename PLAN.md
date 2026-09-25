@@ -63,6 +63,8 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Dokumenttipankki: lataus, luokat, näkyvyys, lataus RLS-tarkistuksella
 - [x] Portaali: tiedotteet ja dokumentit
 - [x] Viestijonon ajastettu lähetys (`/api/cron/viestit`)
+- [x] Viestijono purkaa vain sähköpostit (25.9.2026): tekstiviesti, kirje ja push jäivät aiemmin hiljaa tilaan `sent`, vaikka mitään ei lähtenyt. Nyt ne jäävät jonoon, kunnes kanavalle on palvelu (BLOCKERS 7)
+- [x] Tiedote kirjeenä Postitan kautta niille, joilla ei ole sähköpostia (25.9.2026, 0120): vedos, koetuloste, lataus vahvistamattomana, vahvistus, peruutus ja tilan päivitys tiedotesivulta
 - [x] Widgetit ja testit
 
 ## M5 Kokoukset ja todistukset
@@ -71,6 +73,8 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Pöytäkirja PDF ja eSinetti-kierros, webhook, sinetöidyn PDF:n tallennus
 - [x] eSinetti-asiakas (mock ja http), Reilusopparin mallin mukaan
 - [x] Isännöitsijäntodistus PDF (VNa 365/2010 -rakenne), todistustilaukset julkisella lomakkeella
+- [x] Paperikutsut Postita.fi:n kautta (Jukka 25.9.2026, 0120): ikkunakirjeen etusivu Postitan mittoihin ja lähetetty kutsu liitteineen, lataus vahvistamattomana, vahvistus ja peruutus kokoussivulta, kirjekohtainen tila ja osoite talteen, puutteelliset osoitteet näkyvät. `src/lib/postita` (mock oletuksena), `src/lib/letters`
+- [~] Postita-tili ja tunnukset tuotantoon (`POSTITA_MODE=http`) – BLOCKERS 15
 - [x] Widgetit ja testit
 - [~] Todistuksen toimitustapa ja verkkomaksu – BLOCKERS 9 (pohjat hyväksytty 23.9.2026, hinnasto poistettu: hinta organisaation asetuksista)
 

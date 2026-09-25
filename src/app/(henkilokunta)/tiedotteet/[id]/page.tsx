@@ -8,16 +8,20 @@ import { deliveryStats, getAnnouncement } from "@/lib/announcements/queries";
 import { resolveRecipients } from "@/lib/announcements/recipients";
 import { composeAnnouncementEmail } from "@/lib/announcements/content";
 import { ANNOUNCEMENT_STATUS, CHANNEL_LABEL, audienceText } from "@/lib/announcements/labels";
-import { archiveAnnouncement, deleteDraft, publishAnnouncementAction } from "../actions";
+import { archiveAnnouncement, deleteDraft, publishAnnouncementAction, uploadAnnouncementLettersAction } from "../actions";
+import { LetterJobs } from "@/components/letters/LetterJobs";
+import { LETTER_FLASH } from "@/lib/letters/labels";
+import { planAnnouncementLetters } from "@/lib/letters/announcement";
+import { isUsingMockPostita } from "@/lib/postita";
 import { hasPlaceholders } from "@/lib/announcements/drafts";
 
 export const metadata = { title: "Tiedote" };
 
-export default async function AnnouncementPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; julkaistu?: string }> }) {
+export default async function AnnouncementPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ virhe?: string; julkaistu?: string; kirjeet?: string }> }) {
   const ctx = await requireStaff();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const { virhe, julkaistu } = await searchParams;
+  const { virhe, julkaistu, kirjeet } = await searchParams;
 
   const data = await ctx.run(async (tx) => {
     const a = await getAnnouncement(tx, id);
@@ -27,10 +31,12 @@ export default async function AnnouncementPage({ params, searchParams }: { param
       : [];
     const recipients = a.status === "draft" ? await resolveRecipients(tx, { companyId: a.company_id, audienceRoles: a.audience_roles, buildingIds: a.building_ids }) : null;
     const stats = a.status === "draft" ? null : await deliveryStats(tx, id);
-    return { a, buildings, recipients, stats };
+    // Kirjeet vain sähköpostilla julkaistulle tiedotteelle (src/lib/letters/announcement.ts).
+    const letterPlan = a.status !== "draft" && a.channels.includes("email") ? await planAnnouncementLetters(tx, id) : null;
+    return { a, buildings, recipients, stats, letterPlan };
   });
   if (!data) notFound();
-  const { a, buildings, recipients, stats } = data;
+  const { a, buildings, recipients, stats, letterPlan } = data;
   const canWrite = ctx.can("owner", "manager", "assistant");
   const canPublish = ctx.can("owner", "manager");
   const email = a.channels.includes("email");
@@ -109,7 +115,7 @@ export default async function AnnouncementPage({ params, searchParams }: { param
                 {email ? <Stat label="Ilman sähköpostia" value={recipients.withoutEmailCount} tone={recipients.withoutEmailCount ? "warn" : undefined} /> : null}
               </div>
               {email && recipients.withoutEmailCount > 0 ? (
-                <p className="mt-3 text-sm text-ink/65">Henkilöt ilman sähköpostia näkevät tiedotteen vain portaalissa, jos heillä on tunnus. Tarvittaessa tiedote jaetaan paperisena.</p>
+                <p className="mt-3 text-sm text-ink/65">Henkilöille ilman sähköpostia tiedotteen voi julkaisun jälkeen lähettää kirjeenä Postitan kautta. Portaalissa se näkyy heille, joilla on tunnus.</p>
               ) : null}
               {recipients.partyCount === 0 ? (
                 <div className="mt-3">
@@ -165,6 +171,37 @@ ${a.body}`) ? (
                   </Link>
                 </p>
               ) : null}
+            </Panel>
+          ) : null}
+          {letterPlan && letterPlan.paper.length > 0 ? (
+            <Panel>
+              <SectionTitle>Kirjeet</SectionTitle>
+              <p className="text-sm">
+                Ilman sähköpostia: <span className="font-semibold">{letterPlan.paper.length}</span> · osoite puutteellinen:{" "}
+                <span className={letterPlan.paper.some((p) => !p.addressLines) ? "font-semibold text-coral" : "font-semibold"}>{letterPlan.paper.filter((p) => !p.addressLines).length}</span> ·
+                postitus vahvistettu: <span className="font-semibold">{letterPlan.paper.filter((p) => p.letter?.status === "confirmed").length}</span>
+              </p>
+              {letterPlan.paper.some((p) => !p.addressLines) ? (
+                <p className="mt-1 text-xs text-ink/55">
+                  Puutteellinen osoite: {letterPlan.paper.filter((p) => !p.addressLines).map((p) => p.name).join(", ")}. Täydennä osoite rekisteriin, niin kirjeen voi lähettää.
+                </p>
+              ) : null}
+              {kirjeet && LETTER_FLASH[kirjeet] ? (
+                <div className="mt-3">
+                  <Notice tone="ok">{LETTER_FLASH[kirjeet]}</Notice>
+                </div>
+              ) : null}
+              <LetterJobs
+                jobs={letterPlan.jobs}
+                readyCount={letterPlan.ready.length}
+                blocker={letterPlan.blocker}
+                canManage={canPublish}
+                back={`/tiedotteet/${a.id}`}
+                uploadAction={uploadAnnouncementLettersAction}
+                hidden={{ id: a.id }}
+                previewHref={`/tiedotteet/${a.id}/kirjeet`}
+                mock={isUsingMockPostita()}
+              />
             </Panel>
           ) : null}
         </div>

@@ -58,6 +58,8 @@ export const DEFAULT_EXCLUDED_TABLES: Record<string, string> = {
   er_announcement_reads: "Lukukuittaukset ovat paikallisten käyttäjien.",
   er_audit_log: "Kehitysympäristön tapahtumaloki; tuotannon loki alkaa siirrosta.",
   er_outbound_messages: "Viestijono: siirto lähettäisi paikallisesti jonoon jääneet viestit tuotannosta.",
+  er_letter_jobs: "Kirjetyöt on tehty paikallisesti Postitan jäljitelmällä; tuotannon Postitassa niitä ei ole.",
+  er_letters: "Kirjeet kuuluvat paikallisiin kirjetöihin (er_letter_jobs).",
   er_access_links: "Linkkien tiivisteet on laskettu paikallisella salaisuudella; linkit luodaan tuotannossa uudelleen.",
   er_public_request_forms: "Lomakelinkin token on salattu paikallisella avaimella; linkki luodaan tuotannossa uudelleen.",
   er_rate_limits: "Kutsurajoittimen tilapäinen tila.",

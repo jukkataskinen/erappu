@@ -9,7 +9,13 @@ import type { Sql } from "@/lib/db";
  *
  * EMAIL_MODE=console tulostaa viestin lokiin (vain otsikko ja vastaanottajan
  * verkkotunnus, ei sisältöä) ja merkitsee sen lähetetyksi.
+ *
+ * Jonosta puretaan vain sähköpostit. Tekstiviestille ja pushille ei ole vielä
+ * palvelua (BLOCKERS 7), joten ne jäävät jonoon eivätkä saa tilaa `sent`:
+ * lähetetyksi merkitty viesti, joka ei lähtenyt, on pahempi kuin jonoon jäänyt.
+ * Kirjeet eivät kulje tämän jonon kautta, vaan Postitan töinä (`src/lib/letters`).
  */
+export const DISPATCHED_CHANNELS = ["email"] as const;
 
 export interface QueueMessage {
   organizationId: string;
@@ -39,9 +45,9 @@ export async function queueMessage(tx: Sql, m: QueueMessage): Promise<string> {
 export async function dispatchQueued(tx: Sql, limit = 50, organizationId?: string): Promise<{ sent: number; failed: number }> {
   const rows = await tx.query<{ id: string; channel: string; recipient: string; subject: string; body: string }>(
     `select id, channel, recipient, subject, body from er_outbound_messages
-      where status = 'queued' and ($2::uuid is null or organization_id = $2::uuid)
+      where status = 'queued' and channel = any($3::text[]) and ($2::uuid is null or organization_id = $2::uuid)
       order by created_at limit $1 for update skip locked`,
-    [limit, organizationId ?? null],
+    [limit, organizationId ?? null, [...DISPATCHED_CHANNELS]],
   );
   let sent = 0;
   let failed = 0;
@@ -59,10 +65,9 @@ export async function dispatchQueued(tx: Sql, limit = 50, organizationId?: strin
 }
 
 async function deliver(m: { channel: string; recipient: string; subject: string; body: string }): Promise<string | null> {
-  if (m.channel !== "email") {
-    // Tekstiviesti, kirje ja push kytketään palveluntarjoajiin myöhemmin (BLOCKERS.md).
-    return null;
-  }
+  // Varmistus: kysely ei valitse muita kanavia, mutta jos valitsisi, rivi
+  // merkitään epäonnistuneeksi eikä lähetetyksi.
+  if (m.channel !== "email") throw new Error(`Kanavalle ${m.channel} ei ole lähetyspalvelua.`);
   if (process.env.EMAIL_MODE !== "resend") {
     const domain = m.recipient.split("@")[1] ?? "?";
     console.info(`[sähköposti:console] → *@${domain}: ${m.subject}`);
