@@ -19,7 +19,7 @@ Säännöt:
 - **Ammattitermit suomalaisina:** osakeryhmä, osakeluettelo, vastike, lainaosuus, kunnossapitotarveselvitys, isännöitsijäntodistus, muutostyöilmoitus, yhtiökokous.
 - **Jokainen uusi taulu:** etuliite `er_`, `organization_id`, RLS päälle, policyt ja eksplisiittiset GRANTit (`authenticated`, `service_role`). Tee lisäksi RLS-testi, joka todistaa ettei toinen organisaatio näe rivejä.
 - Ei salaisuuksia koodiin. Uudet ympäristömuuttujat `.env.example`-tiedostoon selityksineen.
-- Ulkoiset palvelut (HTJ, eSinetti, sähköposti, PPR) moduulin `index.ts`-rajapinnan takana, ja mock-toteutus on oletus, kun avain puuttuu.
+- Ulkoiset palvelut (HTJ, eSinetti, sähköposti, Postita, PPR) moduulin `index.ts`-rajapinnan takana, ja mock-toteutus on oletus, kun avain puuttuu.
 
 ### 0.1 Tietoturvakysymykset jokaiselle tehtävälle (sama kuin eSinetissä)
 
@@ -45,8 +45,9 @@ Säännöt:
 | Roolit | Organisaatio: `owner` (pääkäyttäjä), `manager` (isännöitsijä), `accountant` (kirjanpitäjä: talous ja HTJ2-tiedot, ei rekisterin muokkausta, ei henkilötunnuksia), `assistant`. Portaali: `board`, `owner`, `resident`, `provider`; oikeudet johdetaan rekisteristä (`src/lib/registry/portal-access.ts`). |
 | HTJ | Osakeluettelot on siirretty HTJ:hin → HTJ on omistustietojen päälähde. `HTJ_MODE=mock` oletuksena. Oikea rajapinta vaatii MML-sopimuksen (Adepta Oy) ja mTLS-varmenteen. HTJ2-ilmoitukset (vastikkeet, lainat, KuMu, KPTS) ovat myöhässä (määräaika 30.6.2026): järjestelmä tuottaa yhtiökohtaisen yhteenvedon käsin ilmoittamista varten, kunnes rajapinta on käytössä. |
 | Allekirjoitukset | eSinetti API (`ESINETTI_MODE=mock` oletuksena). Adepta Oy myy eSinetin Adepta Tilat Oy:lle. eRappu tekee PDF:n itse (@react-pdf/renderer), eSinetti kerää allekirjoitukset ja sinetöi. Asiakas kopioidaan Reilusopparista (`src/lib/esinetti`). |
-| Kirjanpito | Procountor 31.12.2027 asti: vain CSV-vienti ja maksutilanteen CSV-tuonti. 1.1.2028 alkaen Adepta PPR API:n kautta. Ei Fennoaa. |
+| Kirjanpito | Procountor 31.12.2027 asti: vain CSV-vienti ja maksutilanteen CSV-tuonti. 1.1.2028 alkaen Adepta PPR API:n kautta. Taloyhtiöiden kirjanpitoon ei Fennoaa. Isännöintiyrityksen oma laskutus taloyhtiöiltä (nyt postikulut) on Adepta Tilojen Fennoassa: `src/lib/fennoa` (`FENNOA_MODE=mock` oletuksena, `test` testiyritykseen, tuotantovienti erillisellä päätöksellä, BLOCKERS 16). |
 | Sähköposti | `er_outbound_messages`-jono + `dispatchQueued` (`src/lib/messaging`). `EMAIL_MODE=console` oletuksena. |
+| Kirjeet | Postita.fi (Jukka 25.9.2026): 2,34 € (2. lk) / 3,27 € (1. lk) alv 0 kirjeeltä, sis. tulostuksen, C5-ikkunakuoren ja postimaksun. `src/lib/postita` (`POSTITA_MODE=mock` oletuksena, `http` + `POSTITA_USERNAME`/`POSTITA_PASSWORD`), kirjetyöt `src/lib/letters` ja taulut `er_letter_jobs`/`er_letters`. Ikkunakirjeen pohja `src/documents/WindowLetter.tsx` Postitan mittoihin. Kirjeet ladataan vahvistamattomina ja vahvistetaan erikseen. Postitukset laskutetaan taloyhtiöltä organisaation kirjehinnalla (`settings.letter_prices`), joka lukitaan postitukselle vahvistettaessa; laskurit ja laskutusajo `/postikulut` (`src/lib/letters/billing.ts`). Viestijono purkaa vain sähköpostit: muita kanavia ei koskaan merkitä lähetetyksi ilman palvelua. |
 | Tiedostot | `src/lib/storage` (local / Supabase Storage, yksityinen). Dokumenttirivi `er_documents` ja näkyvyys (`internal`, `board`, `owners`, `residents`, `provider`, `reporter`). Lataus aina reitin kautta, joka tarkistaa rivin RLS:llä. |
 | Henkilötunnukset | Accessista EI tuoda. HTJ:n suppea haku oletuksena (syntymäaika). Jos tunnus tarvitaan: `hetu_hmac` + `hetu_encrypted` taulussa `er_party_identifiers`, luku lokiin. |
 | Päivämäärät | Kanta `date`/`timestamptz`, näyttö `src/lib/format.ts` (Europe/Helsinki). Rahat `numeric`, näyttö `formatEur`. |

@@ -14,6 +14,9 @@ import { SigningError, startMinutesSigning } from "@/lib/meetings/signing";
 import { simulateSigning } from "@/lib/meetings/simulate";
 import { minutesSignerChange } from "@/lib/meetings/minutes-signers";
 import { helsinkiLocalToIso } from "@/lib/meetings/time";
+import { LetterError, uploadLetters } from "@/lib/letters/jobs";
+import { loadMeetingLetterSource } from "@/lib/letters/meeting";
+import { assertRealPostita, getPostitaClient, isPostitaError } from "@/lib/postita";
 import { deleteStoredFile } from "@/lib/storage";
 import type { IsoDate } from "@/lib/tasks/dates";
 
@@ -294,6 +297,30 @@ export async function sendNoticeAction(formData: FormData) {
     throw err;
   }
   done(companyId, meetingId, "#kutsu");
+}
+
+/**
+ * Paperikutsut Postitaan vahvistamattomana työnä (Jukka 25.9.2026).
+ * Postitus maksaa ja lähtee yhtiön nimissä, joten sen tekee pääkäyttäjä tai
+ * isännöitsijä. Vahvistus ja peruutus: `src/app/(henkilokunta)/kirjeet/actions.ts`.
+ */
+export async function uploadMeetingLettersAction(formData: FormData) {
+  const { companyId, meetingId, back } = ids(formData);
+  const ctx = await requireStaff();
+  if (!ctx.can("owner", "manager")) fail(back, "Kirjeet lähettää pääkäyttäjä tai isännöitsijä.");
+  const postClass = z.enum(["1", "2"]).safeParse(formData.get("post_class"));
+  if (!postClass.success) fail(back, "Valitse postiluokka.");
+  try {
+    assertRealPostita();
+    const source = await loadMeetingLetterSource(ctx.run, meetingId);
+    if (source.companyId !== companyId) fail(back, "Kokousta ei löytynyt.");
+    await uploadLetters(ctx.run, getPostitaClient(), { userId: ctx.user.id, source, postClass: postClass.data === "1" ? 1 : 2 });
+  } catch (err) {
+    if (err instanceof LetterError) fail(back, err.message);
+    if (isPostitaError(err)) fail(back, err.message);
+    throw err;
+  }
+  done(companyId, meetingId, "?kirjeet=ladattu#kirjeet");
 }
 
 export async function setMeetingStatusAction(formData: FormData) {

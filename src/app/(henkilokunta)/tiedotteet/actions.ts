@@ -10,6 +10,9 @@ import { dispatchQueued } from "@/lib/messaging";
 import { AUDIENCE_ROLES, CHANNELS } from "@/lib/announcements/labels";
 import { containsHetu } from "@/lib/announcements/content";
 import { publishAnnouncement } from "@/lib/announcements/publish";
+import { loadAnnouncementLetterSource } from "@/lib/letters/announcement";
+import { LetterError, uploadLetters } from "@/lib/letters/jobs";
+import { assertRealPostita, getPostitaClient, isPostitaError } from "@/lib/postita";
 
 const uuid = z.string().uuid();
 
@@ -168,4 +171,29 @@ export async function requeueFailed() {
   );
   revalidatePath(back);
   redirect(back);
+}
+
+/**
+ * Tiedote kirjeenä niille, joilla ei ole sähköpostia (Jukka 25.9.2026).
+ * Kirjeet ladataan Postitaan vahvistamattomina; vahvistus ja peruutus:
+ * `src/app/(henkilokunta)/kirjeet/actions.ts`.
+ */
+export async function uploadAnnouncementLettersAction(formData: FormData) {
+  const id = uuid.safeParse(formData.get("id"));
+  if (!id.success) redirect("/tiedotteet");
+  const back = `/tiedotteet/${id.data}`;
+  const ctx = await publisher(back);
+  const postClass = z.enum(["1", "2"]).safeParse(formData.get("post_class"));
+  if (!postClass.success) fail(back, "Valitse postiluokka.");
+  try {
+    assertRealPostita();
+    const source = await loadAnnouncementLetterSource(ctx.run, id.data);
+    await uploadLetters(ctx.run, getPostitaClient(), { userId: ctx.user.id, source, postClass: postClass.data === "1" ? 1 : 2 });
+  } catch (err) {
+    if (err instanceof LetterError) fail(back, err.message);
+    if (isPostitaError(err)) fail(back, err.message);
+    throw err;
+  }
+  revalidatePath(back);
+  redirect(`${back}?kirjeet=ladattu#kirjeet`);
 }

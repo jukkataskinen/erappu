@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CompanyHeader, loadCompany } from "@/components/CompanyHeader";
 import { FormError } from "@/components/FormError";
-import { Badge, Button, EmptyState, Field, Input, Panel, Select, SectionTitle, Table, Td, Textarea, Th } from "@/components/ui";
+import { Badge, Button, EmptyState, Field, Input, Notice, Panel, Select, SectionTitle, Table, Td, Textarea, Th } from "@/components/ui";
 import { requireStaff } from "@/lib/auth/current-user";
 import { canSimulateSigning, isUsingMockEsinetti } from "@/lib/esinetti";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
@@ -21,6 +21,10 @@ import { AttachmentLinks, ItemAttachmentEditor } from "./ItemAttachments";
 import { listMinutesSignerChanges, loadMinutesSignerPlan } from "@/lib/meetings/minutes-signers";
 import { attendanceItemPosition } from "@/lib/meetings/labels";
 import { BoardAttendance } from "./BoardAttendance";
+import { LetterJobs } from "@/components/letters/LetterJobs";
+import { LETTER_FLASH } from "@/lib/letters/labels";
+import { planMeetingLetters } from "@/lib/letters/meeting";
+import { isUsingMockPostita } from "@/lib/postita";
 import {
   addAttendeeAction,
   addItemAction,
@@ -36,6 +40,7 @@ import {
   simulateSigningAction,
   updateItemAction,
   updateMeetingAction,
+  uploadMeetingLettersAction,
 } from "../../../../kokoukset/actions";
 
 export const metadata = { title: "Kokous" };
@@ -69,17 +74,17 @@ const DOC_BUTTONS = [
 
 const VISIBILITY: Record<string, string> = { internal: "Sisäinen", board: "Hallitus", owners: "Osakkaat", residents: "Asukkaat" };
 
-export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string; mid: string }>; searchParams: Promise<{ virhe?: string; asiakirja?: string; esikatselu?: string }> }) {
+export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string; mid: string }>; searchParams: Promise<{ virhe?: string; asiakirja?: string; esikatselu?: string; kirjeet?: string }> }) {
   const ctx = await requireStaff();
   const { id, mid } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(mid)) notFound();
   const company = await loadCompany(ctx, id);
-  const { virhe, asiakirja, esikatselu } = await searchParams;
+  const { virhe, asiakirja, esikatselu, kirjeet } = await searchParams;
 
   const data = await ctx.run(async (tx) => {
     const meeting = await getMeeting(tx, mid);
     if (!meeting || meeting.company_id !== id) return null;
-    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges] = await Promise.all([
+    const [items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges, letterPlan] = await Promise.all([
       listItems(tx, mid),
       listAttendees(tx, mid),
       listMeetingDocuments(tx, mid),
@@ -90,12 +95,13 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
       loadMinutesSignerPlan(tx, mid),
       tx.query<{ id: string; email: string | null }>("select a.id, p.email from er_meeting_attendees a left join er_parties p on p.id = a.party_id where a.meeting_id = $1", [mid]),
       listMinutesSignerChanges(tx, mid),
+      planMeetingLetters(tx, mid),
     ]);
-    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges };
+    return { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges, letterPlan };
   });
   if (!data) notFound();
 
-  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges } = data;
+  const { meeting, items, attendees, documents, rounds, parties, attachments, attachable, signerPlan, attendeeEmails, signerChanges, letterPlan } = data;
   const emailById = new Map(attendeeEmails.map((a) => [a.id, a.email]));
   const attendancePos = attendanceItemPosition(items);
   const attachmentsByItem = byItem(attachments);
@@ -491,13 +497,16 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               <form action={sendNoticeAction} className="mt-4">
                 {hidden}
                 <Button disabled={items.length === 0}>Lähetä kutsu</Button>
-                <p className="mt-2 text-xs text-ink/55">Kutsu tallennetaan dokumentteihin ({general ? "osakkaille" : "hallitukselle"} näkyväksi), sähköpostit lähtevät jonosta ja kokous merkitään kutsutuksi.</p>
+                <p className="mt-2 text-xs text-ink/55">Kutsu tallennetaan dokumentteihin ({general ? "osakkaille" : "hallitukselle"} näkyväksi), sähköpostit lähtevät jonosta ja kokous merkitään kutsutuksi. Paperikutsut lähetetään sen jälkeen kirjeinä tältä sivulta.</p>
               </form>
             ) : null}
             {recipients.paper.length > 0 ? (
               <details className="mt-4" open={meeting.status === "notice_sent"}>
                 <summary className="cursor-pointer text-sm font-semibold">Tarvitsee paperikutsun ({recipients.paper.length})</summary>
-                <p className="mt-2 text-xs text-ink/55">Näillä osakkailla ei ole sähköpostiosoitetta tai suostumusta sähköiseen kutsuun. Tulosta kokouskutsu ja lähetä se postitse.</p>
+                <p className="mt-2 text-xs text-ink/55">
+                  Näillä {general ? "osakkailla" : "jäsenillä"} ei ole sähköpostiosoitetta{general ? " tai suostumusta sähköiseen kutsuun" : ""}. Kutsu lähetetään kirjeenä Postitan kautta: kirjeen etusivulla on
+                  osoite ja sen perässä lähetetty kokouskutsu liitteineen.
+                </p>
                 <div className="mt-2">
                   <Table>
                     <thead>
@@ -505,19 +514,47 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                         <Th>Nimi</Th>
                         <Th>Postiosoite</Th>
                         <Th>{general ? "Huoneistot" : "Rooli"}</Th>
+                        <Th>Kirje</Th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recipients.paper.map((p) => (
+                      {(letterPlan?.paper ?? []).map(({ party: p, addressLines, letter }) => (
                         <tr key={p.party_id}>
                           <Td className="font-semibold">{p.display_name}</Td>
-                          <Td>{[p.street_address, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || <span className="text-coral">Osoite puuttuu</span>}</Td>
+                          <Td>{addressLines ? addressLines.slice(1).join(", ") : <span className="text-coral">Osoite puutteellinen</span>}</Td>
                           <Td>{general ? p.unit_labels : p.unit_labels.split(", ").map((r) => BOARD_ROLE[r] ?? r).join(", ")}</Td>
+                          <Td>
+                            {letter ? (
+                              <Badge tone={letter.status === "confirmed" ? "ok" : "warn"}>{letter.status === "confirmed" ? "Postitus vahvistettu" : "Odottaa vahvistusta"}</Badge>
+                            ) : addressLines ? (
+                              <span className="text-ink/55">Ei lähetetty</span>
+                            ) : (
+                              <span className="text-coral">Täydennä osoite rekisteriin</span>
+                            )}
+                          </Td>
                         </tr>
                       ))}
                     </tbody>
                   </Table>
                 </div>
+                {kirjeet && LETTER_FLASH[kirjeet] ? (
+                  <div className="mt-3">
+                    <Notice tone="ok">{LETTER_FLASH[kirjeet]}</Notice>
+                  </div>
+                ) : null}
+                {letterPlan ? (
+                  <LetterJobs
+                    jobs={letterPlan.jobs}
+                    readyCount={letterPlan.ready.length}
+                    blocker={letterPlan.blocker}
+                    canManage={ctx.can("owner", "manager")}
+                    back={`/taloyhtiot/${id}/kokoukset/${mid}`}
+                    uploadAction={uploadMeetingLettersAction}
+                    hidden={{ company_id: id, meeting_id: mid }}
+                    previewHref={`/taloyhtiot/${id}/kokoukset/${mid}/kirjeet`}
+                    mock={isUsingMockPostita()}
+                  />
+                ) : null}
               </details>
             ) : null}
           </Panel>

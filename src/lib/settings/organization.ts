@@ -27,6 +27,13 @@ export interface OrganizationSettings {
     express_eur?: number | null;
     with_attachments_eur?: number | null;
   };
+  /** Postikulujen veloitus taloyhtiöltä, alv 0 (src/lib/letters/pricing.ts). */
+  letter_prices?: {
+    class1_eur?: number | null;
+    class2_eur?: number | null;
+    extra_page_eur?: number | null;
+    vat_percent?: number | null;
+  };
 }
 
 export interface OrganizationRow {
@@ -59,6 +66,13 @@ export const organizationSchema = z.object({
   certificate_standard_eur: optPrice,
   certificate_express_eur: optPrice,
   certificate_with_attachments_eur: optPrice,
+  letter_class1_eur: optPrice,
+  letter_class2_eur: optPrice,
+  letter_extra_page_eur: optPrice,
+  letter_vat_percent: z.preprocess(
+    (v) => (typeof v === "string" ? emptyToNull(v.replace(",", ".").replace(/\s|%/g, "")) : emptyToNull(v)),
+    z.coerce.number().min(0, "Tarkista arvonlisäverokanta.").max(50, "Tarkista arvonlisäverokanta.").nullable(),
+  ),
 });
 
 export type OrganizationInput = z.infer<typeof organizationSchema>;
@@ -76,6 +90,12 @@ export async function updateOrganization(tx: Sql, organizationId: string, actorI
       standard_eur: input.certificate_standard_eur,
       express_eur: input.certificate_express_eur,
       with_attachments_eur: input.certificate_with_attachments_eur,
+    },
+    letter_prices: {
+      class1_eur: input.letter_class1_eur ?? null,
+      class2_eur: input.letter_class2_eur ?? null,
+      extra_page_eur: input.letter_extra_page_eur ?? null,
+      vat_percent: input.letter_vat_percent ?? null,
     },
   };
   const rows = await tx.query(
