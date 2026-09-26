@@ -60,6 +60,8 @@ export const DEFAULT_EXCLUDED_TABLES: Record<string, string> = {
   er_outbound_messages: "Viestijono: siirto lähettäisi paikallisesti jonoon jääneet viestit tuotannosta.",
   er_letter_jobs: "Kirjetyöt on tehty paikallisesti Postitan jäljitelmällä; tuotannon Postitassa niitä ei ole.",
   er_letters: "Kirjeet kuuluvat paikallisiin kirjetöihin (er_letter_jobs).",
+  er_letter_billing_runs: "Postikulujen laskutusajot koskevat paikallisia kirjetöitä.",
+  er_letter_billing_invoices: "Postikulujen laskut koskevat paikallisia kirjetöitä.",
   er_access_links: "Linkkien tiivisteet on laskettu paikallisella salaisuudella; linkit luodaan tuotannossa uudelleen.",
   er_public_request_forms: "Lomakelinkin token on salattu paikallisella avaimella; linkki luodaan tuotannossa uudelleen.",
   er_rate_limits: "Kutsurajoittimen tilapäinen tila.",

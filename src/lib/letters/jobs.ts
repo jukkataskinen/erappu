@@ -2,6 +2,7 @@ import type { Sql } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { isPostitaError, type PostClass, type PostitaClient, type PostitaJob } from "@/lib/postita";
 import { buildLetterBatch, LetterPdfError, type LetterContent } from "./pdf";
+import { chargeFor, letterPricesFrom, MISSING_LETTER_PRICES, type LetterPrices } from "./pricing";
 
 /**
  * Kirjetyöt Postitaan. Kulku (sama kuin Mittarilukemassa):
@@ -34,6 +35,8 @@ export interface LetterSource {
   subjectId: string;
   /** Työn nimi Postitassa. Ei henkilötietoja. */
   jobName: string;
+  /** Mitä postitettiin, taloyhtiön laskun riville (esim. "Kokouskutsu: yhtiökokous 20.10.2026"). Ei henkilötietoja. */
+  description: string;
   sender: string[];
   date: string;
   content: LetterContent;
@@ -51,6 +54,8 @@ export interface LetterJobRow {
   letter_count: number;
   pages_per_letter: number;
   price: string | null;
+  charge_total_eur: string | null;
+  billing_invoice_id: string | null;
   created_at: string;
   created_by_name: string | null;
   confirmed_at: string | null;
@@ -72,7 +77,7 @@ const PROVIDER = { http: "postita", mock: "mock" } as const;
 export async function listLetterJobs(tx: Sql, subjectTable: LetterSubjectTable, subjectId: string): Promise<LetterJobRow[]> {
   return tx.query<LetterJobRow>(
     `select j.id, j.provider, j.provider_job_id, j.status, j.post_class, j.letter_count, j.pages_per_letter, j.price::text as price,
-            j.created_at, coalesce(cu.full_name, cu.email) as created_by_name, j.confirmed_at, coalesce(fu.full_name, fu.email) as confirmed_by_name, j.cancelled_at
+            j.charge_total_eur::text as charge_total_eur, j.billing_invoice_id, j.created_at, coalesce(cu.full_name, cu.email) as created_by_name, j.confirmed_at, coalesce(fu.full_name, fu.email) as confirmed_by_name, j.cancelled_at
        from er_letter_jobs j
        left join er_users cu on cu.id = j.created_by
        left join er_users fu on fu.id = j.confirmed_by
@@ -124,10 +129,10 @@ export async function uploadLetters(
     );
     if (open.length) throw new LetterError("Kirjeet odottavat jo vahvistusta. Vahvista tai peru edellinen työ ensin.");
     const [job] = await tx.query<{ id: string }>(
-      `insert into er_letter_jobs (organization_id, company_id, subject_table, subject_id, provider, post_class, letter_count, pages_per_letter, created_by)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
+      `insert into er_letter_jobs (organization_id, company_id, subject_table, subject_id, provider, post_class, letter_count, pages_per_letter, created_by, description)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
       [source.organizationId, source.companyId, source.subjectTable, source.subjectId, PROVIDER[client.mode], input.postClass, source.recipients.length,
-        built.pagesPerLetter, input.userId],
+        built.pagesPerLetter, input.userId, source.description.slice(0, 200)],
     );
     try {
       for (const r of source.recipients) {
@@ -176,13 +181,28 @@ export async function uploadLetters(
 
 async function loadJob(run: Runner, jobId: string) {
   const [job] = await run((tx) =>
-    tx.query<{ id: string; organization_id: string; provider: string; provider_job_id: string | null; status: string; subject_table: string; subject_id: string }>(
-      "select id, organization_id, provider, provider_job_id, status, subject_table, subject_id from er_letter_jobs where id = $1",
+    tx.query<{
+      id: string; organization_id: string; provider: string; provider_job_id: string | null; status: string; subject_table: string; subject_id: string;
+      post_class: 1 | 2; letter_count: number; pages_per_letter: number; charge_total_eur: string | null; billing_invoice_id: string | null;
+      settings: { letter_prices?: Record<string, unknown> } | null;
+    }>(
+      `select j.id, j.organization_id, j.provider, j.provider_job_id, j.status, j.subject_table, j.subject_id, j.post_class, j.letter_count, j.pages_per_letter,
+              j.charge_total_eur::text as charge_total_eur, j.billing_invoice_id, o.settings
+         from er_letter_jobs j join er_organizations o on o.id = j.organization_id where j.id = $1`,
       [jobId],
     ),
   );
   if (!job) throw new LetterError("Kirjetyötä ei löytynyt.");
-  return job;
+  return { ...job, prices: letterPricesFrom(job.settings) };
+}
+
+/** Veloitus lukitaan kirjetyölle vahvistushetkellä: myöhempi hinnanmuutos ei muuta postitetun veloitusta. */
+async function lockCharge(tx: Sql, job: { id: string; post_class: 1 | 2; letter_count: number; pages_per_letter: number }, prices: LetterPrices) {
+  const c = chargeFor(prices, job.post_class, job.letter_count, job.pages_per_letter);
+  await tx.query(
+    "update er_letter_jobs set charge_letter_eur = $2, charge_page_eur = $3, charge_total_eur = $4 where id = $1 and charge_total_eur is null",
+    [job.id, c.letterEur, c.pageEur, c.totalEur],
+  );
 }
 
 function assertProvider(client: PostitaClient, provider: string) {
@@ -195,6 +215,9 @@ function assertProvider(client: PostitaClient, provider: string) {
 export async function confirmLetters(run: Runner, client: PostitaClient, input: { userId: string; jobId: string }): Promise<number> {
   const job = await loadJob(run, input.jobId);
   if (job.status !== "NE" || !job.provider_job_id) throw new LetterError("Vain vahvistamattoman työn voi vahvistaa.");
+  // Postitus menee taloyhtiön maksettavaksi, joten ilman hintaa sitä ei vahvisteta.
+  const prices = job.prices;
+  if (!prices) throw new LetterError(MISSING_LETTER_PRICES);
   assertProvider(client, job.provider);
   let result: PostitaJob;
   try {
@@ -208,6 +231,7 @@ export async function confirmLetters(run: Runner, client: PostitaClient, input: 
       "update er_letter_jobs set status = $2, price = coalesce($3, price), confirmed_at = now(), confirmed_by = $4, updated_at = now() where id = $1",
       [job.id, result.status === "NE" ? "CO" : result.status, result.price, input.userId],
     );
+    await lockCharge(tx, job, prices);
     const rows = await tx.query("update er_letters set status = 'confirmed' where job_id = $1 and status = 'reserved' returning id", [job.id]);
     await audit(tx, { organizationId: job.organization_id, userId: input.userId, action: "letters_confirm", entity: "letter_job", entityId: job.id, details: { letters: rows.length, status: result.status } });
     return rows.length;
@@ -218,6 +242,7 @@ export async function confirmLetters(run: Runner, client: PostitaClient, input: 
 export async function cancelLetters(run: Runner, client: PostitaClient, input: { userId: string; jobId: string }): Promise<void> {
   const job = await loadJob(run, input.jobId);
   if ((job.status !== "NE" && job.status !== "CO") || !job.provider_job_id) throw new LetterError("Työtä ei voi enää perua.");
+  if (job.billing_invoice_id) throw new LetterError("Postitus on jo laskutusajossa. Poista laskutusajo ennen peruutusta.");
   // Testitilan työn voi perua aina: Postitassa ei ole mitään peruttavaa.
   if (job.provider !== "mock") {
     assertProvider(client, job.provider);
@@ -254,7 +279,12 @@ export async function refreshLetterJob(run: Runner, client: PostitaClient, input
   await run(async (tx) => {
     await tx.query("update er_letter_jobs set status = $2, price = coalesce($3, price), updated_at = now() where id = $1", [job.id, info.status, info.price]);
     if (info.status === "CA") await tx.query("update er_letters set status = 'cancelled' where job_id = $1", [job.id]);
-    else if (info.status !== "NE") await tx.query("update er_letters set status = 'confirmed' where job_id = $1 and status = 'reserved'", [job.id]);
+    else if (info.status !== "NE") {
+      await tx.query("update er_letters set status = 'confirmed' where job_id = $1 and status = 'reserved'", [job.id]);
+      // Vahvistettu Postitan omassa palvelussa: veloitus lukitaan nyt, jos hinnat on asetettu.
+      await tx.query("update er_letter_jobs set confirmed_at = coalesce(confirmed_at, now()) where id = $1", [job.id]);
+      if (job.prices) await lockCharge(tx, job, job.prices);
+    }
     await audit(tx, { organizationId: job.organization_id, userId: input.userId, action: "letters_status", entity: "letter_job", entityId: job.id, details: { from: job.status, to: info.status } });
   });
   return info.status;

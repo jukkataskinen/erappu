@@ -75,6 +75,8 @@ Merkinnät: `[x]` valmis, `[ ]` tekemättä, `[~]` kesken tai odottaa estettä (
 - [x] Isännöitsijäntodistus PDF (VNa 365/2010 -rakenne), todistustilaukset julkisella lomakkeella
 - [x] Paperikutsut Postita.fi:n kautta (Jukka 25.9.2026, 0120): ikkunakirjeen etusivu Postitan mittoihin ja lähetetty kutsu liitteineen, lataus vahvistamattomana, vahvistus ja peruutus kokoussivulta, kirjekohtainen tila ja osoite talteen, puutteelliset osoitteet näkyvät. `src/lib/postita` (mock oletuksena), `src/lib/letters`
 - [~] Postita-tili ja tunnukset tuotantoon (`POSTITA_MODE=http`) – BLOCKERS 15
+- [x] Postikulut taloyhtiöiltä (Jukka 26.9.2026, 0121): organisaation kirjehinnat asetuksiin, hinta lukitaan postitukselle vahvistettaessa, laskurit yhtiöittäin (`/postikulut`), laskutusajo jaksolta (oletus edellinen vuosineljännes), yksi lasku yhtiötä kohden ja rivi postitusta kohden, taloyhtiön laskutustiedot (Fennoan asiakasnumero, laskukanava ilman oletusta), vienti Fennoaan luonnoksina (mock/test) ja CSV-erittely
+- [~] Postikulujen vienti Fennoan tuotantoon (Adepta Tilat) – BLOCKERS 16
 - [x] Widgetit ja testit
 - [~] Todistuksen toimitustapa ja verkkomaksu – BLOCKERS 9 (pohjat hyväksytty 23.9.2026, hinnasto poistettu: hinta organisaation asetuksista)
 

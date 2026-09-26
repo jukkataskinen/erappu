@@ -112,6 +112,10 @@ function meetingContent(plan: MeetingLetterPlan) {
   };
 }
 
+function meetingLabel(plan: MeetingLetterPlan) {
+  return `${MEETING_KIND[plan.meeting.kind].toLowerCase()} ${new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(plan.meeting.starts_at))}`;
+}
+
 /** Kirjetyön lähde: suunnitelma, kutsun PDF ja kirjeen teksti. */
 export async function loadMeetingLetterSource(run: Runner, meetingId: string): Promise<LetterSource> {
   const plan = await run((tx) => planMeetingLetters(tx, meetingId));
@@ -123,7 +127,8 @@ export async function loadMeetingLetterSource(run: Runner, meetingId: string): P
     companyId: plan.meeting.company_id,
     subjectTable: "er_meetings",
     subjectId: meetingId,
-    jobName: `${plan.sender.companyName}: ${MEETING_KIND[plan.meeting.kind].toLowerCase()} ${new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki" }).format(new Date(plan.meeting.starts_at))}`.slice(0, 200),
+    jobName: `${plan.sender.companyName}: ${meetingLabel(plan)}`.slice(0, 200),
+    description: `Kokouskutsu: ${meetingLabel(plan)}`,
     sender: plan.sender.lines!,
     date: isoDateHelsinki(),
     content: meetingContent(plan),
@@ -137,7 +142,7 @@ export async function loadMeetingLetterSource(run: Runner, meetingId: string): P
  * vastaanottaja ja alueet piirrettyinä, jotta asettelun voi tarkistaa
  * tulostamalla ja taittamalla kirjeen ikkunakuoreen.
  */
-export async function loadMeetingLetterPreview(run: Runner, meetingId: string, calibration: boolean): Promise<Omit<LetterSource, "organizationId" | "companyId" | "subjectTable" | "subjectId" | "jobName">> {
+export async function loadMeetingLetterPreview(run: Runner, meetingId: string, calibration: boolean): Promise<Omit<LetterSource, "organizationId" | "companyId" | "subjectTable" | "subjectId" | "jobName" | "description">> {
   const plan = await run((tx) => planMeetingLetters(tx, meetingId));
   if (!plan) throw new LetterError("Kokousta ei löytynyt.");
   if (!plan.sender.lines) throw new LetterError(MISSING_SENDER_ADDRESS);

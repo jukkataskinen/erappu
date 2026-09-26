@@ -93,6 +93,7 @@ export async function loadAnnouncementLetterSource(run: Runner, announcementId: 
     subjectTable: "er_announcements",
     subjectId: announcementId,
     jobName: `${plan.sender.companyName}: ${plan.announcement.title}`.slice(0, 200),
+    description: `Tiedote: ${plan.announcement.title}`,
     sender: plan.sender.lines!,
     date: isoDateHelsinki(),
     content: announcementContent(plan),

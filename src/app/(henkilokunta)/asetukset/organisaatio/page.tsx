@@ -13,6 +13,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   const org = await ctx.run((tx) => getOrganization(tx, ctx.org.organizationId));
   const contact = org?.settings.contact ?? {};
   const prices = org?.settings.certificate_prices ?? {};
+  const letters = org?.settings.letter_prices ?? {};
   const canEdit = ctx.can("owner");
 
   return (
@@ -73,6 +74,28 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
               </div>
             </div>
             <div>
+              <SectionTitle>Kirjeiden hinnat taloyhtiöille</SectionTitle>
+              <p className="mb-3 text-sm text-ink/60">
+                Postitukset (paperikutsut ja tiedotteet Postitan kautta) laskutetaan taloyhtiöltä näillä hinnoilla. Hinnat ovat verottomia; arvonlisävero lisätään
+                laskulle. Hinta lukitaan postitukselle, kun postitus vahvistetaan. Ilman kirjehintaa postitusta ei voi vahvistaa. Postitan oma hinta on 2,34 € (2. lk)
+                tai 3,27 € (1. lk) ja lisäsivu 0,16 €.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Kirje 2. luokka (€, alv 0)" htmlFor="letter_class2_eur">
+                  <Input id="letter_class2_eur" name="letter_class2_eur" inputMode="decimal" defaultValue={letters.class2_eur ?? ""} />
+                </Field>
+                <Field label="Kirje 1. luokka (€, alv 0)" htmlFor="letter_class1_eur">
+                  <Input id="letter_class1_eur" name="letter_class1_eur" inputMode="decimal" defaultValue={letters.class1_eur ?? ""} />
+                </Field>
+                <Field label="Lisäsivu (€, alv 0)" htmlFor="letter_extra_page_eur" hint="Ensimmäisen sivun jälkeen. Tyhjä = ei veloitusta.">
+                  <Input id="letter_extra_page_eur" name="letter_extra_page_eur" inputMode="decimal" defaultValue={letters.extra_page_eur ?? ""} />
+                </Field>
+                <Field label="Arvonlisävero (%)" htmlFor="letter_vat_percent" hint="Tyhjä = 25,5 %.">
+                  <Input id="letter_vat_percent" name="letter_vat_percent" inputMode="decimal" defaultValue={letters.vat_percent ?? ""} />
+                </Field>
+              </div>
+            </div>
+            <div>
               <Button>Tallenna</Button>
             </div>
           </form>
@@ -92,6 +115,9 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
                 label: "Todistus liitteineen",
                 value: prices.with_attachments_eur != null ? formatEur(prices.with_attachments_eur) : prices.standard_eur != null ? "Sama kuin todistus" : null,
               },
+              { label: "Kirje 2. luokka (alv 0)", value: letters.class2_eur != null ? formatEur(letters.class2_eur) : null },
+              { label: "Kirje 1. luokka (alv 0)", value: letters.class1_eur != null ? formatEur(letters.class1_eur) : null },
+              { label: "Lisäsivu (alv 0)", value: letters.extra_page_eur != null ? formatEur(letters.extra_page_eur) : null },
             ]}
           />
           <p className="mt-4 text-sm text-ink/60">Organisaation tietoja muuttaa pääkäyttäjä.</p>

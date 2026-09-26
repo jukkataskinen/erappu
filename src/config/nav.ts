@@ -25,6 +25,8 @@ export const STAFF_NAV: NavItem[] = [
 /** Alaosa: organisaatiotason asiat, jotka eivät kuulu yhteen yhtiöön. */
 export const STAFF_NAV_ORG: NavItem[] = [
   { href: "/palveluntuottajat", label: "Palveluntuottajat", icon: "users" },
+  // Postitusten laskutus taloyhtiöiltä (Jukka 26.9.2026).
+  { href: "/postikulut", label: "Postikulut", icon: "coins", roles: ["owner", "manager", "accountant"] },
   { href: "/asetukset", label: "Asetukset", icon: "gear", roles: ["owner", "manager"] },
 ];
 

@@ -35,8 +35,8 @@ export function LetterJobs({
   return (
     <div className="mt-4 grid gap-3" id="kirjeet">
       <p className="text-xs text-ink/55">
-        Kirjeet postittaa Postita.fi: tulostus mustavalkoisena, isoikkunainen C5-kuori ja postimaksu {formatEur(LETTER_PRICE_EUR[2])} (2. lk) tai {formatEur(LETTER_PRICE_EUR[1])} (1. lk)
-        kirjeeltä alv 0, lisäsivut 0,16 €. Kirjeet ladataan ensin vahvistamattomina, ja postitus vahvistetaan vasta, kun vedos on tarkistettu. Vahvistetut lähtevät seuraavana
+        Kirjeet postittaa Postita.fi: tulostus mustavalkoisena, isoikkunainen C5-kuori ja postimaksu (Postitan hinta {formatEur(LETTER_PRICE_EUR[2])} 2. lk tai {formatEur(LETTER_PRICE_EUR[1])}
+        1. lk kirjeeltä alv 0, lisäsivu 0,16 €). Kirjeet ladataan ensin vahvistamattomina, ja postitus vahvistetaan vasta, kun vedos on tarkistettu. Vahvistetut lähtevät seuraavana
         arkipäivänä.
         {mock ? " Kirjepalvelu on testitilassa: mitään ei tulosteta eikä lähetetä." : ""}
       </p>
@@ -63,9 +63,11 @@ export function LetterJobs({
                 {j.status === "CA" || j.status === "failed"
                   ? ""
                   : j.price !== null
-                    ? `, ${formatEur(j.price)} alv 0`
-                    : `, arvio ${formatEur(estimatePrice(j.letter_count, j.pages_per_letter, j.post_class))} alv 0`}
+                    ? `, Postita ${formatEur(j.price)} alv 0`
+                    : `, Postita arviolta ${formatEur(estimatePrice(j.letter_count, j.pages_per_letter, j.post_class))} alv 0`}
+                {j.charge_total_eur !== null && j.status !== "CA" ? `, veloitus yhtiöltä ${formatEur(j.charge_total_eur)} alv 0` : ""}
               </span>
+              {j.billing_invoice_id ? <Badge tone="ok">Laskutettu</Badge> : null}
               {j.provider === "mock" ? <Badge>Testitila</Badge> : null}
             </div>
             <p className="mt-1 text-xs text-ink/55">
@@ -84,7 +86,7 @@ export function LetterJobs({
                     <Button>Vahvista postitus</Button>
                   </form>
                 ) : null}
-                {j.status === "NE" || j.status === "CO" ? (
+                {(j.status === "NE" || j.status === "CO") && !j.billing_invoice_id ? (
                   <form action={cancelLetterJobAction}>
                     <input type="hidden" name="job_id" value={j.id} />
                     <input type="hidden" name="back" value={back} />
@@ -112,14 +114,14 @@ export function LetterJobs({
           ))}
           <Field label="Postiluokka" htmlFor="post_class">
             <Select id="post_class" name="post_class" defaultValue="2">
-              <option value="2">2. luokka, {formatEur(LETTER_PRICE_EUR[2])}</option>
-              <option value="1">1. luokka, {formatEur(LETTER_PRICE_EUR[1])}</option>
+              <option value="2">2. luokka</option>
+              <option value="1">1. luokka</option>
             </Select>
           </Field>
           <Button>
             Lataa {readyCount} {readyCount === 1 ? "kirje" : "kirjettä"} Postitaan
           </Button>
-          <p className="w-full text-xs text-ink/55">Kirjeet eivät lähde vielä: ne odottavat vahvistusta. Perusmaksu 2. luokassa yhteensä noin {formatEur(estimatePrice(readyCount, 1, 2))} alv 0 ilman lisäsivuja.</p>
+          <p className="w-full text-xs text-ink/55">Kirjeet eivät lähde vielä: ne odottavat vahvistusta. Postitus laskutetaan taloyhtiöltä organisaation kirjehinnalla, joka lukitaan vahvistettaessa.</p>
         </form>
       ) : blocker && canManage && readyCount > 0 ? (
         <p className="text-sm text-ink/65">{blocker}</p>

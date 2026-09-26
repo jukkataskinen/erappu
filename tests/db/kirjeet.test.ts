@@ -35,7 +35,7 @@ beforeAll(async () => {
   storagePath = stored.storagePath;
   await db.asService(async (tx) => {
     await tx.query(
-      `update er_organizations set settings = settings || '{"contact": {"street_address": "Toimistokatu 1", "postal_code": "40100", "city": "Jyväskylä"}}'::jsonb where id = $1`,
+      `update er_organizations set settings = settings || '{"contact": {"street_address": "Toimistokatu 1", "postal_code": "40100", "city": "Jyväskylä"}, "letter_prices": {"class1_eur": 3.9, "class2_eur": 2.9, "extra_page_eur": 0.2}}'::jsonb where id = $1`,
       [f.orgA],
     );
     const g1 = (await one<{ id: string }>(tx, "insert into er_share_groups (organization_id, company_id, unit_label) values ($1,$2,'A 1') returning id", [f.orgA, f.companyA])).id;
@@ -89,7 +89,18 @@ describe("kokouskutsun kirjeet", () => {
     await expect(loadMeetingLetterSource(run, meetingId)).rejects.toThrow(/odottaa vahvistusta/);
     await expect(uploadLetters(run, client, { userId: f.managerA.id, source, postClass: 2 })).rejects.toBeInstanceOf(LetterError);
 
+    // Ilman kirjehintaa postitusta ei vahvisteta, koska se laskutetaan taloyhtiöltä.
+    await db.asService((tx) => tx.query("update er_organizations set settings = settings - 'letter_prices' where id = $1", [f.orgA]));
+    await expect(confirmLetters(run, client, { userId: f.managerA.id, jobId: up.jobId })).rejects.toThrow(/kirjeiden hinnat/);
+    expect(client.jobs.get(up.job.id)?.status).toBe("NE");
+    await db.asService((tx) =>
+      tx.query(`update er_organizations set settings = settings || '{"letter_prices": {"class1_eur": 3.9, "class2_eur": 2.9, "extra_page_eur": 0.2}}'::jsonb where id = $1`, [f.orgA]),
+    );
+
     expect(await confirmLetters(run, client, { userId: f.managerA.id, jobId: up.jobId })).toBe(1);
+    // Veloitus lukittu: 1 kirje × 2,90 + 2 lisäsivua × 0,20.
+    const [charged] = await run((tx) => tx.query<{ charge_total_eur: string; description: string }>("select charge_total_eur::text, description from er_letter_jobs where id = $1", [up.jobId]));
+    expect(charged).toEqual({ charge_total_eur: "3.30", description: expect.stringMatching(/^Kokouskutsu: varsinainen yhtiökokous /) });
     const letters = await run((tx) => tx.query<{ status: string; address_lines: string[] }>("select status, address_lines from er_letters where job_id = $1", [up.jobId]));
     expect(letters).toEqual([{ status: "confirmed", address_lines: ["Pekka Paperi", "Kotikatu 1 A 2", "41660 Toivakka"] }]);
 
@@ -112,6 +123,7 @@ describe("peruutus ja epäonnistuminen", () => {
     subjectTable: "er_announcements",
     subjectId,
     jobName: "As Oy Testi A: tiedote",
+    description: "Tiedote: Vesikatko",
     sender: ["As Oy Testi A", "c/o Isännöinti A", "Toimistokatu 1", "40100 Jyväskylä"],
     date: "2026-09-25",
     content: { title: "Tiedote", paragraphs: ["Teksti."], signature: [], footer: "Isännöinti A" },
